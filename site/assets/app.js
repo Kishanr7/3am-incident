@@ -50,6 +50,7 @@
     installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; if (!S) renderHome(); });
   });
 
+  let openLevel = ''; // which practice level is unfolded (this visit only)
   // ---------------- home ----------------
   function renderHome() {
     document.title = '3 a.m. Incident: a daily data mystery';
@@ -66,12 +67,11 @@
       return `<a class="day ${solved ? 'solved' : ''} ${d === t ? 'today' : ''}" href="#/daily/${d}" aria-label="Daily #${m.no}, ${U.fmtDay(d)}, ${m.co.name}${solved ? ', solved' : ''}">
         <span>${U.fmtDay(d).slice(0, 3)}</span><b>#${m.no}</b><span class="st">${solved ? '✓' : r && r.timeline.length ? '•' : '&nbsp;'}</span></a>`;
     }).join('');
-    let lvl = 'easy'; try { lvl = localStorage.getItem('tai.lvl') || 'easy'; } catch (e) { /* default */ }
-    if (!TAI.LEVELS[lvl]) lvl = 'easy';
+    const lvl = TAI.LEVELS[openLevel] ? openLevel : ''; // folded on every visit until a level is tapped
     const done = { easy: 0, medium: 0, hard: 0 };
     for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) { const r = TAI.store.get('p' + n); if (r && r.solved) done[TAI.practiceMeta(n).level]++; }
     let lib = '';
-    for (let n = TAI.LEVELS[lvl][0]; n <= TAI.LEVELS[lvl][1]; n++) {
+    if (lvl) for (let n = TAI.LEVELS[lvl][0]; n <= TAI.LEVELS[lvl][1]; n++) {
       const pm = TAI.practiceMeta(n); const r = TAI.store.get('p' + n);
       const st2 = r && r.solved ? 'solved' : r && r.timeline.length ? 'started' : '';
       lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}, ${esc(pm.tpl.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
@@ -102,8 +102,8 @@
 
         <h2 id="practice">Practice library</h2>
         <p class="small muted" style="margin-top:-4px">100 cases to train on, any time. Easy has fewer distractions. Hard removes two checks, so you write some SQL yourself.</p>
-        <div class="tabs" role="tablist" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button role="tab" class="tab" data-l="${l}" aria-selected="${l === lvl}">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
-        <nav class="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>
+        <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
+        ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : '<p class="small muted" id="lib" style="margin:0">Pick a level to see its cases.</p>'}
 
         <h2>Case files</h2>
         <div class="files">
@@ -130,7 +130,7 @@
         <footer>Made by Kishan · fictional companies and data · no account, no tracking</footer>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
-    document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { try { localStorage.setItem('tai.lvl', b.dataset.l); } catch (e) { /* ignore */ } const y = scrollY; renderHome(); scrollTo(0, y); const t2 = document.querySelector('.tab[data-l="' + b.dataset.l + '"]'); if (t2) t2.focus(); }; });
+    document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { const open = b.getAttribute('aria-expanded') === 'true'; openLevel = open ? '' : b.dataset.l; const y = scrollY; renderHome(); scrollTo(0, y); const t2 = document.querySelector('.tab[data-l="' + b.dataset.l + '"]'); if (t2) t2.focus(); }; });
   }
 
   function showStats() {
@@ -412,6 +412,15 @@
   window.addEventListener('hashchange', route);
   route();
   window.__tai = { get state() { return S; } };
+  // Netlify's free plan can add a fixed "Powered by Netlify" badge (#nl-badge-frame) at the bottom right.
+  // If it's there, lift the bottom bar above it so it never covers Byte or Report.
+  function clearBadge() {
+    const f = document.getElementById('nl-badge-frame');
+    const h = f && f.getBoundingClientRect().height ? Math.ceil(f.getBoundingClientRect().height) + 6 : 0;
+    document.documentElement.style.setProperty('--badge', h + 'px');
+  }
+  new MutationObserver(clearBadge).observe(document.body, { childList: true });
+  window.addEventListener('resize', clearBadge); setTimeout(clearBadge, 1500); clearBadge();
   // Installable app + offline play (iPhone: Share > Add to Home Screen; Android: Install app).
   if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* still playable online */ }); });
