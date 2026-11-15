@@ -1,7 +1,7 @@
 /* 3 a.m. Incident service worker: lets the game install to a home screen and run offline.
    Own files: network first (so updates arrive), cache as the offline fallback.
    The SQL engine from cdnjs: cache first (its URL is versioned and never changes). */
-const VERSION = 'tai-v6';
+const VERSION = 'tai-v7';
 const CORE = ['./', 'index.html', 'assets/app.css', 'assets/engine.js', 'assets/cases.js', 'assets/cases2.js', 'assets/cast.js', 'assets/app.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'case-1/'];
 const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';

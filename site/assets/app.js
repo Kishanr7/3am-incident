@@ -94,6 +94,7 @@
             <li><span aria-hidden="true">🔎</span>Tap to check the data</li>
             <li><span aria-hidden="true">💬</span>Say what went wrong</li>
           </ol>
+          <button class="btn link how" id="howBtn" type="button">How it works</button>
         </section>
 
         <section class="card hero" aria-labelledby="todayTitle">
@@ -403,6 +404,52 @@
     document.getElementById('copy').focus({ preventScroll: true });
   }
 
+
+  // ---------------- first-visit tour ----------------
+  // Three short screens, shown once per device (tai.toured). Reopen from "How it works" on the home page.
+  function tourSeen() { try { return localStorage.getItem('tai.toured') === '1'; } catch (e) { return true; } }
+  function showTour() {
+    if (document.querySelector('dialog.tour[open]')) return;
+    const steps = [
+      { art: `<div class="tmock"><div class="msg alert">${av('alert')}<div class="bubble"><span class="name">#data-alerts · 03:12</span>Orders: −35% vs normal. All jobs: SUCCESS.</div></div><div class="msg">${av('maya')}<div class="bubble"><span class="name">Maya · 08:10</span>Is this real, or is the dashboard lying?</div></div></div>`,
+        title: 'Something looks wrong', text: 'Each morning a number on the dashboard looks off, and your boss Maya wants to know why before the 9:00 meeting.' },
+      { art: `<div class="tmock"><div class="tpick"><span>Logs</span>When did each source’s data arrive?</div><div class="tpick"><span>Raw data</span>Orders for yesterday, by source</div><div class="tclock">🕗 Each check: +5 min · 🐾 Byte has hints</div></div>`,
+        title: 'Tap to check the data', text: 'Pick what to look at. Each check runs a real SQL query on a small, made-up database. No typing needed.' },
+      { art: `<div class="tmock"><div class="topt">The iOS data arrived late, after the nightly job ran</div><div class="topt on">✓ Real orders: 674</div><div class="tclock">🔥 New case every day · keep your streak</div></div>`,
+        title: 'Tell Maya what happened', text: 'Choose the cause and the real number. Get it right before 9:00. A new case comes every day, plus 100 practice cases.' },
+    ];
+    const onCase = () => /^#\/(daily|practice)\//.test(location.hash); // a case link, even while it loads
+    const dlg = document.createElement('dialog');
+    dlg.className = 'tour';
+    dlg.setAttribute('aria-label', 'How 3 a.m. Incident works');
+    let i = 0;
+    const finish = () => { try { localStorage.setItem('tai.toured', '1'); } catch (e) { /* shown again next visit */ } if (dlg.open) dlg.close(); dlg.remove(); };
+    function draw() {
+      const s = steps[i], last = i === steps.length - 1;
+      dlg.innerHTML = `<div class="tart">${s.art}</div>
+        <p class="tstep">${i + 1} of ${steps.length}</p>
+        <h2>${s.title}</h2><p>${s.text}</p>
+        <div class="tdots" aria-hidden="true">${steps.map((_, j) => `<span class="${j === i ? 'on' : ''}"></span>`).join('')}</div>
+        <div class="row tnav">
+          ${i ? '<button class="btn" id="tBack" type="button">Back</button>' : '<button class="btn link" id="tSkip" type="button">Skip</button>'}
+          <button class="btn primary" id="tNext" type="button">${last ? (onCase() ? 'Start' : 'Play today’s case') : 'Next'}</button>
+        </div>`;
+      const b = dlg.querySelector('#tBack'), k = dlg.querySelector('#tSkip');
+      if (b) b.onclick = () => { i--; draw(); };
+      if (k) k.onclick = finish;
+      dlg.querySelector('#tNext').onclick = () => {
+        if (!last) { i++; draw(); return; }
+        finish();
+        if (!onCase()) location.hash = '#/daily/' + today();
+      };
+      dlg.querySelector('#tNext').focus();
+    }
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); finish(); }); // Esc key
+    dlg.addEventListener('close', finish);
+    document.body.appendChild(dlg); draw(); dlg.showModal();
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#howBtn')) showTour(); });
+
   // ---------------- router ----------------
   function route() {
     if (S && S.db) { S.db.close(); S = null; }
@@ -415,6 +462,7 @@
   }
   window.addEventListener('hashchange', route);
   route();
+  if (!tourSeen()) showTour();
   window.__tai = { get state() { return S; } };
   // Netlify's free plan can add a fixed "Powered by Netlify" badge (#nl-badge-frame) at the bottom right.
   // If it's there, lift the bottom bar above it so it never covers Byte or Report.
