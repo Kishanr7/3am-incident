@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>3 a.m. Incident</title>
 <meta name="description" content="A data-engineering mystery. The CFO's dashboard says revenue fell by a third. Every job is green. Find out why before the 9 a.m. board deck.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23e8a33d'/%3E%3Cpath d='M16 7v9l6 4' stroke='%23111' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -76,6 +77,8 @@ input[type=text]{width:100%;max-width:220px;background:var(--code);border:1px so
 pre.share{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:12px;font:14px/1.5 var(--mono);white-space:pre-wrap}
 .dialog ul{padding-left:20px}.dialog li{margin:4px 0}
 .loading{padding:40px 16px;text-align:center;color:var(--mute)}
+.pilot{background:var(--code);border-bottom:1px solid var(--line);padding:7px 16px;font-size:.85rem;color:var(--mute);text-align:center}
+.pilot b{color:var(--ink)}
 kbd{font:12px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--code)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 footer{max-width:1500px;margin:0 auto;padding:0 16px 30px;color:var(--mute);font-size:.82rem}
@@ -90,6 +93,8 @@ footer{max-width:1500px;margin:0 auto;padding:0 16px 30px;color:var(--mute);font
     <div><span>hints </span><b id="hcount">0</b>/4</div>
   </div>
 </header>
+
+<div class="pilot"><b>Private pilot.</b> Fictional company, fake data, nothing leaves your browser. Best on a laptop. Please don't post the link publicly yet.</div>
 
 <div id="boot" class="loading" role="status">Waking up the warehouse…</div>
 
@@ -178,6 +183,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 16px 30px;color:var(--mute);font
     <div class="big" id="done-head"></div>
     <pre class="share" id="share"></pre>
     <div class="row"><button class="btn primary" id="copy">Copy result</button><button class="btn" id="close">Keep exploring</button><span class="hint-k" id="copied" aria-live="polite"></span></div>
+    <p class="hint-k" style="margin-top:14px"><b>You're one of the first players.</b> Please send your result line and a few honest words (what was fun, where you got stuck, would you play a new case daily?) to the person who shared this link.</p>
     <div id="debrief"></div>
   </div>
 </div>
