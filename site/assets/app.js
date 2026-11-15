@@ -224,7 +224,12 @@
   function renderCase() {
     const { c, rec } = S;
     document.title = `${S.label} · 3 a.m. Incident`;
-    const intro = c.intro.map((m) => `<div class="msg ${m.who === 'alert' ? 'alert' : ''}">${av(m.who)}<div class="bubble"><span class="name">${esc(CAST[m.who].name)}${m.who === 'alert' ? ' · 03:12' : ' · 08:1' + (m.who === 'maya' ? '0' : '2')}</span>${esc(m.text)}</div></div>`).join('');
+    // Alerts fire at 03:12; people start messaging at 08:10, two minutes apart, in the order shown.
+    let chatMin = 10;
+    const intro = c.intro.map((m) => {
+      const at = m.who === 'alert' ? '03:12' : '08:' + U.pad((chatMin += 2) - 2);
+      return `<div class="msg ${m.who === 'alert' ? 'alert' : ''}">${av(m.who)}<div class="bubble"><span class="name">${esc(CAST[m.who].name)} · ${at}</span>${esc(m.text)}</div></div>`;
+    }).join('');
     const schema = c.tables.map((tb) => `<b>${tb.name}</b>(${tb.cols.map((x) => x[0]).join(', ')})`).join('<br>');
     app.innerHTML = `
       <div class="wrap">

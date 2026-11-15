@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Font comparison</title>
+<style>
+@font-face{font-family:"Fraunces";src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/fraunces@5.3.0/files/fraunces-latin-soft-normal.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/bricolage-grotesque@5.3.0/files/bricolage-grotesque-latin-wght-normal.woff2) format("woff2");font-weight:200 800;font-display:swap}
+@font-face{font-family:"Lato";src:url(https://cdn.jsdelivr.net/npm/@fontsource/lato@5.3.0/files/lato-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Lato";src:url(https://cdn.jsdelivr.net/npm/@fontsource/lato@5.3.0/files/lato-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Montserrat";src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/montserrat@5.3.0/files/montserrat-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-display:swap}
+:root{--bg:#f5f3ee;--surface:#fcfbf8;--s2:#ece9e2;--ink:#2b3133;--mute:#5f6866;--line:#dcd8cf;--accent:#2f6f6a;--ai:#fff}
+.dark{--bg:#141a1c;--surface:#1b2326;--s2:#222c30;--ink:#e2e6e4;--mute:#9fa9a6;--line:#2f3a3e;--accent:#86c5ba;--ai:#10201e}
+body{margin:0;background:#ddd;font-family:system-ui}
+.grid{display:grid;grid-template-columns:repeat(5,300px);gap:10px;padding:10px}
+.col{background:var(--bg);color:var(--ink);padding:14px;border-radius:12px}
+.lab{font:700 12px system-ui;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.k{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:1.4rem;line-height:1.22;margin:4px 0 8px}
+h2{font-size:1.05rem;margin:14px 0 6px}
+.b{background:var(--surface);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:8px 12px;font-size:15px;line-height:1.5}
+.n{font-size:.75rem;font-weight:700;color:var(--mute);display:block}
+.o{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:15px}
+.tabs{display:flex;gap:6px}.tab{flex:1;text-align:center;border:1px solid var(--line);border-radius:14px;padding:6px;font-weight:700;background:var(--surface)}
+.tab small{display:block;font-weight:600;color:var(--mute)}
+.btn{display:inline-block;background:var(--accent);color:var(--ai);border-radius:10px;padding:9px 14px;font-weight:700;margin-top:8px}
+.logo{font-weight:800;font-size:1.1rem;margin-bottom:8px}
+/* the three candidates (and today's system font for reference) */
+.sys{font-family:ui-rounded,"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif}
+.A{font-family:"Lato",sans-serif}
+.B{font-family:"Bricolage Grotesque",sans-serif}
+.B h1,.B h2,.B .logo,.C h1,.C h2,.C .logo{font-family:"Fraunces",Georgia,serif;font-variation-settings:"SOFT" 100;font-weight:600;letter-spacing:-.01em}
+.C{font-family:"Lato",sans-serif}
+.D{font-family:"Montserrat",sans-serif}
+</style>
+</head>
+<body>
+<div id="g"></div>
+<script>
+const sample = `
+<div class="logo">🌙 3 a.m. Incident</div>
+<div class="k">Today’s incident · Daily #7 · Sun 15 Nov</div>
+<h1>Lumen’s dashboard says orders fell 35% yesterday.</h1>
+<div class="b"><span class="n">Maya · 08:10</span>Morning. The dashboard says we took 435 orders yesterday. We normally do about 674. Is Lumen falling off a cliff, or is the dashboard lying?</div>
+<div class="b" style="margin-top:8px"><span class="n">Sam · 08:12</span>ok but is this because Friends &amp; Family ended?? i literally SAID don’t stop it 😭</div>
+<h2>What was the real revenue on Fri 16 Jan?</h2>
+<div class="o">$19,867.69</div><div class="o">The new Pebble Pay integration sends amounts in cents, so those payments counted 100 times over.</div>
+<h2>Practice library</h2>
+<div class="tabs"><div class="tab">Easy<small>12/40</small></div><div class="tab">Medium<small>0/35</small></div><div class="tab">Hard<small>3/25</small></div></div>
+<span class="btn">Start investigating</span>`;
+const cols = [['sys', 'Now: system font'], ['A', 'A · Lato'], ['B', 'B · Fraunces + Bricolage'], ['C', 'C · Fraunces + Lato'], ['D', 'D · Montserrat']];
+document.getElementById('g').innerHTML = ['', 'dark'].map((th) => `<div class="grid">${cols.map(([c, l]) => `<div class="col ${c} ${th}"><div class="lab">${l}${th ? ' · dark' : ''}</div>${sample}</div>`).join('')}</div>`).join('');
+document.fonts.ready.then(() => { window.__fontsReady = [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family + ' ' + f.weight); });
+</script>
+</body>
+</html>

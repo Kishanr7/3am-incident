@@ -1,11 +1,14 @@
 /* 3 a.m. Incident service worker: lets the game install to a home screen and run offline.
    Own files: network first (so updates arrive), cache as the offline fallback.
    The SQL engine from cdnjs: cache first (its URL is versioned and never changes). */
-const VERSION = 'tai-v4';
+const VERSION = 'tai-v5';
 const CORE = ['./', 'index.html', 'assets/app.css', 'assets/engine.js', 'assets/cases.js', 'assets/cases2.js', 'assets/cast.js', 'assets/app.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'case-1/'];
 const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';
-const ENGINE = [CDN + 'sql-wasm.js', CDN + 'sql-wasm.wasm'];
+const FONTS = 'https://cdn.jsdelivr.net/npm/@fontsource';
+const ENGINE = [CDN + 'sql-wasm.js', CDN + 'sql-wasm.wasm',
+  FONTS + '-variable/fraunces@5.3.0/files/fraunces-latin-soft-normal.woff2',
+  FONTS + '/lato@5.3.0/files/lato-latin-400-normal.woff2', FONTS + '/lato@5.3.0/files/lato-latin-700-normal.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => Promise.all([
@@ -20,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.href.startsWith(CDN)) {
+  if (url.href.startsWith(CDN) || url.href.startsWith(FONTS)) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { const copy = r.clone(); if (r.ok) caches.open(VERSION).then((c) => c.put(req, copy)); return r; })));
     return;
   }

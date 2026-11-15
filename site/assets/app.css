@@ -1,10 +1,16 @@
+/* Fonts: Fraunces (soft serif) for headings, Lato for text. Open-licence (SIL OFL), served from jsDelivr,
+   cached by the service worker for offline play. Chosen in tools/fontcompare.html. */
+@font-face{font-family:"Fraunces";src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/fraunces@5.3.0/files/fraunces-latin-soft-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Lato";src:url(https://cdn.jsdelivr.net/npm/@fontsource/lato@5.3.0/files/lato-latin-400-normal.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Lato";src:url(https://cdn.jsdelivr.net/npm/@fontsource/lato@5.3.0/files/lato-latin-700-normal.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
 /* Palette: research-led for calm. Low saturation, soft (not pure) white and black,
    blue-green hues, which rate as the most pleasant and least arousing. See README "Colour". */
 :root{
   --bg:#f5f3ee;--surface:#fcfbf8;--surface-2:#ece9e2;--ink:#2b3133;--mute:#5f6866;--line:#dcd8cf;--code:#efece6;
   --accent:#2f6f6a;--accent-ink:#ffffff;--ok:#2e6b4f;--ok-bg:#e1efe7;--bad:#a1453a;--bad-bg:#f6e4e0;--key:#3b6a8f;--paw:#7a5718;--focus:#3b6a8f;
   --shadow:0 1px 2px rgba(30,45,45,.05),0 4px 14px rgba(30,45,45,.05);
-  --sans:ui-rounded,"SF Pro Rounded","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --sans:"Lato",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
   --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
 }
@@ -21,6 +27,9 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+/* Headings get the soft serif; everything else stays Lato. */
+.logo,h1,h2,h3,.person b,.stats b,.day b,.lcase b,.file .num{font-family:var(--display);font-variation-settings:"SOFT" 100;font-weight:600;letter-spacing:-.01em}
+.logo{font-weight:650}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);-webkit-text-size-adjust:100%}
 a{color:var(--accent)}
 button{font:inherit;color:inherit}
