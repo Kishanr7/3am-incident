@@ -167,7 +167,7 @@
           seen: 'A finance report built before the last region’s file arrived. A vendor feed that lands “a bit late” after a holiday. A job that moved to a new server and now starts ten minutes earlier.',
           prevent: ['Make the job wait for every expected partition (a sensor), not a fixed time.', 'Check completeness before publishing: expected sources, expected row counts.', 'Automatically re-run a day when its data lands late.'],
         },
-        truth: { trueD, dashD, avgPrev, broken, lateRows: cnt[D][broken], drop },
+        truth: { answer: num(trueD), trueD, dashD, avgPrev, broken, lateRows: cnt[D][broken], drop },
         checks: [
           { label: 'raw total for D matches truth', sql: `SELECT COUNT(*) FROM orders WHERE DATE(created_at) = '${D}'`, test: (v) => v[0][0] === trueD },
           { label: 'dashboard total for D matches truth', sql: `SELECT SUM(orders) FROM daily_orders WHERE day = '${D}'`, test: (v) => v[0][0] === dashD },
@@ -303,7 +303,7 @@
           seen: 'A CRM re-import. A history table joined without its “is current” filter. A join someone thought was one-to-one that was quietly one-to-many.',
           prevent: ['Add a uniqueness test on dimension keys (dbt’s unique test) and fail the build on it.', 'Load dimensions with merge/upsert, never plain insert.', 'Assert that a fact table’s row count doesn’t change when you join a dimension to it.'],
         },
-        truth: { trueRev, dashRev, avgPrev, broken, nC, dupOrders, up },
+        truth: { answer: money(trueRev), trueRev, dashRev, avgPrev, broken, nC, dupOrders, up },
         checks: [
           { label: 'raw revenue for D matches truth', sql: `SELECT ROUND(SUM(amount), 2) FROM orders WHERE DATE(ordered_at) = '${D}'`, test: (v) => Math.abs(v[0][0] - trueRev) < 0.011 },
           { label: 'dashboard revenue for D matches truth', sql: `SELECT revenue FROM daily_revenue WHERE day = '${D}'`, test: (v) => Math.abs(v[0][0] - dashRev) < 0.011 },
@@ -455,7 +455,7 @@
           seen: 'A mobile release renames a field. A vendor reorders the columns in a CSV. An API starts sending prices as text instead of numbers.',
           prevent: ['Agree a data contract (schema) with producers and check it at ingestion.', 'Alert when a column’s NULL rate jumps.', 'Never drop unmatched rows silently: send them to an “unknown” bucket you watch.'],
         },
-        truth: { trueD, dashD, nullD, avgPrev, P, vNew, drop },
+        truth: { answer: num(trueD), trueD, dashD, nullD, avgPrev, P, vNew, drop },
         checks: [
           { label: 'raw events for D match truth', sql: `SELECT COUNT(*) FROM raw_signups WHERE DATE(created_at) = '${D}'`, test: (v) => v[0][0] === trueD },
           { label: 'dashboard for D matches truth', sql: `SELECT SUM(signups) FROM daily_signups WHERE day = '${D}'`, test: (v) => v[0][0] === dashD },

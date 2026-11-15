@@ -45,7 +45,7 @@ Warm palette, hand-drawn touches, gentle sound. A cosy mystery, not a terminal.
 
 By the owner's decision, stage 1 was built before pilot feedback arrived, together with a 100-case practice library (easy/medium/hard). Both are installable on iPhone and Android as a web app and work offline. **The gates are unchanged:** the public launch (stage 2) still waits for pilot results (`PILOT.md`) and stage-1 retention.
 
-Known gap: the library's 100 cases come from **3 templates**, so players will see the same three patterns many times. The cases differ in company, numbers and red herrings, but not in the lesson. More templates (timezone boundary, late backfill, units in cents, unannounced dedupe change, partition overwrite…) matter more than more cases.
+Templates: **7** (late partition, fan-out join, schema drift, cents vs dollars, new status value, timezone mix-up, bad backfill), so the 100 practice cases teach seven different lessons, each seen about 14 times. Next candidates: a dedupe change that drops real rows, a partition overwritten by a retry, a currency with no decimals, a daylight-saving week, a cache serving yesterday's numbers.
 
 ## Why accounts come last
 

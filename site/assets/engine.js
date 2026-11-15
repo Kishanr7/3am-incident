@@ -87,10 +87,16 @@
   ];
 
   function dayNo(iso) { return diffDays(iso, TAI.EPOCH) + 1; }
+  const mod = (a, m) => ((a % m) + m) % m;
+  // Daily #1–#7 were published with the first three templates; keep them exactly as players saw them.
+  TAI.LEGACY_DAILIES = 7;
   function meta(iso) {
     const n = dayNo(iso);
-    const T = TAI.TEMPLATES;
-    return { no: n, date: iso, tpl: T[(((n - 1) % T.length) + T.length) % T.length], co: TAI.COMPANIES[(((n - 1) % TAI.COMPANIES.length) + TAI.COMPANIES.length) % TAI.COMPANIES.length] };
+    const T = TAI.TEMPLATES; const C = TAI.COMPANIES;
+    if (n <= TAI.LEGACY_DAILIES) return { no: n, date: iso, tpl: T[mod(n - 1, 3)], co: C[mod(n - 1, C.length)] };
+    // From #8: cycle through every template; shift the company each cycle so pairings vary.
+    const k = n - 1 - TAI.LEGACY_DAILIES;
+    return { no: n, date: iso, tpl: T[mod(k, T.length)], co: C[mod(k + Math.floor(k / T.length) * 3, C.length)] };
   }
   /* Build the full case for a calendar date. Deterministic: same date, same case, for everyone. */
   function caseFor(iso, opts) {
@@ -121,7 +127,7 @@
   function level(n) { return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
   function practiceMeta(n) {
     const T = TAI.TEMPLATES;
-    return { n, level: level(n), tpl: T[(n - 1) % T.length], co: TAI.COMPANIES[((n - 1) * 3 + Math.floor((n - 1) / 7)) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
+    return { n, level: level(n), tpl: T[(n - 1) % T.length], co: TAI.COMPANIES[((n - 1) + Math.floor((n - 1) / T.length) * 3) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
   }
   /* Difficulty changes the evidence, not the answer:
      easy   = only the key checks plus one red herring;

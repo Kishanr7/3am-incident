@@ -12,7 +12,19 @@
 | **Practice library** | 100 cases: 40 easy, 35 medium, 25 hard. Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
-Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are three patterns today: late-arriving data, fan-out joins (double counting), and schema drift.
+Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are seven patterns:
+
+| Case type | The failure |
+| --- | --- |
+| The Late Partition | One source's data landed after the nightly job ran |
+| The Best Day Ever | A dimension got duplicate rows; a join double counted |
+| The Vanishing Sign-ups | An app release renamed a field; rows lost their country |
+| The Hundredfold Day | A new payment provider sends cents; the pipeline reads dollars |
+| The Quiet Rename | A provider says "succeeded" instead of "paid"; the model only counts "paid" |
+| Who Orders at 3 a.m.? | A new ingest service stamps UTC; evening orders move to the next day |
+| The Rewritten Week | A backfill with a test filter left in overwrote three past days |
+
+Daily #1–#7 used the first three types and are kept exactly as published. From Daily #8, days cycle through all seven, and the practice library covers every type at every difficulty.
 
 The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 
@@ -41,8 +53,9 @@ Each template also ships **self-checks**: SQL that must return the intended answ
 
 | Test | How | Result (2026-11-15) |
 | --- | --- | --- |
-| Case generator: 1000 daily dates + 100 practice cases | Serve the repo root, open `tools/selftest.html?days=1000`. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases) |
-| Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 100 practice cases: runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
+| Case generator: 1000 daily dates + 100 practice cases, all 7 types | Serve the repo root, open `tools/selftest.html?days=1000`. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases, about 155 per type) |
+| Published dailies unchanged | Old and new engine compared for Daily #1–#7: same company, story, numbers, answer order | **Identical** |
+| Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 100 practice cases (every type at easy, medium and hard): runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
 | Streak rules | Today's solve counts; archive and practice solves don't; streak code round-trips; junk code rejected | Pass |
 | Offline | Load once, stop the server, reload: today's case and the SQL engine run from the device | Pass |
 | Light and dark themes, theme switch remembered | Manual + script | Pass |
