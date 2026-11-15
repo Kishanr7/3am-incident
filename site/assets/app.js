@@ -24,6 +24,7 @@
   let SQL = null;
   function loadSql() {
     if (SQL) return Promise.resolve(SQL);
+    if (typeof window.initSqlJs !== 'function') return Promise.reject(new Error('sql.js not loaded'));
     return window.initSqlJs({ locateFile: (f) => TAI.SQL_CDN + f }).then((s) => (SQL = s));
   }
   function toast(text) {
@@ -42,7 +43,7 @@
   function installCard() {
     if (standalone()) return '';
     if (installEvt) return `<div class="card install row" style="margin-top:12px"><span>📲 <b>Get the app.</b> <span class="small muted">Home-screen icon, works offline, no app store.</span></span><button class="btn primary" id="installBtn">Install</button></div>`;
-    if (isIOS()) return `<div class="card install small" style="margin-top:12px">📲 <b>Get the app on iPhone:</b> in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span>, then <b>Add to Home Screen</b>. It works offline.</div>`;
+    if (isIOS()) return `<div class="card install small" style="margin-top:12px">📲 <b>Get the app on ${/iPad|Macintosh/.test(navigator.userAgent) ? 'iPad' : 'iPhone'}:</b> in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span>, then <b>Add to Home Screen</b>. It works offline.</div>`;
     return '';
   }
   document.addEventListener('click', (e) => {
@@ -135,6 +136,7 @@
 
   function showStats() {
     const st = TAI.streaks(today());
+    if (typeof HTMLDialogElement !== 'function') { toast('Streak: ' + st.current + ' · best ' + st.best); return; }
     const dlg = document.createElement('dialog');
     dlg.innerHTML = `<h2 style="margin-top:0">Your stats</h2>
       <div class="stats"><div><b>${st.played}</b><span>played</span></div><div><b>${st.solved}</b><span>solved</span></div><div><b>${st.current}</b><span>streak</span></div><div><b>${st.best}</b><span>best</span></div></div>
@@ -329,7 +331,9 @@
     }).join('');
     box.innerHTML = `<h2 id="reportTitle">Report to Maya</h2>
       <div class="card">${qs}<div class="row"><button class="btn primary" id="send">Send report</button><span class="small muted" id="sendNote">${rec.reports.length ? 'Reports sent: ' + rec.reports.length : 'Pick one answer for each.'}</span></div></div>`;
-    box.querySelectorAll('input[type=radio]').forEach((inp) => { inp.onchange = () => { S.rec.picks[inp.name] = inp.value; save(); }; });
+    const mark = () => box.querySelectorAll('.opt').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
+    box.querySelectorAll('input[type=radio]').forEach((inp) => { inp.onchange = () => { S.rec.picks[inp.name] = inp.value; save(); mark(); }; });
+    mark();
     document.getElementById('send').onclick = sendReport;
   }
 
@@ -410,6 +414,7 @@
   function tourSeen() { try { return localStorage.getItem('tai.toured') === '1'; } catch (e) { return true; } }
   function showTour() {
     if (document.querySelector('dialog.tour[open]')) return;
+    if (typeof HTMLDialogElement !== 'function') return; // iOS < 15.4: no pop-up support
     const steps = [
       { art: `<div class="tmock"><div class="msg alert">${av('alert')}<div class="bubble"><span class="name">#data-alerts · 03:12</span>Orders: −35% vs normal. All jobs: SUCCESS.</div></div><div class="msg">${av('maya')}<div class="bubble"><span class="name">Maya · 08:10</span>Is this real, or is the dashboard lying?</div></div></div>`,
         title: 'Something looks wrong', text: 'Each morning a number on the dashboard looks off, and your boss Maya wants to know why before the 9:00 meeting.' },
@@ -446,7 +451,7 @@
     }
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); finish(); }); // Esc key
     dlg.addEventListener('close', finish);
-    document.body.appendChild(dlg); draw(); dlg.showModal();
+    document.body.appendChild(dlg); draw(); dlg.showModal(); dlg.querySelector('#tNext').focus();
   }
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#howBtn')) showTour(); });
 
