@@ -1,54 +1,121 @@
-/* 3 a.m. Incident: the on-call crew. Simple inline SVG portraits, no image files. */
+/* 3 a.m. Incident: the on-call crew. Hand-built SVG portraits with shading; no image files to load.
+   To use your own pictures instead, add "img: 'assets/cast/maya.webp'" to a character below. */
 (function () {
   'use strict';
   const TAI = window.TAI;
-  const svg = (inner, bg) => `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="24" fill="${bg}"/>${inner}</svg>`;
+  let uid = 0;
+  // Each portrait gets unique gradient ids, so several copies can sit on one page.
+  const svg = (build) => () => { const id = 'c' + (uid++); return `<svg viewBox="0 0 96 96" aria-hidden="true" focusable="false"><defs><clipPath id="${id}cl"><circle cx="48" cy="48" r="48"/></clipPath></defs><g clip-path="url(#${id}cl)">${build(id)}</g></svg>`; };
+  const bg = (id, a, b) => `<defs><radialGradient id="${id}bg" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs><circle cx="48" cy="48" r="48" fill="url(#${id}bg)"/>`;
+  const skin = (id, light, dark) => `<defs><radialGradient id="${id}sk" cx="45%" cy="38%" r="65%"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></radialGradient></defs>`;
+  const eye = (x, y, iris) => `<ellipse cx="${x}" cy="${y}" rx="3.6" ry="2.6" fill="#fbfaf7"/><circle cx="${x + 0.3}" cy="${y + 0.1}" r="2" fill="${iris}"/><circle cx="${x + 0.3}" cy="${y + 0.1}" r="1" fill="#141414"/><circle cx="${x + 0.9}" cy="${y - 0.7}" r=".6" fill="#fff"/>`;
 
-  const maya = svg(
-    '<path d="M11 30c0-11 5.5-18 13-18s13 7 13 18v7h-5V28c0-5-3.5-8-8-8s-8 3-8 8v9h-5z" fill="#3a2621"/>' +
-    '<circle cx="24" cy="27" r="9.5" fill="#e8b394"/>' +
-    '<path d="M15 24c2-6 6-8 9-8s7 2 9 8c-4-3-12-3-18 0z" fill="#3a2621"/>' +
-    '<circle cx="20.2" cy="27" r="2.9" fill="none" stroke="#2b1d18" stroke-width="1.3"/><circle cx="27.8" cy="27" r="2.9" fill="none" stroke="#2b1d18" stroke-width="1.3"/>' +
-    '<path d="M23.1 27h1.8" stroke="#2b1d18" stroke-width="1.2"/><circle cx="20.2" cy="27" r="1" fill="#2b1d18"/><circle cx="27.8" cy="27" r="1" fill="#2b1d18"/>' +
-    '<path d="M21.5 32.2q2.5 1.4 5 0" stroke="#8a3b2c" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
-    '<path d="M16 40q8 -4 16 0v8H16z" fill="#8a3b2c"/>', '#f4d6c6');
+  const maya = svg((id) => bg(id, '#dfece8', '#b9d3cc') + skin(id, '#f1c8ad', '#d89f80') +
+    // hair back
+    '<path d="M24 52c-2-20 8-34 24-34s27 13 24 34c-1 9-3 16-6 20H30c-3-4-5-11-6-20z" fill="#2e211d"/>' +
+    // blazer and blouse
+    `<defs><linearGradient id="${id}bl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d3b3b"/><stop offset="1" stop-color="#5a2828"/></linearGradient></defs>` +
+    `<path d="M16 96c1-15 10-24 22-26l10 9 10-9c12 2 21 11 22 26z" fill="url(#${id}bl)"/>` +
+    '<path d="M40 71l8 9 8-9-3-2h-10z" fill="#f4efe7"/><path d="M38 70l10 26M58 70l-10 26" stroke="#4a2020" stroke-width="1.2" opacity=".5"/>' +
+    // neck
+    `<path d="M42 60h12v12c-3 3-9 3-12 0z" fill="url(#${id}sk)"/><path d="M42 66c4 3 8 3 12 0" stroke="#c48a6c" stroke-width="1" fill="none" opacity=".6"/>` +
+    // face
+    `<ellipse cx="48" cy="46" rx="15" ry="17.5" fill="url(#${id}sk)"/>` +
+    '<ellipse cx="33" cy="47" rx="2.6" ry="4" fill="#dda385"/><ellipse cx="63" cy="47" rx="2.6" ry="4" fill="#dda385"/><circle cx="33" cy="52.5" r="1.3" fill="#f4f1ea"/><circle cx="63" cy="52.5" r="1.3" fill="#f4f1ea"/>' +
+    // fringe
+    '<path d="M32 42c1-12 8-18 17-18 9 0 15 6 16 16-6-6-13-8-20-6-5 1-9 4-13 8z" fill="#3a2a24"/><path d="M44 27c-4 3-6 7-7 11" stroke="#58423a" stroke-width="1.2" fill="none" opacity=".7"/>' +
+    // brows, eyes, glasses
+    '<path d="M38 40.5q4-2 8 0M50 40.5q4-2 8 0" stroke="#2e211d" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
+    eye(42, 45.5, '#5a3b2a') + eye(54, 45.5, '#5a3b2a') +
+    '<rect x="36.5" y="41.5" width="10.5" height="8" rx="3" fill="none" stroke="#1f1a18" stroke-width="1.4"/><rect x="49" y="41.5" width="10.5" height="8" rx="3" fill="none" stroke="#1f1a18" stroke-width="1.4"/><path d="M47 44.5h2" stroke="#1f1a18" stroke-width="1.3"/>' +
+    // nose, mouth, cheeks
+    '<path d="M48 48v5.5l-1.6 1" stroke="#b97d61" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+    '<path d="M43.5 57.5q4.5 2.4 9 0" stroke="#9c4a44" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="39" cy="53" rx="3" ry="1.8" fill="#e59a8a" opacity=".35"/><ellipse cx="57" cy="53" rx="3" ry="1.8" fill="#e59a8a" opacity=".35"/>');
 
-  const sam = svg(
-    '<circle cx="24" cy="27" r="10" fill="#c98c62"/>' +
-    '<g fill="#5a3418"><circle cx="16" cy="20" r="4"/><circle cx="20" cy="16" r="4.3"/><circle cx="25" cy="14.8" r="4.4"/><circle cx="30" cy="16.5" r="4.2"/><circle cx="33" cy="21" r="3.6"/><circle cx="15" cy="25" r="2.6"/><circle cx="33.5" cy="25.5" r="2.4"/></g>' +
-    '<circle cx="20.3" cy="26.6" r="2.4" fill="#fff"/><circle cx="27.7" cy="26.6" r="2.4" fill="#fff"/><circle cx="20.6" cy="26.9" r="1.2" fill="#22160f"/><circle cx="28" cy="26.9" r="1.2" fill="#22160f"/>' +
-    '<ellipse cx="24" cy="32.6" rx="2.2" ry="2.6" fill="#5b1f12"/>' +
-    '<path d="M16 40q8 -4 16 0v8H16z" fill="#e0952e"/>', '#ffe2a8');
+  const sam = svg((id) => bg(id, '#f6ead6', '#e8d2ae') + skin(id, '#c99572', '#a2704f') +
+    // hoodie
+    `<defs><linearGradient id="${id}hd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3a64a"/><stop offset="1" stop-color="#c58431"/></linearGradient></defs>` +
+    `<path d="M14 96c2-16 12-25 25-27h18c13 2 23 11 25 27z" fill="url(#${id}hd)"/>` +
+    '<path d="M36 70q12 10 24 0" stroke="#a96d24" stroke-width="2.5" fill="none"/><path d="M43 76v10M53 76v10" stroke="#f6ead6" stroke-width="1.6" stroke-linecap="round"/>' +
+    `<path d="M42 60h12v11c-3 3-9 3-12 0z" fill="url(#${id}sk)"/>` +
+    `<ellipse cx="48" cy="47" rx="15" ry="17" fill="url(#${id}sk)"/>` +
+    '<ellipse cx="33.5" cy="48" rx="2.5" ry="3.8" fill="#b07c5a"/><ellipse cx="62.5" cy="48" rx="2.5" ry="3.8" fill="#b07c5a"/>' +
+    '<path d="M31 51v-3a2 2 0 0 1 4 0v3" fill="#f2f2f0"/><path d="M33 51v6" stroke="#f2f2f0" stroke-width="1.6" stroke-linecap="round"/>' +
+    // curls
+    '<g fill="#3b2416"><circle cx="34" cy="38" r="6"/><circle cx="39" cy="31" r="6.5"/><circle cx="47" cy="28" r="7"/><circle cx="55" cy="30" r="6.5"/><circle cx="61" cy="36" r="6"/><circle cx="63" cy="43" r="4"/><circle cx="33" cy="44" r="3.6"/></g>' +
+    '<g fill="#5a3824" opacity=".8"><circle cx="41" cy="29" r="2"/><circle cx="50" cy="26" r="2.2"/><circle cx="58" cy="31" r="1.8"/><circle cx="36" cy="35" r="1.6"/></g>' +
+    // worried brows, wide eyes
+    '<path d="M38 40q3.5-3 7-1M51 39q3.5-2 7 1" stroke="#2c1a10" stroke-width="1.7" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="42" cy="45.5" rx="4" ry="3.4" fill="#fbfaf7"/><ellipse cx="54" cy="45.5" rx="4" ry="3.4" fill="#fbfaf7"/><circle cx="42.3" cy="45.8" r="2.1" fill="#4a2c1a"/><circle cx="54.3" cy="45.8" r="2.1" fill="#4a2c1a"/><circle cx="42.3" cy="45.8" r="1" fill="#111"/><circle cx="54.3" cy="45.8" r="1" fill="#111"/><circle cx="43" cy="45" r=".6" fill="#fff"/><circle cx="55" cy="45" r=".6" fill="#fff"/>' +
+    '<path d="M48 48.5v5l-1.5 1" stroke="#8a5a3c" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+    '<path d="M44 57.5q4-2.6 8 0q-4 4.5-8 0z" fill="#6b2a20"/><path d="M45.5 58.6q2.5 1.6 5 0" stroke="#e9a49a" stroke-width="1" fill="none"/>' +
+    // sweat drop
+    '<path d="M64 33q2 3.5 0 5q-2-1.5 0-5z" fill="#9fd3e8"/>');
 
-  const byte = svg(
-    '<path d="M13 18l3.5-9 7 6.5zM35 18l-3.5-9-7 6.5z" fill="#8c8681"/><path d="M15.5 16l2-4.6 3.6 3.4zM32.5 16l-2-4.6-3.6 3.4z" fill="#e7a7a0"/>' +
-    '<ellipse cx="24" cy="27" rx="13" ry="11.5" fill="#9a948f"/>' +
-    '<ellipse cx="19" cy="25.5" rx="2.4" ry="3" fill="#f3e3a1"/><ellipse cx="29" cy="25.5" rx="2.4" ry="3" fill="#f3e3a1"/><ellipse cx="19" cy="25.8" rx=".9" ry="2.4" fill="#1d1a17"/><ellipse cx="29" cy="25.8" rx=".9" ry="2.4" fill="#1d1a17"/>' +
-    '<path d="M22.6 30h2.8l-1.4 1.5z" fill="#d9837a"/><path d="M24 31.5q-1.5 2-3.2 1M24 31.5q1.5 2 3.2 1" stroke="#3a3430" stroke-width="1" fill="none" stroke-linecap="round"/>' +
-    '<path d="M9 28.5l7 1M9 32l7-.6M39 28.5l-7 1M39 32l-7-.6" stroke="#3a3430" stroke-width=".8" stroke-linecap="round"/>', '#d9e4dc');
+  const byte = svg((id) => bg(id, '#e3ece6', '#c3d6cb') +
+    `<defs><radialGradient id="${id}fur" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#b1aba4"/><stop offset="1" stop-color="#7f7871"/></radialGradient></defs>` +
+    // body/chest
+    `<path d="M22 96c0-16 11-26 26-26s26 10 26 26z" fill="url(#${id}fur)"/><path d="M38 96c0-10 4-18 10-18s10 8 10 18z" fill="#ece6dc"/>` +
+    // ears
+    `<path d="M24 38l4-22 16 12z" fill="url(#${id}fur)"/><path d="M72 38l-4-22-16 12z" fill="url(#${id}fur)"/>` +
+    '<path d="M28 34l2.5-13 9 7.5z" fill="#e7b0a6"/><path d="M68 34l-2.5-13-9 7.5z" fill="#e7b0a6"/>' +
+    // head
+    `<ellipse cx="48" cy="50" rx="24" ry="21" fill="url(#${id}fur)"/>` +
+    // tabby stripes
+    '<path d="M48 30v8M42 31l1.5 7M54 31l-1.5 7" stroke="#5f5852" stroke-width="2.2" stroke-linecap="round"/><path d="M25 47l7 1.5M24 53l7 0M71 47l-7 1.5M72 53l-7 0" stroke="#5f5852" stroke-width="1.8" stroke-linecap="round"/>' +
+    // muzzle
+    '<ellipse cx="43" cy="59" rx="6.5" ry="5" fill="#ece6dc"/><ellipse cx="53" cy="59" rx="6.5" ry="5" fill="#ece6dc"/>' +
+    // eyes
+    '<ellipse cx="38" cy="48" rx="5.2" ry="5.6" fill="#b9cf6a"/><ellipse cx="58" cy="48" rx="5.2" ry="5.6" fill="#b9cf6a"/><ellipse cx="38" cy="48.3" rx="1.6" ry="4.6" fill="#16140f"/><ellipse cx="58" cy="48.3" rx="1.6" ry="4.6" fill="#16140f"/><circle cx="39.6" cy="45.8" r="1.1" fill="#fff"/><circle cx="59.6" cy="45.8" r="1.1" fill="#fff"/>' +
+    // nose, mouth, whiskers
+    '<path d="M45.5 55h5l-2.5 2.6z" fill="#d98a86"/><path d="M48 57.6v2.2q-2.5 2.6-5 .8M48 59.8q2.5 2.6 5 .8" stroke="#4a443f" stroke-width="1.1" fill="none" stroke-linecap="round"/>' +
+    '<path d="M36 58l-15-2M36 61l-14 2M60 58l15-2M60 61l14 2" stroke="#f5f1ea" stroke-width=".9" stroke-linecap="round" opacity=".9"/>');
 
-  const gus = svg(
-    '<rect x="11" y="12" width="26" height="21" rx="4" fill="#d8cdb6" stroke="#6d6250" stroke-width="1.4"/>' +
-    '<rect x="14.5" y="15" width="19" height="13" rx="2" fill="#3f5a4a"/>' +
-    '<circle cx="20" cy="20.5" r="2.4" fill="#cfe8c9"/><circle cx="28" cy="20.5" r="2.4" fill="#cfe8c9"/><path d="M20 20.5v-1.4M20 20.5h1.2M28 20.5v-1.4M28 20.5h1.2" stroke="#3f5a4a" stroke-width=".8"/>' +
-    '<path d="M18.5 25.2q2.8-2.2 5.5 0q2.7-2.2 5.5 0q-2.7 1.4-5.5.4q-2.8 1-5.5-.4z" fill="#f1ede4"/>' +
-    '<rect x="19" y="33" width="10" height="4" fill="#b6a98f"/><rect x="14" y="37" width="20" height="3" rx="1.5" fill="#8f826a"/>', '#efe4cc');
+  const gus = svg((id) => bg(id, '#ebe6d8', '#d3cbb4') +
+    `<defs><linearGradient id="${id}case" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6dcc4"/><stop offset="1" stop-color="#c2b597"/></linearGradient><radialGradient id="${id}scr" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#3d6b56"/><stop offset="1" stop-color="#1f3a2f"/></radialGradient></defs>` +
+    // keyboard
+    '<path d="M18 84l6-8h48l6 8z" fill="#b7aa8c"/><path d="M26 79h44M24 82h48" stroke="#8f8368" stroke-width="1"/>' +
+    // monitor
+    `<rect x="20" y="18" width="56" height="50" rx="7" fill="url(#${id}case)" stroke="#8f8368" stroke-width="1.5"/>` +
+    `<rect x="27" y="24" width="42" height="33" rx="5" fill="url(#${id}scr)"/>` +
+    '<path d="M29 27q10-3 20-1" stroke="#9fd3b4" stroke-width="1.2" opacity=".35" fill="none"/>' +
+    '<rect x="40" y="68" width="16" height="6" fill="#a99c7f"/>' +
+    // face on screen: clock eyes, moustache
+    '<circle cx="40" cy="37" r="4.5" fill="#cdeccf"/><circle cx="56" cy="37" r="4.5" fill="#cdeccf"/><path d="M40 37v-3M40 37h2.4M56 37v-3M56 37h2.4" stroke="#1f3a2f" stroke-width="1.1" stroke-linecap="round"/>' +
+    '<path d="M36 31.5q4-2 8 0M52 31.5q4-2 8 0" stroke="#cdeccf" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
+    '<path d="M38 47q5-4 10-.5q5-3.5 10 .5q-4 3-10 1q-6 2-10-1z" fill="#f2efe6"/><path d="M45 51.5q3 1.2 6 0" stroke="#cdeccf" stroke-width="1.1" fill="none"/>' +
+    // power LED, vents, label
+    '<circle cx="68" cy="62.5" r="1.6" fill="#7fd37f"/><path d="M26 62h14" stroke="#9c8f72" stroke-width="1.2"/><text x="48" y="64" font-size="4.2" text-anchor="middle" fill="#7a6e55" font-family="monospace">CRON-86</text>');
 
-  const vendor = svg(
-    '<circle cx="24" cy="27" r="10" fill="#b98568"/>' +
-    '<path d="M14 22q10-9 20 0v-2q-10-8-20 0z" fill="#2f2a3a"/><path d="M13.5 21h21" stroke="#2f2a3a" stroke-width="2.5" stroke-linecap="round"/>' +
-    '<rect x="16" y="24" width="7" height="4.4" rx="1.6" fill="#1f1b26"/><rect x="25" y="24" width="7" height="4.4" rx="1.6" fill="#1f1b26"/><path d="M23 25.5h2" stroke="#1f1b26" stroke-width="1.2"/>' +
-    '<path d="M21 32.5h6" stroke="#5a2c22" stroke-width="1.4" stroke-linecap="round"/>' +
-    '<path d="M16 40q8 -4 16 0v8H16z" fill="#4b4560"/><path d="M24 38l-2 4 2 4 2-4z" fill="#d9c55a"/>', '#e2dcf0');
+  const vendor = svg((id) => bg(id, '#e6e4ef', '#c9c5dc') + skin(id, '#d9a888', '#b78463') +
+    // suit, shirt, tie
+    `<defs><linearGradient id="${id}suit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f4660"/><stop offset="1" stop-color="#2a2f44"/></linearGradient></defs>` +
+    `<path d="M14 96c2-16 12-25 25-27l9 10 9-10c13 2 23 11 25 27z" fill="url(#${id}suit)"/>` +
+    '<path d="M40 70l8 9 8-9-2-2H42z" fill="#f2f2f2"/><path d="M48 78l-3 5 3 13 3-13z" fill="#c9a43c"/><path d="M48 78l-2 3h4z" fill="#a8862c"/>' +
+    `<path d="M42 60h12v11c-3 3-9 3-12 0z" fill="url(#${id}sk)"/>` +
+    `<ellipse cx="48" cy="46" rx="15" ry="17.5" fill="url(#${id}sk)"/>` +
+    '<ellipse cx="33" cy="47" rx="2.6" ry="4" fill="#c89574"/><ellipse cx="63" cy="47" rx="2.6" ry="4" fill="#c89574"/>' +
+    // slicked hair
+    '<path d="M32 42c-1-12 6-19 16-19 11 0 17 7 16 18-2-5-6-9-12-10-7-1-15 2-20 11z" fill="#1d1a22"/><path d="M38 30q8-4 18 0" stroke="#4a4552" stroke-width="1.2" fill="none" opacity=".8"/>' +
+    // sunglasses with shine
+    '<path d="M35 42h12v4.5q-.5 4-6 4t-6-4zM49 42h12v4.5q-.5 4-6 4t-6-4z" fill="#151319"/><path d="M47 43.5h2" stroke="#151319" stroke-width="1.6"/><path d="M37 43.5l3.5 3.5M51 43.5l3.5 3.5" stroke="#6b6680" stroke-width="1.1" opacity=".8"/>' +
+    '<path d="M48 49v5l-1.6 1" stroke="#9e6d50" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+    // smug half-smile and phone
+    '<path d="M43 58q5 1.6 10-1.4" stroke="#7a3e32" stroke-width="1.7" fill="none" stroke-linecap="round"/>' +
+    '<rect x="62" y="40" width="7" height="15" rx="2" fill="#26232d" transform="rotate(14 65 47)"/><path d="M60 62q4-4 6-9" stroke="#b78463" stroke-width="4" stroke-linecap="round" fill="none"/>');
 
-  const alert = svg('<path d="M24 12a8 8 0 0 0-8 8v6l-3 5h22l-3-5v-6a8 8 0 0 0-8-8z" fill="#f2b53a"/><circle cx="24" cy="34.5" r="2.8" fill="#f2b53a"/>', '#4a3b33');
+  const alert = svg((id) => `<circle cx="48" cy="48" r="48" fill="#34403f"/><path d="M48 22a15 15 0 0 0-15 15v12l-6 10h42l-6-10V37a15 15 0 0 0-15-15z" fill="#e8c46a"/><circle cx="48" cy="66" r="5" fill="#e8c46a"/><path d="M37 37a11 11 0 0 1 8-9" stroke="#f6e3ad" stroke-width="2" fill="none" stroke-linecap="round"/>`);
 
-  TAI.CAST = {
-    maya: { name: 'Maya', role: 'CFO', svg: maya, blurb: 'Sharp, impatient, fair. Wants one number and one sentence.' },
-    sam: { name: 'Sam', role: 'Growth lead', svg: sam, blurb: 'Panics first, apologises later. Owns every campaign.' },
-    byte: { name: 'Byte', role: 'On-call cat', svg: byte, blurb: 'Walks across your keyboard when you’re stuck. Usually right.' },
-    gus: { name: 'Old Gus', role: 'Legacy cron job', svg: gus, blurb: 'Nobody knows what he does. Everything breaks without him.' },
-    vendor: { name: 'The Vendor', role: 'Data supplier', svg: vendor, blurb: 'Never late, according to the vendor. Always “investigating”.' },
-    alert: { name: '#data-alerts', role: 'Monitoring', svg: alert, blurb: '' },
+  const C = {
+    maya: { name: 'Maya', role: 'CFO', draw: maya, blurb: 'Sharp, impatient, fair. Wants one number and one sentence.' },
+    sam: { name: 'Sam', role: 'Growth lead', draw: sam, blurb: 'Panics first, apologises later. Owns every campaign.' },
+    byte: { name: 'Byte', role: 'On-call cat', draw: byte, blurb: 'Walks across your keyboard when you’re stuck. Usually right.' },
+    gus: { name: 'Old Gus', role: 'Legacy cron job', draw: gus, blurb: 'Nobody knows what he does. Everything breaks without him.' },
+    vendor: { name: 'The Vendor', role: 'Data supplier', draw: vendor, blurb: 'Never late, according to the vendor. Always “investigating”.' },
+    alert: { name: '#data-alerts', role: 'Monitoring', draw: alert, blurb: '' },
   };
+  // Backwards-compatible: CAST[x].svg returns a fresh portrait each time it is read.
+  for (const k of Object.keys(C)) Object.defineProperty(C[k], 'svg', { get() { return this.img ? `<img src="${this.img}" alt="" loading="lazy">` : this.draw(); } });
+  TAI.CAST = C;
 })();

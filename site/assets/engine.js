@@ -114,6 +114,36 @@
     return c;
   }
   TAI.dayNo = dayNo; TAI.meta = meta; TAI.caseFor = caseFor;
+  // ---------- practice library: 100 fixed cases, not tied to a date ----------
+  TAI.PRACTICE_COUNT = 100;
+  const LEVELS = { easy: [1, 40], medium: [41, 75], hard: [76, 100] };
+  TAI.LEVELS = LEVELS;
+  function level(n) { return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
+  function practiceMeta(n) {
+    const T = TAI.TEMPLATES;
+    return { n, level: level(n), tpl: T[(n - 1) % T.length], co: TAI.COMPANIES[((n - 1) * 3 + Math.floor((n - 1) / 7)) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
+  }
+  /* Difficulty changes the evidence, not the answer:
+     easy   = only the key checks plus one red herring;
+     medium = every card (the same as a daily case);
+     hard   = the two most direct checks are removed, so you must write some SQL yourself. */
+  function practiceCase(n) {
+    const m = practiceMeta(n);
+    const c = caseFor(m.iso, { tpl: m.tpl, co: m.co, salt: 'practice-' + n });
+    c.practice = n; c.level = m.level;
+    if (m.level === 'easy') {
+      const herrings = c.cards.filter((x) => !x.key);
+      c.cards = c.cards.filter((x) => x.key || x === herrings[0]);
+    } else if (m.level === 'hard') {
+      const drop = c.chain.slice(0, 2);
+      c.cards = c.cards.filter((x) => drop.indexOf(x.id) < 0);
+      c.chain = c.chain.slice(2);
+      c.hardNote = 'Hard case: two of the usual checks are missing. Use “Write your own SQL” to fill the gap.';
+    }
+    return c;
+  }
+  TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase;
+
 
   // ---------- database ----------
   function buildDb(SQL, c) {
@@ -150,7 +180,8 @@
   TAI.store = store;
   // Move progress to another device without an account: a short code holding only which days were solved.
   store.exportCode = () => {
-    const rows = Object.entries(mem.cases).filter(([, r]) => r.solved).map(([d, r]) => d.replace(/-/g, '') + (r.solvedOn === d ? '1' : '0'));
+    const rows = Object.entries(mem.cases).filter(([d, r]) => r.solved && /^\d{4}-/.test(d)).map(([d, r]) => d.replace(/-/g, '') + (r.solvedOn === d ? '1' : '0'));
+    for (const [k, r] of Object.entries(mem.cases)) if (r.solved && /^p\d+$/.test(k)) rows.push(k);
     return 'TAI1-' + btoa(rows.join('.')).replace(/=+$/, '');
   };
   store.importCode = (code) => {
@@ -159,6 +190,7 @@
     let txt; try { txt = atob(m[1]); } catch (e) { return -1; }
     let n = 0;
     for (const part of txt.split('.')) {
+      if (/^p\d+$/.test(part)) { if (!(mem.cases[part] && mem.cases[part].solved)) { mem.cases[part] = { timeline: [], reports: [true], picks: {}, solved: true, solvedOn: 'imported', imported: true, queries: 0 }; n++; } continue; }
       const x = part.match(/^(\d{4})(\d{2})(\d{2})([01])$/); if (!x) continue;
       const d = x[1] + '-' + x[2] + '-' + x[3];
       const cur = mem.cases[d];
@@ -178,10 +210,11 @@
     while (d >= TAI.EPOCH && ok(d)) { cur++; d = addDays(d, -1); }
     let best = 0, run = 0;
     for (let x = TAI.EPOCH; x <= today; x = addDays(x, 1)) { if (ok(x)) { run++; best = Math.max(best, run); } else run = 0; }
-    const recs = Object.values(cases);
+    const recs = Object.keys(cases).filter((k) => /^\d{4}-/.test(k)).map((k) => cases[k]);
+    const prac = Object.keys(cases).filter((k) => /^p\d+$/.test(k) && cases[k].solved).length;
     const solved = recs.filter((r) => r.solved);
     const avgQ = solved.length ? solved.reduce((a, r) => a + r.timeline.filter((e) => e.t !== 'hint').length, 0) / solved.length : 0;
-    return { current: cur, best, played: recs.filter((r) => r.timeline.length || r.reports.length).length, solved: solved.length, avgQueries: avgQ };
+    return { practiceSolved: prac, current: cur, best, played: recs.filter((r) => r.timeline.length || r.reports.length).length, solved: solved.length, avgQueries: avgQ };
   }
   TAI.streaks = streaks;
 })();

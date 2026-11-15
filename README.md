@@ -1,38 +1,73 @@
 # 3 a.m. Incident
 
-**A data mystery you solve with SQL.** The CFO's dashboard says yesterday's revenue fell by a third. Every nightly job is green. The board deck goes out at 9. Find out what really happened.
+**A daily data mystery.** The dashboard says something terrible happened overnight. Every job says SUCCESS. Find out what really happened before the 9:00 meeting.
 
-> Status: **private pilot**. Case #1 only. Played by its author; being tested with a handful of data engineers before any public release.
+> Status: **private pilot**, unlisted (`noindex`). Not yet tested by players outside the author.
 
-## Play
+## What's in it
 
-Open `site/index.html` in a browser. That's it. A real SQLite engine ([sql.js](https://github.com/sql-js/sql.js)) runs inside the page against a fictional company's warehouse, generated from a fixed seed. It needs an internet connection once, to load the engine from cdnjs. Desktop is recommended.
+| Mode | What | Where |
+| --- | --- | --- |
+| **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. Same case for everyone on a given date. Streak kept on the device | Home page |
+| **Practice library** | 100 cases: 40 easy, 35 medium, 25 hard. Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
+| **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
-Nothing you type leaves the page. No account, no tracking.
+Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are three patterns today: late-arriving data, fan-out joins (double counting), and schema drift.
 
-## What's in case #1
+The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 
-- An incident channel with the CFO and the growth lead.
-- A SQL console over nine warehouse tables: raw events, staging, the dashboard table, FX rates, landed files, job logs, deploys and the model SQL.
-- A four-question report to the CFO, with feedback that explains *why* a wrong answer is wrong.
-- Four hints (each adds 2:00), a spoiler-free result to share, and a debrief on what a senior engineer would change so it never happens again.
+## Phones: install it like an app
 
-Every number in the story is computed from the generated data, so the text and the data cannot disagree.
+The site is a Progressive Web App (PWA): it installs to the home screen, opens full screen and works offline after the first visit.
+
+- **iPhone:** open the link in Safari → Share → **Add to Home Screen**.
+- **Android:** open the link in Chrome → **Install** (the home page also shows an Install button).
+
+Putting it in the App Store or Google Play would need developer accounts (Apple $99/year, Google $25 once) and a wrapper such as Capacitor or a Trusted Web Activity. It's not needed to play.
+
+## No backend, no accounts
+
+Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere.
+
+Progress and streaks live in the browser's local storage. To move a streak to another device, use **Stats → Copy streak code** and paste it on the other device. Accounts are deliberately postponed (see `VISION.md`).
+
+## How the cases are made
+
+`site/assets/cases.js` holds **case templates**. A template is a failure pattern with settings: company, which source, country or app version breaks, sizes, timings, red herrings. A seeded random generator turns a date, or a practice number, into one fixed case. Every number in the story is computed from the generated rows, so the story and the data can't disagree.
+
+Each template also ships **self-checks**: SQL that must return the intended answer, for example "the dashboard total equals the truth minus the late partition". If a random draw makes a weak puzzle (say, a drop too small to notice), the generator re-rolls it deterministically.
+
+## Testing
+
+| Test | How | Result (2026-11-15) |
+| --- | --- | --- |
+| Case generator: 1000 daily dates + 100 practice cases | Serve the repo root, open `tools/selftest.html?days=1000`. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases) |
+| Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 100 practice cases: runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
+| Streak rules | Today's solve counts; archive and practice solves don't; streak code round-trips; junk code rejected | Pass |
+| Offline | Load once, stop the server, reload: today's case and the SQL engine run from the device | Pass |
+| Light and dark themes, theme switch remembered | Manual + script | Pass |
+| Text contrast (WCAG AA, 4.5:1) | Every text/background token pair, both themes | Pass (lowest 4.6:1) |
+| Real iPhone / Android devices | Not yet: tested in a phone-sized browser with an Android user agent | **Not verified** |
+
+## Colour
+
+The palette was chosen for calm, not drama. Research on colour and emotion finds that saturation drives arousal and brightness drives pleasantness, and that blue, blue-green and green hues rate as the most pleasant ([Valdez & Mehrabian, 1994](https://pubmed.ncbi.nlm.nih.gov/7996122/); [Wilms & Oberfeld, 2018](https://pubmed.ncbi.nlm.nih.gov/28612080/)). So: a soft paper background (not pure white), muted teal and sage accents, and charcoal text (not pure black). Dark mode uses an off-black (#141a1c) and desaturated accents, following common dark-theme guidance against pure black and saturated colours on dark backgrounds.
 
 ## Files
 
-| File | What it is |
+| Path | What |
 | --- | --- |
-| `site/index.html` | The whole game (the only thing Netlify publishes) |
-| `site/_headers` | No-index and basic security headers for the live site |
-| `netlify.toml` | Tells Netlify to publish `site/` only |
-| `PILOT.md` | How the private pilot runs: invite, feedback form, continue/stop thresholds, results log |
-| `VISION.md` | Where this could go (daily puzzle, case library, accounts), and in what order |
+| `site/index.html`, `site/assets/*` | Home, daily player, practice library, engine, templates, cast |
+| `site/case-1/` | Case file #1 (full SQL console) |
+| `site/manifest.webmanifest`, `site/sw.js`, `site/icons/` | Install-as-app and offline support |
+| `site/_headers`, `netlify.toml` | No-index and security headers; Netlify publishes `site/` only |
+| `tools/selftest.html` | Generator self-test (not published) |
+| `PILOT.md`, `VISION.md` | Pilot plan and thresholds; where this could go |
 
 ## Play-test log
 
 | Date | Player | Result | Change |
 | --- | --- | --- | --- |
-| 2026-11-15 | Author | Q1–Q3 right first time; stuck on Q4 ("yesterday" was ambiguous). Solved after the fix | Q4 names the date; specific feedback for common wrong answers; fourth hint |
+| 2026-11-15 | Author | Case 1: Q1–Q3 right first time; stuck on Q4 ("yesterday" was ambiguous). Solved after the fix | Q4 names the date; specific feedback for common wrong answers; fourth hint |
 
 All rights reserved until a licence is chosen at public release.

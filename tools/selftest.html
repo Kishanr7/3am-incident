@@ -19,11 +19,22 @@
   const n = Number(new URLSearchParams(location.search).get('days') || 365);
   const U = TAI.util;
   const fails = []; const stats = {}; let cases = 0; let maxRows = 0; const t0 = performance.now();
-  for (let i = 0; i < n; i++) {
-    const iso = U.addDays(TAI.EPOCH, i);
-    const c = TAI.caseFor(iso);
+  const jobs = [];
+  for (let i = 0; i < n; i++) jobs.push(() => TAI.caseFor(U.addDays(TAI.EPOCH, i)));
+  for (let k = 1; k <= TAI.PRACTICE_COUNT; k++) jobs.push(() => TAI.practiceCase(k));
+  const lv = {};
+  for (const job of jobs) {
+    const c = job();
+    const iso = c.date;
+    if (c.practice) {
+      lv[c.level] = (lv[c.level] || 0) + 1;
+      const keys = c.cards.filter((x) => x.key).length; const herr = c.cards.length - keys;
+      if (c.level === 'easy' && herr !== 1) fails.push('practice ' + c.practice + ': easy should have 1 herring, has ' + herr);
+      if (c.level === 'hard' && (keys < 2 || !c.hardNote)) fails.push('practice ' + c.practice + ': hard has ' + keys + ' key cards');
+      if (c.cards.length < 4) fails.push('practice ' + c.practice + ': only ' + c.cards.length + ' cards');
+    }
     const db = TAI.buildDb(SQL, c);
-    const tag = `#${c.no} ${iso} ${c.tpl.id} ${c.co.name}`;
+    const tag = (c.practice ? 'practice ' + c.practice + ' ' + c.level : '#' + c.no) + ` ${iso} ${c.tpl.id} ${c.co.name}`;
     const fail = (m) => fails.push(tag + ': ' + m);
     for (const ch of c.checks) {
       try { const r = TAI.query(db, ch.sql); if (!ch.test(r.values)) fail('check failed: ' + ch.label + ' -> ' + JSON.stringify(r.values.slice(0, 3))); }
@@ -48,13 +59,13 @@
     const truthVal = c.truth.trueD != null ? U.num(c.truth.trueD) : U.money(c.truth.trueRev);
     if (right !== truthVal) fail('numeric answer ' + right + ' != truth ' + truthVal);
     // determinism
-    const c2 = TAI.caseFor(iso); if (c2.teaser !== c.teaser || c2.questions[0].options[0].id !== c.questions[0].options[0].id) fail('not deterministic');
+    const c2 = job(); if (c2.teaser !== c.teaser || c2.questions[0].options[0].id !== c.questions[0].options[0].id) fail('not deterministic');
     db.close(); cases++;
     stats[c.tpl.id] = (stats[c.tpl.id] || 0) + 1;
   }
   const ms = Math.round(performance.now() - t0);
   out.innerHTML = `<b class="${fails.length ? 'bad' : 'ok'}">${fails.length ? fails.length + ' FAILURES' : 'ALL PASS'}</b>\n` +
-    `cases: ${cases} (${Object.entries(stats).map(([k, v]) => k + ' ' + v).join(', ')}) in ${ms} ms; largest card result ${maxRows} rows\n\n` + fails.slice(0, 60).join('\n');
+    `cases: ${cases} incl. practice ${JSON.stringify(lv)} (${Object.entries(stats).map(([k, v]) => k + ' ' + v).join(', ')}) in ${ms} ms; largest card result ${maxRows} rows\n\n` + fails.slice(0, 60).join('\n');
   window.__selftest = { cases, fails, ms };
 })();
 </script>

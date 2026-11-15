@@ -10,6 +10,17 @@
   const MOON = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="var(--accent)"/><path d="M19.5 7.5a9 9 0 1 0 5 15.6A10 10 0 0 1 19.5 7.5z" fill="var(--surface)"/><circle cx="23" cy="9" r="1.3" fill="var(--surface)"/></svg>';
   const START_MIN = 15, STEP_MIN = 5, MEETING_MIN = 60; // 08:15 start, 5 minutes per action, meeting at 09:00
 
+  // Light/dark: follows the device until the player picks one; the choice is remembered on this device.
+  function isDark() { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; }
+  function themeIcon() { return isDark() ? '☀️' : '🌙'; }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('#themeBtn'); if (!b) return;
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('tai.theme', next); } catch (err) { /* remembered for this visit only */ }
+    b.textContent = themeIcon();
+  });
+
   let SQL = null;
   function loadSql() {
     if (SQL) return Promise.resolve(SQL);
@@ -21,6 +32,23 @@
   }
   const today = () => U.todayISO();
   const newRec = () => ({ timeline: [], reports: [], picks: {}, solved: false });
+
+  // ---------------- install as an app ----------------
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (!S) renderHome(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; if (!S) renderHome(); });
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function installCard() {
+    if (standalone()) return '';
+    if (installEvt) return `<div class="card install row" style="margin-top:12px"><span>📲 <b>Get the app.</b> <span class="small muted">Home-screen icon, works offline, no app store.</span></span><button class="btn primary" id="installBtn">Install</button></div>`;
+    if (isIOS()) return `<div class="card install small" style="margin-top:12px">📲 <b>Get the app on iPhone:</b> in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span>, then <b>Add to Home Screen</b>. It works offline.</div>`;
+    return '';
+  }
+  document.addEventListener('click', (e) => {
+    if (!(e.target.closest && e.target.closest('#installBtn')) || !installEvt) return;
+    installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; if (!S) renderHome(); });
+  });
 
   // ---------------- home ----------------
   function renderHome() {
@@ -38,12 +66,23 @@
       return `<a class="day ${solved ? 'solved' : ''} ${d === t ? 'today' : ''}" href="#/daily/${d}" aria-label="Daily #${m.no}, ${U.fmtDay(d)}, ${m.co.name}${solved ? ', solved' : ''}">
         <span>${U.fmtDay(d).slice(0, 3)}</span><b>#${m.no}</b><span class="st">${solved ? '✓' : r && r.timeline.length ? '•' : '&nbsp;'}</span></a>`;
     }).join('');
+    let lvl = 'easy'; try { lvl = localStorage.getItem('tai.lvl') || 'easy'; } catch (e) { /* default */ }
+    if (!TAI.LEVELS[lvl]) lvl = 'easy';
+    const done = { easy: 0, medium: 0, hard: 0 };
+    for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) { const r = TAI.store.get('p' + n); if (r && r.solved) done[TAI.practiceMeta(n).level]++; }
+    let lib = '';
+    for (let n = TAI.LEVELS[lvl][0]; n <= TAI.LEVELS[lvl][1]; n++) {
+      const pm = TAI.practiceMeta(n); const r = TAI.store.get('p' + n);
+      const st2 = r && r.solved ? 'solved' : r && r.timeline.length ? 'started' : '';
+      lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}, ${esc(pm.tpl.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
+    }
     const cast = ['maya', 'sam', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
 
     app.innerHTML = `
       <div class="wrap">
         <div class="top">
           <a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a>
+          <button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button>
           <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}">🔥 ${st.current}</button>
         </div>
         <p class="pilot"><b>Private pilot.</b> Fictional companies, fake data. Everything runs in your browser; your streak stays on this device. Please don’t post the link publicly yet.</p>
@@ -56,9 +95,15 @@
           <div class="row"><a class="btn primary" href="#/daily/${t}">${btn}</a><span class="small muted">Easy–medium · 5–10 min · phone-friendly</span></div>
         </section>
 
+        ${installCard()}
         <h2>This week</h2>
         <nav class="week" aria-label="This week’s daily cases">${week}</nav>
         <p class="small muted">Missed one? Play it any time. Only today’s case counts towards your streak.</p>
+
+        <h2 id="practice">Practice library</h2>
+        <p class="small muted" style="margin-top:-4px">100 cases to train on, any time. Easy has fewer distractions. Hard removes two checks, so you write some SQL yourself.</p>
+        <div class="tabs" role="tablist" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button role="tab" class="tab" data-l="${l}" aria-selected="${l === lvl}">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
+        <nav class="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>
 
         <h2>Case files</h2>
         <div class="files">
@@ -85,6 +130,7 @@
         <footer>Made by Kishan · fictional companies and data · no account, no tracking</footer>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
+    document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { try { localStorage.setItem('tai.lvl', b.dataset.l); } catch (e) { /* ignore */ } const y = scrollY; renderHome(); scrollTo(0, y); const t2 = document.querySelector('.tab[data-l="' + b.dataset.l + '"]'); if (t2) t2.focus(); }; });
   }
 
   function showStats() {
@@ -92,6 +138,7 @@
     const dlg = document.createElement('dialog');
     dlg.innerHTML = `<h2 style="margin-top:0">Your stats</h2>
       <div class="stats"><div><b>${st.played}</b><span>played</span></div><div><b>${st.solved}</b><span>solved</span></div><div><b>${st.current}</b><span>streak</span></div><div><b>${st.best}</b><span>best</span></div></div>
+      <p class="small" style="margin:0 0 8px">Practice cases solved: <b>${st.practiceSolved}</b> / ${TAI.PRACTICE_COUNT}</p>
       <p class="small muted">No account needed: your streak lives in this browser. To keep it on another phone or laptop, copy your streak code there.</p>
       <div class="row"><button class="btn" id="exp" type="button">Copy streak code</button></div>
       <label class="small" for="imp" style="display:block;margin-top:12px;font-weight:600">Got a code from another device?</label>
@@ -112,19 +159,25 @@
   // ---------------- case ----------------
   let S = null; // { c, db, rec, iso }
 
-  function save() { TAI.store.put(S.iso, S.rec); }
+  function save() { TAI.store.put(S.key, S.rec); }
   const actions = () => S.rec.timeline.length;
   function clockMin() { return START_MIN + STEP_MIN * actions(); }
   function clockText(m) { const h = 8 + Math.floor(m / 60), mm = m % 60; return U.pad(h) + ':' + U.pad(mm); }
 
-  function openCase(iso) {
+  const LEVEL_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+  function openCase(kind, id) {
     const t = today();
-    if (iso < TAI.EPOCH || iso > t) { location.hash = '#/'; return; }
+    if (kind === 'daily' && (id < TAI.EPOCH || id > t)) { location.hash = '#/'; return; }
+    if (kind === 'practice' && !(id >= 1 && id <= TAI.PRACTICE_COUNT)) { location.hash = '#/'; return; }
     app.innerHTML = '<div class="wrap"><div class="loading" role="status">Waking up the warehouse…</div></div>';
+    const token = openCase.token;
     loadSql().then(() => {
-      const c = TAI.caseFor(iso);
+      if (token !== openCase.token) return; // the player navigated away while loading
+      const c = kind === 'daily' ? TAI.caseFor(id) : TAI.practiceCase(id);
       const db = TAI.buildDb(SQL, c);
-      S = { c, db, iso, rec: TAI.store.get(iso) || newRec() };
+      const key = kind === 'daily' ? id : 'p' + id;
+      const label = kind === 'daily' ? `Daily #${c.no}` : `Practice #${id} · ${LEVEL_NAME[c.level]}`;
+      S = { c, db, key, iso: kind === 'daily' ? id : null, daily: kind === 'daily', practice: kind === 'practice' ? id : null, label, rec: TAI.store.get(key) || newRec() };
       renderCase();
     }).catch(() => {
       app.innerHTML = '<div class="wrap"><div class="loading" role="alert">Couldn’t load the SQL engine. It needs an internet connection once. <a href="">Try again</a></div></div>';
@@ -170,13 +223,14 @@
 
   function renderCase() {
     const { c, rec } = S;
-    document.title = `Daily #${c.no} · 3 a.m. Incident`;
+    document.title = `${S.label} · 3 a.m. Incident`;
     const intro = c.intro.map((m) => `<div class="msg ${m.who === 'alert' ? 'alert' : ''}">${av(m.who)}<div class="bubble"><span class="name">${esc(CAST[m.who].name)}${m.who === 'alert' ? ' · 03:12' : ' · 08:1' + (m.who === 'maya' ? '0' : '2')}</span>${esc(m.text)}</div></div>`).join('');
     const schema = c.tables.map((tb) => `<b>${tb.name}</b>(${tb.cols.map((x) => x[0]).join(', ')})`).join('<br>');
     app.innerHTML = `
       <div class="wrap">
-        <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a></div>
-        <div class="case-head"><span class="kicker">Daily #${c.no} · ${U.fmtDay(c.date)}</span><h1>${esc(c.co.name)}: ${esc(c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
+        <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
+        <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.co.name)}: ${esc(c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
+        ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
         <p class="scene small muted">📍 Your kitchen, 08:14. Coffee: half made. Phone: 3 unread in #incident-${esc(c.co.name.toLowerCase())}.</p>
         <div class="chat" aria-label="Incident channel">${intro}</div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -302,24 +356,25 @@
     const reports = rec.reports.map((x) => (x ? '✅' : '❌')).join('');
     const late = rec.solvedAt > MEETING_MIN;
     const st = TAI.streaks(today());
-    const daily = rec.solvedOn === S.iso;
+    const daily = S.daily && rec.solvedOn === S.iso;
     const url = /^https?:/.test(location.protocol) ? '\n' + location.origin + location.pathname : '';
-    return `🕒 3 a.m. Incident · Daily #${c.no}\n${grid}\nReport ${reports} · ${clockText(rec.solvedAt)}${late ? ', late' : ', on time'}` +
+    return `🕒 3 a.m. Incident · ${S.label}\n${grid}\nReport ${reports} · ${clockText(rec.solvedAt)}${late ? ', late' : ', on time'}` +
       (daily && st.current > 1 ? `\n🔥 ${st.current}-day streak` : '') + url;
   }
 
   function renderSolved(box) {
     const { c, rec } = S;
     const L = c.lesson; const late = rec.solvedAt > MEETING_MIN;
-    const daily = rec.solvedOn === S.iso;
+    const daily = S.daily && rec.solvedOn === S.iso;
     const st = TAI.streaks(today());
+    const next = S.practice && S.practice < TAI.PRACTICE_COUNT ? `<a class="btn" href="#/practice/${S.practice + 1}">Next case →</a>` : '';
     box.innerHTML = `<h2 id="reportTitle" class="sr">Case closed</h2>
       <div class="card win">
         <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>
         <h2 style="margin:16px 0 4px">Case closed${late ? ', a little late' : ' before 9:00'}.</h2>
-        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}` : ' · archive case (streaks count on the day)'}</p>
+        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}` : S.practice ? ' · practice case' : ' · archive case (streaks count on the day)'}</p>
         <div class="share" id="shareText">${esc(shareText())}</div>
-        <div class="row"><button class="btn primary" id="copy">Copy result</button><a class="btn" href="#/">Home</a></div>
+        <div class="row"><button class="btn primary" id="copy">Copy result</button>${next}<a class="btn" href="#/">Home</a></div>
         <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte</p>
       </div>
       <div class="card lesson" style="margin-top:12px">
@@ -347,10 +402,18 @@
   // ---------------- router ----------------
   function route() {
     if (S && S.db) { S.db.close(); S = null; }
+    openCase.token = (openCase.token || 0) + 1;
     const m = location.hash.match(/^#\/daily\/(\d{4}-\d{2}-\d{2})$/);
-    if (m) openCase(m[1]); else renderHome();
+    const p = location.hash.match(/^#\/practice\/(\d{1,3})$/);
+    if (m) openCase('daily', m[1]);
+    else if (p) openCase('practice', Number(p[1]));
+    else renderHome();
   }
   window.addEventListener('hashchange', route);
   route();
   window.__tai = { get state() { return S; } };
+  // Installable app + offline play (iPhone: Share > Add to Home Screen; Android: Install app).
+  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* still playable online */ }); });
+  }
 })();

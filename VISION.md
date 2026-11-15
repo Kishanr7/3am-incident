@@ -41,6 +41,12 @@ Warm palette, hand-drawn touches, gentle sound. A cosy mystery, not a terminal.
 | **3. Library** | 100 cases tagged easy/medium/hard, from ~15 templates; one free daily case | Steady daily players after launch |
 | **4. Accounts** | Sign-in (Google/GitHub/email), progress synced across devices, streak rewards, team leaderboards | People ask for it, *and* a privacy and security plan is ready |
 
+## Where it stands (2026-11-15)
+
+By the owner's decision, stage 1 was built before pilot feedback arrived, together with a 100-case practice library (easy/medium/hard). Both are installable on iPhone and Android as a web app and work offline. **The gates are unchanged:** the public launch (stage 2) still waits for pilot results (`PILOT.md`) and stage-1 retention.
+
+Known gap: the library's 100 cases come from **3 templates**, so players will see the same three patterns many times. The cases differ in company, numbers and red herrings, but not in the lesson. More templates (timezone boundary, late backfill, units in cents, unannounced dedupe change, partition overwrite…) matter more than more cases.
+
 ## Why accounts come last
 
 Wordle grew to millions of players with no login: the streak lived in the browser. Accounts add a server, a database, password and SSO security, data-protection duties (GDPR and India's DPDP Act), running costs and support. They also put a sign-up wall in front of a first-time player. Add them only when players ask for cross-device streaks or team play. By then the design will be clear, and the cost will be justified.
