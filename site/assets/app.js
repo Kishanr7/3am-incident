@@ -85,49 +85,48 @@
           <button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button>
           <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}">🔥 ${st.current}</button>
         </div>
-        <p class="pilot"><b>Private pilot.</b> Fictional companies, fake data. Everything runs in your browser; your streak stays on this device. Please don’t post the link publicly yet.</p>
+
+        <section class="intro" aria-label="What is this?">
+          <p class="lead">A 5-minute daily puzzle for people who work with data.</p>
+          <p>A number on the dashboard looks wrong. Check the data, find out why, and tell your boss before the 9:00 meeting.</p>
+          <ol class="steps">
+            <li><span aria-hidden="true">📉</span>Spot the odd number</li>
+            <li><span aria-hidden="true">🔎</span>Tap to check the data</li>
+            <li><span aria-hidden="true">💬</span>Say what went wrong</li>
+          </ol>
+        </section>
 
         <section class="card hero" aria-labelledby="todayTitle">
           <div class="moon">${MOON}</div>
-          <div class="kicker">Today’s incident · Daily #${c.no} · ${U.fmtDay(t)}</div>
+          <div class="kicker">Today’s case · ${U.fmtDay(t)}</div>
           <h1 id="todayTitle">${esc(c.teaser)}</h1>
-          <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} needs an answer before the 9:00 meeting. ${esc(c.co.name)} sells ${esc(c.co.what)}.</span></div>
-          <div class="row"><a class="btn primary" href="#/daily/${t}">${btn}</a><span class="small muted">Easy–medium · 5–10 min · phone-friendly</span></div>
+          <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} wants to know why.</span></div>
+          <a class="btn primary" href="#/daily/${t}">${btn}</a>
         </section>
 
         ${installCard()}
         <h2>This week</h2>
         <nav class="week" aria-label="This week’s daily cases">${week}</nav>
-        <p class="small muted">Missed one? Play it any time. Only today’s case counts towards your streak.</p>
+        <p class="small muted">Missed a day? You can still play it. Only today’s case adds to your streak.</p>
 
-        <h2 id="practice">Practice library</h2>
-        <p class="small muted" style="margin-top:-4px">100 cases to train on, any time. Easy has fewer distractions. Hard removes two checks, so you write some SQL yourself.</p>
+        <h2 id="practice">Practice</h2>
+        <p class="small muted" style="margin-top:-4px">100 more cases. Hard ones make you write a little SQL.</p>
         <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
-        ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : '<p class="small muted" id="lib" style="margin:0">Pick a level to see its cases.</p>'}
+        ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : ''}
 
-        <h2>Case files</h2>
-        <div class="files">
-          <a class="card file" href="case-1/">
-            <span class="num">#1</span>
-            <span><b>The Missing Revenue</b><br><span class="small muted">The CFO’s revenue fell by a third overnight. Write your own SQL across nine warehouse tables.</span><br>
-            <span class="tag">Hard</span> <span class="tag">Full SQL console</span> <span class="tag">Laptop</span> <span class="tag">20–30 min</span></span>
-          </a>
-        </div>
+        <h2>Big case</h2>
+        <a class="card file" href="case-1/">
+          <span class="num">#1</span>
+          <span><b>The Missing Revenue</b><br><span class="small muted">Write your own SQL. Best on a laptop, about 25 minutes.</span></span>
+        </a>
 
-        <h2>Meet the on-call crew</h2>
-        <div class="cast">${cast}</div>
+        <details class="crew">
+          <summary>Meet the crew</summary>
+          <div class="cast">${cast}</div>
+        </details>
 
-        <h2>How to play</h2>
-        <div class="card how small">
-          <ol>
-            <li>Something in ${'yesterday’s'} numbers looks wrong. Every job says SUCCESS.</li>
-            <li>Tap a query to run it. Each one is real SQL against a real (tiny, fake) database in your browser, and each takes 5 minutes of your morning.</li>
-            <li>When you know what happened, report to Maya: the cause, and the real number. The meeting is at 9:00.</li>
-            <li>Stuck? Ask Byte. Byte costs 5 minutes too.</li>
-          </ol>
-          <p class="muted">Every case is a real failure pattern: late data, double counting, a renamed field. Play daily and you’ll spot them faster at work.</p>
-        </div>
-        <footer>Made by Kishan · fictional companies and data · no account, no tracking</footer>
+        <p class="pilot">Test version. The companies and data are made up, and your progress stays on this device. Please don’t share the link yet.</p>
+        <footer>Made by Kishan · no account, no tracking</footer>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
     document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { const open = b.getAttribute('aria-expanded') === 'true'; openLevel = open ? '' : b.dataset.l; const y = scrollY; renderHome(); scrollTo(0, y); const t2 = document.querySelector('.tab[data-l="' + b.dataset.l + '"]'); if (t2) t2.focus(); }; });
@@ -234,9 +233,9 @@
     app.innerHTML = `
       <div class="wrap">
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
-        <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.co.name)}: ${esc(c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
+        <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.teaser.startsWith(c.co.name + ' ') ? c.teaser : c.co.name + ': ' + c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
         ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
-        <p class="scene small muted">📍 Your kitchen, 08:14. Coffee: half made. Phone: 3 unread in #incident-${esc(c.co.name.toLowerCase())}.</p>
+        <p class="scene small"><b>Your job:</b> find out why the number is wrong, then tap <b>Report</b>. Each check takes 5 minutes, and the meeting is at 9:00.</p>
         <div class="chat" aria-label="Incident channel">${intro}</div>
         <div class="feed" id="feed" aria-live="polite"></div>
 
