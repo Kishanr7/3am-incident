@@ -6,7 +6,7 @@
 
 ## Play
 
-Open `index.html` in a browser. That's it. A real SQLite engine ([sql.js](https://github.com/sql-js/sql.js)) runs inside the page against a fictional company's warehouse, generated from a fixed seed. It needs an internet connection once, to load the engine from cdnjs. Desktop is recommended.
+Open `site/index.html` in a browser. That's it. A real SQLite engine ([sql.js](https://github.com/sql-js/sql.js)) runs inside the page against a fictional company's warehouse, generated from a fixed seed. It needs an internet connection once, to load the engine from cdnjs. Desktop is recommended.
 
 Nothing you type leaves the page. No account, no tracking.
 
@@ -23,7 +23,9 @@ Every number in the story is computed from the generated data, so the text and t
 
 | File | What it is |
 | --- | --- |
-| `index.html` | The whole game |
+| `site/index.html` | The whole game (the only thing Netlify publishes) |
+| `site/_headers` | No-index and basic security headers for the live site |
+| `netlify.toml` | Tells Netlify to publish `site/` only |
 | `PILOT.md` | How the private pilot runs: invite, feedback form, continue/stop thresholds, results log |
 | `VISION.md` | Where this could go (daily puzzle, case library, accounts), and in what order |
 

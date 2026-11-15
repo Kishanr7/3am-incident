@@ -1,0 +1,4 @@
+# Netlify: publish only the playable site, never the planning docs at the repo root.
+[build]
+  publish = "site"
+  command = ""
