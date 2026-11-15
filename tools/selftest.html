@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Case self-test</title>
+<style>body{font:14px/1.5 system-ui;margin:20px;background:#fff;color:#111}.bad{color:#b00}.ok{color:#070}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>Case self-test</h1>
+<p>Generates every daily case for a range of dates, builds its database, runs every query card and every self-check, and checks the answer options. Serve the repo root and open <code>/tools/selftest.html?days=365</code>. Not published.</p>
+<pre id="out">running…</pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="../site/assets/engine.js"></script>
+<script src="../site/assets/cases.js"></script>
+<script>
+(async function () {
+  const out = document.getElementById('out');
+  const SQL = await initSqlJs({ locateFile: (f) => TAI.SQL_CDN + f });
+  const n = Number(new URLSearchParams(location.search).get('days') || 365);
+  const U = TAI.util;
+  const fails = []; const stats = {}; let cases = 0; let maxRows = 0; const t0 = performance.now();
+  for (let i = 0; i < n; i++) {
+    const iso = U.addDays(TAI.EPOCH, i);
+    const c = TAI.caseFor(iso);
+    const db = TAI.buildDb(SQL, c);
+    const tag = `#${c.no} ${iso} ${c.tpl.id} ${c.co.name}`;
+    const fail = (m) => fails.push(tag + ': ' + m);
+    for (const ch of c.checks) {
+      try { const r = TAI.query(db, ch.sql); if (!ch.test(r.values)) fail('check failed: ' + ch.label + ' -> ' + JSON.stringify(r.values.slice(0, 3))); }
+      catch (e) { fail('check error: ' + ch.label + ': ' + e.message); }
+    }
+    const ids = new Set();
+    for (const card of c.cards) {
+      if (ids.has(card.id)) fail('duplicate card id ' + card.id); ids.add(card.id);
+      try { const r = TAI.query(db, card.sql); if (!r.values.length) fail('card returns no rows: ' + card.id); if (r.total > 20) fail('card returns ' + r.total + ' rows: ' + card.id); maxRows = Math.max(maxRows, r.total); if (r.columns.length > 5) fail('card has ' + r.columns.length + ' columns: ' + card.id); }
+      catch (e) { fail('card error ' + card.id + ': ' + e.message); }
+    }
+    for (const id of c.chain) if (!ids.has(id)) fail('chain card missing ' + id);
+    for (const q of c.questions) {
+      const right = q.options.filter((o) => o.correct);
+      if (right.length !== 1) fail(q.id + ': ' + right.length + ' correct options');
+      if (q.options.length !== 4) fail(q.id + ': ' + q.options.length + ' options');
+      if (new Set(q.options.map((o) => o.text)).size !== q.options.length) fail(q.id + ': duplicate option text');
+      for (const o of q.options) if (!o.correct && !o.why) fail(q.id + ': wrong option without feedback: ' + o.text);
+    }
+    // the numeric answer must be what the key query actually returns
+    const nq = c.questions.find((q) => q.id === 'number'); const right = nq.options.find((o) => o.correct).text;
+    const truthVal = c.truth.trueD != null ? U.num(c.truth.trueD) : U.money(c.truth.trueRev);
+    if (right !== truthVal) fail('numeric answer ' + right + ' != truth ' + truthVal);
+    // determinism
+    const c2 = TAI.caseFor(iso); if (c2.teaser !== c.teaser || c2.questions[0].options[0].id !== c.questions[0].options[0].id) fail('not deterministic');
+    db.close(); cases++;
+    stats[c.tpl.id] = (stats[c.tpl.id] || 0) + 1;
+  }
+  const ms = Math.round(performance.now() - t0);
+  out.innerHTML = `<b class="${fails.length ? 'bad' : 'ok'}">${fails.length ? fails.length + ' FAILURES' : 'ALL PASS'}</b>\n` +
+    `cases: ${cases} (${Object.entries(stats).map(([k, v]) => k + ' ' + v).join(', ')}) in ${ms} ms; largest card result ${maxRows} rows\n\n` + fails.slice(0, 60).join('\n');
+  window.__selftest = { cases, fails, ms };
+})();
+</script>
+</body>
+</html>

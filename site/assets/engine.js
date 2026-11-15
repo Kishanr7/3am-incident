@@ -1,0 +1,187 @@
+/* 3 a.m. Incident: daily case engine.
+   Pure functions: seeded randomness, dates, building a case's SQLite database,
+   streaks kept in this browser. No network, no tracking. */
+(function () {
+  'use strict';
+  const TAI = (window.TAI = window.TAI || {});
+
+  // First daily case. Daily #1 is this date; #N is EPOCH + N-1 days.
+  TAI.EPOCH = '2026-11-09';
+  TAI.SQL_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';
+
+  // ---------- randomness ----------
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hash(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return h >>> 0;
+  }
+  function tools(seed) {
+    const r = mulberry32(seed);
+    const t = {
+      r,
+      int: (a, b) => a + Math.floor(r() * (b - a + 1)),
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      shuffle: (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+      chance: (p) => r() < p,
+    };
+    return t;
+  }
+
+  // ---------- dates (all ISO 'YYYY-MM-DD', calendar arithmetic in UTC) ----------
+  const pad = (n) => String(n).padStart(2, '0');
+  const MS_DAY = 86400000;
+  function toUTC(iso) { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+  function fromUTC(ms) { const d = new Date(ms); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+  const addDays = (iso, n) => fromUTC(toUTC(iso) + n * MS_DAY);
+  const diffDays = (a, b) => Math.round((toUTC(a) - toUTC(b)) / MS_DAY);
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function fmtDay(iso) { const d = new Date(toUTC(iso)); return DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+  function fmtShort(iso) { const d = new Date(toUTC(iso)); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+  const dow = (iso) => new Date(toUTC(iso)).getUTCDay();
+  const ts = (iso, h, m, s) => iso + ' ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+  function todayISO() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  // ---------- numbers ----------
+  const round2 = (x) => Math.round(x * 100) / 100;
+  const num = (n) => Math.round(n).toLocaleString('en-US');
+  const money = (n) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct = (x) => Math.round(Math.abs(x) * 100) + '%';
+
+  /* Pick n wrong numeric options that are clearly different from the truth and from each other.
+     cands: [{v, why}] in preference order. */
+  function distractors(truth, cands, n, gap) {
+    gap = gap || 0.04;
+    const fallback = [0.78, 1.27, 0.66, 1.4].map((k) => ({ v: truth * k, why: 'That number doesn’t come from any query. Look again at what the data says.' }));
+    const out = [];
+    for (const c of cands.concat(fallback)) {
+      if (c == null || !isFinite(c.v) || c.v <= 0) continue;
+      const taken = [truth].concat(out.map((o) => o.v));
+      if (taken.every((x) => Math.abs(c.v - x) / Math.max(1, truth) >= gap)) out.push(c);
+      if (out.length === n) break;
+    }
+    return out;
+  }
+
+  TAI.util = { mulberry32, hash, tools, pad, addDays, diffDays, fmtDay, fmtShort, dow, ts, todayISO, round2, num, money, pct, distractors };
+
+  // ---------- case catalogue ----------
+  TAI.TEMPLATES = TAI.TEMPLATES || [];
+  TAI.COMPANIES = [
+    { name: 'Brewly', what: 'coffee subscriptions', prefix: 'BRW', scale: [520, 760], mult: 1.0 },
+    { name: 'Parcelo', what: 'parcel lockers', prefix: 'PCL', scale: [640, 900], mult: 0.6 },
+    { name: 'Kitebox', what: 'meal kits', prefix: 'KTB', scale: [380, 560], mult: 2.4 },
+    { name: 'Plantly', what: 'house plants by post', prefix: 'PLT', scale: [300, 480], mult: 1.6 },
+    { name: 'Tunebird', what: 'online music lessons', prefix: 'TNB', scale: [420, 620], mult: 1.9 },
+    { name: 'Stayzy', what: 'holiday cabins', prefix: 'STZ', scale: [260, 420], mult: 5.5 },
+    { name: 'Lumen', what: 'a fitness app', prefix: 'LMN', scale: [560, 820], mult: 0.9 },
+  ];
+
+  function dayNo(iso) { return diffDays(iso, TAI.EPOCH) + 1; }
+  function meta(iso) {
+    const n = dayNo(iso);
+    const T = TAI.TEMPLATES;
+    return { no: n, date: iso, tpl: T[(((n - 1) % T.length) + T.length) % T.length], co: TAI.COMPANIES[(((n - 1) % TAI.COMPANIES.length) + TAI.COMPANIES.length) % TAI.COMPANIES.length] };
+  }
+  /* Build the full case for a calendar date. Deterministic: same date, same case, for everyone. */
+  function caseFor(iso, opts) {
+    const m = meta(iso);
+    const tpl = (opts && opts.tpl) || m.tpl;
+    const co = (opts && opts.co) || m.co;
+    const D = addDays(iso, -1); // the incident day is always "yesterday"
+    const days = []; for (let i = 6; i >= 0; i--) days.push(addDays(D, -i));
+    // A template reports valid=false when its random draw makes a weak puzzle (e.g. a spike too small
+    // to notice). Re-roll deterministically until it is valid, so every date still gets one fixed case.
+    let c, t, attempt = 0;
+    do {
+      t = tools(hash('3am|' + iso + '|' + tpl.id + '|' + co.name + '|' + ((opts && opts.salt) || '') + '|' + attempt));
+      c = tpl.build(t, { D, days, co, caseDate: iso, no: m.no });
+      attempt++;
+    } while (c.valid === false && attempt < 20);
+    c.attempts = attempt;
+    c.no = m.no; c.date = iso; c.D = D; c.days = days; c.co = co; c.tpl = tpl;
+    // Shuffle answer options once, deterministically.
+    for (const q of c.questions) q.options = t.shuffle(q.options);
+    return c;
+  }
+  TAI.dayNo = dayNo; TAI.meta = meta; TAI.caseFor = caseFor;
+
+  // ---------- database ----------
+  function buildDb(SQL, c) {
+    const db = new SQL.Database();
+    db.run('BEGIN');
+    for (const tb of c.tables) {
+      db.run('CREATE TABLE ' + tb.name + ' (' + tb.cols.map((x) => x[0] + ' ' + x[1]).join(', ') + ')');
+      const st = db.prepare('INSERT INTO ' + tb.name + ' VALUES (' + tb.cols.map(() => '?').join(',') + ')');
+      for (const row of tb.rows) st.run(row);
+      st.free();
+    }
+    db.run('COMMIT');
+    return db;
+  }
+  function query(db, sql, maxRows) {
+    const res = db.exec(sql);
+    const last = res.length ? res[res.length - 1] : { columns: [], values: [] };
+    const values = maxRows ? last.values.slice(0, maxRows) : last.values;
+    return { columns: last.columns, values, total: last.values.length };
+  }
+  TAI.buildDb = buildDb; TAI.query = query;
+
+  // ---------- this browser's saved progress ----------
+  const KEY = 'tai.v1';
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || { cases: {} }; } catch (e) { return { cases: {} }; } }
+  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* private mode: progress lasts this visit only */ } }
+  let mem = load();
+  const store = {
+    get: (iso) => mem.cases[iso] || null,
+    put: (iso, rec) => { mem.cases[iso] = rec; save(mem); },
+    all: () => mem.cases,
+    reset: () => { mem = { cases: {} }; save(mem); },
+  };
+  TAI.store = store;
+  // Move progress to another device without an account: a short code holding only which days were solved.
+  store.exportCode = () => {
+    const rows = Object.entries(mem.cases).filter(([, r]) => r.solved).map(([d, r]) => d.replace(/-/g, '') + (r.solvedOn === d ? '1' : '0'));
+    return 'TAI1-' + btoa(rows.join('.')).replace(/=+$/, '');
+  };
+  store.importCode = (code) => {
+    const m = String(code || '').trim().match(/^TAI1-([A-Za-z0-9+/]+)$/);
+    if (!m) return -1;
+    let txt; try { txt = atob(m[1]); } catch (e) { return -1; }
+    let n = 0;
+    for (const part of txt.split('.')) {
+      const x = part.match(/^(\d{4})(\d{2})(\d{2})([01])$/); if (!x) continue;
+      const d = x[1] + '-' + x[2] + '-' + x[3];
+      const cur = mem.cases[d];
+      if (cur && cur.solved) continue;
+      mem.cases[d] = { timeline: [], reports: [true], picks: {}, solved: true, solvedOn: x[4] === '1' ? d : 'imported', imported: true, queries: 0 };
+      n++;
+    }
+    save(mem); return n;
+  };
+
+
+  // A streak counts daily cases solved on their own day (like Wordle). Archive solves don't count.
+  function streaks(today) {
+    const cases = store.all();
+    const ok = (iso) => { const r = cases[iso]; return !!(r && r.solved && r.solvedOn === iso); };
+    let cur = 0; let d = ok(today) ? today : addDays(today, -1);
+    while (d >= TAI.EPOCH && ok(d)) { cur++; d = addDays(d, -1); }
+    let best = 0, run = 0;
+    for (let x = TAI.EPOCH; x <= today; x = addDays(x, 1)) { if (ok(x)) { run++; best = Math.max(best, run); } else run = 0; }
+    const recs = Object.values(cases);
+    const solved = recs.filter((r) => r.solved);
+    const avgQ = solved.length ? solved.reduce((a, r) => a + r.timeline.filter((e) => e.t !== 'hint').length, 0) / solved.length : 0;
+    return { current: cur, best, played: recs.filter((r) => r.timeline.length || r.reports.length).length, solved: solved.length, avgQueries: avgQ };
+  }
+  TAI.streaks = streaks;
+})();

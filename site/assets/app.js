@@ -1,0 +1,356 @@
+/* 3 a.m. Incident: home page and the daily case player. */
+(function () {
+  'use strict';
+  const TAI = window.TAI;
+  const U = TAI.util;
+  const CAST = TAI.CAST;
+  const app = document.getElementById('app');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const av = (who, cls) => `<span class="av ${cls || ''}">${CAST[who].svg}</span>`;
+  const MOON = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="var(--accent)"/><path d="M19.5 7.5a9 9 0 1 0 5 15.6A10 10 0 0 1 19.5 7.5z" fill="var(--surface)"/><circle cx="23" cy="9" r="1.3" fill="var(--surface)"/></svg>';
+  const START_MIN = 15, STEP_MIN = 5, MEETING_MIN = 60; // 08:15 start, 5 minutes per action, meeting at 09:00
+
+  let SQL = null;
+  function loadSql() {
+    if (SQL) return Promise.resolve(SQL);
+    return window.initSqlJs({ locateFile: (f) => TAI.SQL_CDN + f }).then((s) => (SQL = s));
+  }
+  function toast(text) {
+    const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); el.textContent = text;
+    document.body.appendChild(el); setTimeout(() => el.remove(), 1800);
+  }
+  const today = () => U.todayISO();
+  const newRec = () => ({ timeline: [], reports: [], picks: {}, solved: false });
+
+  // ---------------- home ----------------
+  function renderHome() {
+    document.title = '3 a.m. Incident: a daily data mystery';
+    const t = today();
+    const st = TAI.streaks(t);
+    const c = TAI.caseFor(t);
+    const rec = TAI.store.get(t);
+    const status = rec && rec.solved ? 'solved' : rec && rec.timeline.length ? 'started' : 'new';
+    const btn = status === 'solved' ? 'See your result' : status === 'started' ? 'Continue investigating' : 'Start investigating';
+    const days = []; for (let i = 6; i >= 0; i--) { const d = U.addDays(t, -i); if (d >= TAI.EPOCH) days.push(d); }
+    const week = days.map((d) => {
+      const r = TAI.store.get(d); const solved = r && r.solved;
+      const m = TAI.meta(d);
+      return `<a class="day ${solved ? 'solved' : ''} ${d === t ? 'today' : ''}" href="#/daily/${d}" aria-label="Daily #${m.no}, ${U.fmtDay(d)}, ${m.co.name}${solved ? ', solved' : ''}">
+        <span>${U.fmtDay(d).slice(0, 3)}</span><b>#${m.no}</b><span class="st">${solved ? '✓' : r && r.timeline.length ? '•' : '&nbsp;'}</span></a>`;
+    }).join('');
+    const cast = ['maya', 'sam', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
+
+    app.innerHTML = `
+      <div class="wrap">
+        <div class="top">
+          <a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a>
+          <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}">🔥 ${st.current}</button>
+        </div>
+        <p class="pilot"><b>Private pilot.</b> Fictional companies, fake data. Everything runs in your browser; your streak stays on this device. Please don’t post the link publicly yet.</p>
+
+        <section class="card hero" aria-labelledby="todayTitle">
+          <div class="moon">${MOON}</div>
+          <div class="kicker">Today’s incident · Daily #${c.no} · ${U.fmtDay(t)}</div>
+          <h1 id="todayTitle">${esc(c.teaser)}</h1>
+          <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} needs an answer before the 9:00 meeting. ${esc(c.co.name)} sells ${esc(c.co.what)}.</span></div>
+          <div class="row"><a class="btn primary" href="#/daily/${t}">${btn}</a><span class="small muted">Easy–medium · 5–10 min · phone-friendly</span></div>
+        </section>
+
+        <h2>This week</h2>
+        <nav class="week" aria-label="This week’s daily cases">${week}</nav>
+        <p class="small muted">Missed one? Play it any time. Only today’s case counts towards your streak.</p>
+
+        <h2>Case files</h2>
+        <div class="files">
+          <a class="card file" href="case-1/">
+            <span class="num">#1</span>
+            <span><b>The Missing Revenue</b><br><span class="small muted">The CFO’s revenue fell by a third overnight. Write your own SQL across nine warehouse tables.</span><br>
+            <span class="tag">Hard</span> <span class="tag">Full SQL console</span> <span class="tag">Laptop</span> <span class="tag">20–30 min</span></span>
+          </a>
+        </div>
+
+        <h2>Meet the on-call crew</h2>
+        <div class="cast">${cast}</div>
+
+        <h2>How to play</h2>
+        <div class="card how small">
+          <ol>
+            <li>Something in ${'yesterday’s'} numbers looks wrong. Every job says SUCCESS.</li>
+            <li>Tap a query to run it. Each one is real SQL against a real (tiny, fake) database in your browser, and each takes 5 minutes of your morning.</li>
+            <li>When you know what happened, report to Maya: the cause, and the real number. The meeting is at 9:00.</li>
+            <li>Stuck? Ask Byte. Byte costs 5 minutes too.</li>
+          </ol>
+          <p class="muted">Every case is a real failure pattern: late data, double counting, a renamed field. Play daily and you’ll spot them faster at work.</p>
+        </div>
+        <footer>Made by Kishan · fictional companies and data · no account, no tracking</footer>
+      </div>`;
+    document.getElementById('statsBtn').onclick = () => showStats();
+  }
+
+  function showStats() {
+    const st = TAI.streaks(today());
+    const dlg = document.createElement('dialog');
+    dlg.innerHTML = `<h2 style="margin-top:0">Your stats</h2>
+      <div class="stats"><div><b>${st.played}</b><span>played</span></div><div><b>${st.solved}</b><span>solved</span></div><div><b>${st.current}</b><span>streak</span></div><div><b>${st.best}</b><span>best</span></div></div>
+      <p class="small muted">No account needed: your streak lives in this browser. To keep it on another phone or laptop, copy your streak code there.</p>
+      <div class="row"><button class="btn" id="exp" type="button">Copy streak code</button></div>
+      <label class="small" for="imp" style="display:block;margin-top:12px;font-weight:600">Got a code from another device?</label>
+      <div class="row" style="margin-top:4px"><input id="imp" class="codein" placeholder="TAI1-…" autocomplete="off" spellcheck="false"><button class="btn" id="impBtn" type="button">Add</button></div>
+      <p class="small muted" id="impNote" role="status"></p>
+      <form method="dialog" class="row"><button class="btn primary">Close</button></form>`;
+    document.body.appendChild(dlg); dlg.addEventListener('close', () => { dlg.remove(); if (!S) renderHome(); }); dlg.showModal();
+    dlg.querySelector('#exp').onclick = () => {
+      const code = TAI.store.exportCode();
+      (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('Code copied'), () => { dlg.querySelector('#imp').value = code; dlg.querySelector('#imp').select(); toast('Select and copy the code'); });
+    };
+    dlg.querySelector('#impBtn').onclick = () => {
+      const n = TAI.store.importCode(dlg.querySelector('#imp').value);
+      dlg.querySelector('#impNote').textContent = n < 0 ? 'That doesn’t look like a streak code.' : n === 0 ? 'Nothing new in that code.' : 'Added ' + n + (n === 1 ? ' solved day.' : ' solved days.');
+    };
+  }
+
+  // ---------------- case ----------------
+  let S = null; // { c, db, rec, iso }
+
+  function save() { TAI.store.put(S.iso, S.rec); }
+  const actions = () => S.rec.timeline.length;
+  function clockMin() { return START_MIN + STEP_MIN * actions(); }
+  function clockText(m) { const h = 8 + Math.floor(m / 60), mm = m % 60; return U.pad(h) + ':' + U.pad(mm); }
+
+  function openCase(iso) {
+    const t = today();
+    if (iso < TAI.EPOCH || iso > t) { location.hash = '#/'; return; }
+    app.innerHTML = '<div class="wrap"><div class="loading" role="status">Waking up the warehouse…</div></div>';
+    loadSql().then(() => {
+      const c = TAI.caseFor(iso);
+      const db = TAI.buildDb(SQL, c);
+      S = { c, db, iso, rec: TAI.store.get(iso) || newRec() };
+      renderCase();
+    }).catch(() => {
+      app.innerHTML = '<div class="wrap"><div class="loading" role="alert">Couldn’t load the SQL engine. It needs an internet connection once. <a href="">Try again</a></div></div>';
+    });
+  }
+
+  function tableHtml(r) {
+    if (!r.columns.length) return '<p class="small muted">No rows.</p>';
+    const isNum = r.columns.map((_, j) => r.values.length > 0 && r.values.every((row) => row[j] === null || typeof row[j] === 'number'));
+    const long = r.values.some((row) => row.some((v) => typeof v === 'string' && v.length > 26));
+    const stack = r.columns.length >= 4 || long; // on phones, wide results become one card per row
+    const head = r.columns.map((c, j) => `<th scope="col"${isNum[j] ? ' class="n"' : ''}>${esc(c)}</th>`).join('');
+    const body = r.values.map((row) => '<tr>' + row.map((v, j) => {
+      const lab = ` data-label="${esc(r.columns[j])}"`;
+      if (v === null) return `<td class="null"${lab}>NULL</td>`;
+      if (typeof v === 'number') return `<td class="n"${lab}>${Number.isInteger(v) ? v : (Math.round(v * 100) / 100).toFixed(2)}</td>`;
+      return `<td${String(v).length > 26 ? ' class="long"' : ''}${lab}>${esc(v)}</td>`;
+    }).join('') + '</tr>').join('');
+    return `<div class="tbl" tabindex="0" role="region" aria-label="Query result"><table class="res${stack ? ' stack' : ''}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>` +
+      (r.total > r.values.length ? `<p class="more">Showing ${r.values.length} of ${r.total} rows.</p>` : '');
+  }
+
+  function entryHtml(e, i) {
+    const c = S.c;
+    if (e.t === 'card') {
+      const card = c.cards.find((x) => x.id === e.id);
+      let res; try { res = tableHtml(TAI.query(S.db, card.sql, 30)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
+      const voice = card.voice ? `<div class="voice">${av(card.voice.who)}<p><b>${esc(CAST[card.voice.who].name)}:</b> ${esc(card.voice.text)}</p></div>` : '';
+      return `<article class="entry" id="e${i}" tabindex="-1"><span class="kind">${esc(card.kind)} · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><h3>${esc(card.title)}</h3>
+        <details><summary>Show SQL</summary><pre class="sql">${esc(card.sql)}</pre></details>${res}${voice}</article>`;
+    }
+    if (e.t === 'sql') {
+      let res; try { res = tableHtml(TAI.query(S.db, e.sql, 50)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
+      return `<article class="entry" id="e${i}" tabindex="-1"><span class="kind">Your query · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div></article>`;
+    }
+    if (e.t === 'hint') {
+      const card = e.id && c.cards.find((x) => x.id === e.id);
+      const text = card ? `*walks across your keyboard and sits on “${card.title}”* Mrrp.` : '*curls up on the report form* Mrrp. (You’ve seen enough. Tell Maya.)';
+      return `<div class="msg byte" id="e${i}" tabindex="-1">${av('byte')}<div class="bubble"><span class="name">Byte · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span>${esc(text)}</div></div>`;
+    }
+    return '';
+  }
+
+  function renderCase() {
+    const { c, rec } = S;
+    document.title = `Daily #${c.no} · 3 a.m. Incident`;
+    const intro = c.intro.map((m) => `<div class="msg ${m.who === 'alert' ? 'alert' : ''}">${av(m.who)}<div class="bubble"><span class="name">${esc(CAST[m.who].name)}${m.who === 'alert' ? ' · 03:12' : ' · 08:1' + (m.who === 'maya' ? '0' : '2')}</span>${esc(m.text)}</div></div>`).join('');
+    const schema = c.tables.map((tb) => `<b>${tb.name}</b>(${tb.cols.map((x) => x[0]).join(', ')})`).join('<br>');
+    app.innerHTML = `
+      <div class="wrap">
+        <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a></div>
+        <div class="case-head"><span class="kicker">Daily #${c.no} · ${U.fmtDay(c.date)}</span><h1>${esc(c.co.name)}: ${esc(c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
+        <p class="scene small muted">📍 Your kitchen, 08:14. Coffee: half made. Phone: 3 unread in #incident-${esc(c.co.name.toLowerCase())}.</p>
+        <div class="chat" aria-label="Incident channel">${intro}</div>
+        <div class="feed" id="feed" aria-live="polite"></div>
+
+        <section id="investigate">
+          <h2>What do you want to check?</h2>
+          <div class="picks" id="picks"></div>
+          <details class="card own" style="margin-top:10px">
+            <summary>Write your own SQL</summary>
+            <div class="schema">${schema}</div>
+            <label class="sr" for="ownSql">Your SQL</label>
+            <textarea id="ownSql" spellcheck="false" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;"></textarea>
+            <div class="row" style="margin-top:8px"><button class="btn" id="runOwn">Run (Ctrl+Enter)</button><span class="small muted">SQLite. Counts as one query.</span></div>
+          </details>
+        </section>
+
+        <section class="report" id="report" aria-labelledby="reportTitle"></section>
+      </div>
+      <div class="bar"><div class="wrap">
+        <span class="pill clock" id="clock"></span><span class="pill" id="qn"></span>
+        <button class="btn sp" id="hintBtn" aria-label="Ask Byte for a hint (costs 5 minutes)">🐾 Byte</button>
+        <a class="btn primary" href="#report" id="toReport">Report</a>
+      </div></div>`;
+
+    const feed = document.getElementById('feed');
+    feed.innerHTML = rec.timeline.map(entryHtml).join('');
+    renderPicks(); renderReport(); updateBar();
+    document.getElementById('runOwn').onclick = runOwn;
+    document.getElementById('ownSql').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runOwn(); } });
+    document.getElementById('hintBtn').onclick = hint;
+    document.getElementById('toReport').onclick = (e) => { e.preventDefault(); document.getElementById('report').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    window.scrollTo(0, 0);
+  }
+
+  function ran(id) { return S.rec.timeline.some((e) => e.t === 'card' && e.id === id); }
+  function pawTarget() { const h = S.rec.timeline.filter((e) => e.t === 'hint' && e.id); const last = h[h.length - 1]; return last && !ran(last.id) ? last.id : null; }
+
+  function renderPicks() {
+    const paw = pawTarget();
+    document.getElementById('picks').innerHTML = S.c.cards.map((card) => {
+      const done = ran(card.id);
+      return `<button class="qc ${done ? 'done' : ''} ${paw === card.id ? 'paw' : ''}" data-id="${card.id}" ${done ? 'aria-disabled="true"' : ''}><span class="kind">${esc(card.kind)}</span><span class="t">${esc(card.title)}</span></button>`;
+    }).join('');
+    document.querySelectorAll('.qc').forEach((b) => { b.onclick = () => runCard(b.dataset.id); });
+  }
+
+  function push(e) {
+    if (S.rec.solved) e.after = true;
+    S.rec.timeline.push(e); save();
+    const i = S.rec.timeline.length - 1;
+    document.getElementById('feed').insertAdjacentHTML('beforeend', entryHtml(e, i));
+    const el = document.getElementById('e' + i);
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true });
+    updateBar();
+  }
+  function runCard(id) {
+    if (ran(id)) { const idx = S.rec.timeline.findIndex((e) => e.t === 'card' && e.id === id); document.getElementById('e' + idx).scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    push({ t: 'card', id }); renderPicks();
+  }
+  function runOwn() {
+    const ta = document.getElementById('ownSql'); const sql = ta.value.trim();
+    if (!sql) { ta.focus(); return; }
+    push({ t: 'sql', sql });
+  }
+  function hint() {
+    const next = S.c.chain.find((id) => !ran(id));
+    push({ t: 'hint', id: next || null }); renderPicks();
+  }
+  function updateBar() {
+    const m = clockMin(); const el = document.getElementById('clock');
+    el.textContent = '🕗 ' + clockText(m); el.classList.toggle('late', m > MEETING_MIN);
+    el.setAttribute('aria-label', 'Time ' + clockText(m) + (m > MEETING_MIN ? ', late for the 9:00 meeting' : ', meeting at 9:00'));
+    const q = S.rec.timeline.filter((e) => e.t !== 'hint').length;
+    document.getElementById('qn').textContent = q + (q === 1 ? ' query' : ' queries');
+  }
+
+  // ---------------- report ----------------
+  function renderReport() {
+    const { c, rec } = S;
+    const box = document.getElementById('report');
+    if (rec.solved) { renderSolved(box); const tr = document.getElementById('toReport'); if (tr) tr.textContent = 'Result'; return; }
+    const last = rec.lastWrong || {};
+    const qs = c.questions.map((q) => {
+      const opts = q.options.map((o) => {
+        const checked = rec.picks[q.id] === o.id;
+        const wrong = checked && last[q.id];
+        return `<label class="opt ${wrong ? 'wrong' : ''}"><input type="radio" name="${q.id}" value="${o.id}" ${checked ? 'checked' : ''}><span>${esc(o.text)}</span></label>` +
+          (wrong ? `<div class="why">${av('maya')}${esc(o.why)}</div>` : '');
+      }).join('');
+      return `<fieldset><legend>${esc(q.prompt)}</legend>${opts}</fieldset>`;
+    }).join('');
+    box.innerHTML = `<h2 id="reportTitle">Report to Maya</h2>
+      <div class="card">${qs}<div class="row"><button class="btn primary" id="send">Send report</button><span class="small muted" id="sendNote">${rec.reports.length ? 'Reports sent: ' + rec.reports.length : 'Pick one answer for each.'}</span></div></div>`;
+    box.querySelectorAll('input[type=radio]').forEach((inp) => { inp.onchange = () => { S.rec.picks[inp.name] = inp.value; save(); }; });
+    document.getElementById('send').onclick = sendReport;
+  }
+
+  function sendReport() {
+    const { c, rec } = S;
+    const missing = c.questions.filter((q) => !rec.picks[q.id]);
+    if (missing.length) { document.getElementById('sendNote').textContent = 'Pick one answer for each question.'; return; }
+    const wrong = {};
+    for (const q of c.questions) { const o = q.options.find((x) => x.id === rec.picks[q.id]); if (!o.correct) wrong[q.id] = true; }
+    const ok = !Object.keys(wrong).length;
+    rec.reports.push(ok); rec.lastWrong = wrong;
+    if (ok) {
+      rec.solved = true; rec.solvedOn = today(); rec.solvedAt = clockMin();
+      rec.queries = rec.timeline.filter((e) => e.t !== 'hint').length;
+    }
+    save(); renderReport();
+    const box = document.getElementById('report');
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!ok) toast('Maya: “That doesn’t add up. Try again.”');
+  }
+
+  function shareText() {
+    const { c, rec } = S;
+    const grid = rec.timeline.filter((e) => !e.after).map((e) => {
+      if (e.t === 'hint') return '🐾';
+      if (e.t === 'sql') return '🟪';
+      const card = c.cards.find((x) => x.id === e.id); return card.key ? '🟦' : '⬜';
+    }).join('') || '—';
+    const reports = rec.reports.map((x) => (x ? '✅' : '❌')).join('');
+    const late = rec.solvedAt > MEETING_MIN;
+    const st = TAI.streaks(today());
+    const daily = rec.solvedOn === S.iso;
+    const url = /^https?:/.test(location.protocol) ? '\n' + location.origin + location.pathname : '';
+    return `🕒 3 a.m. Incident · Daily #${c.no}\n${grid}\nReport ${reports} · ${clockText(rec.solvedAt)}${late ? ', late' : ', on time'}` +
+      (daily && st.current > 1 ? `\n🔥 ${st.current}-day streak` : '') + url;
+  }
+
+  function renderSolved(box) {
+    const { c, rec } = S;
+    const L = c.lesson; const late = rec.solvedAt > MEETING_MIN;
+    const daily = rec.solvedOn === S.iso;
+    const st = TAI.streaks(today());
+    box.innerHTML = `<h2 id="reportTitle" class="sr">Case closed</h2>
+      <div class="card win">
+        <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>
+        <h2 style="margin:16px 0 4px">Case closed${late ? ', a little late' : ' before 9:00'}.</h2>
+        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}` : ' · archive case (streaks count on the day)'}</p>
+        <div class="share" id="shareText">${esc(shareText())}</div>
+        <div class="row"><button class="btn primary" id="copy">Copy result</button><a class="btn" href="#/">Home</a></div>
+        <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte</p>
+      </div>
+      <div class="card lesson" style="margin-top:12px">
+        <span class="kind small muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em">The pattern</span>
+        <h3>${esc(L.name)}</h3>
+        <p style="margin:0">${esc(L.what)}</p>
+        <h4>How to spot it</h4><ul>${L.spot.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        <h4>How to stop it happening again</h4><ul>${L.prevent.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        ${L.seen ? `<h4>Seen at real jobs</h4><p style="margin:0" class="small">${esc(L.seen)}</p>` : ''}
+      </div>
+      <div class="card small" style="margin-top:12px">
+        <b>Want a harder one?</b> <a href="case-1/">Case file #1: The Missing Revenue</a> gives you a full SQL console and no query cards.
+        <br><span class="muted">Feedback helps more than anything: what was confusing, too easy, or unrealistic? Tell the person who sent you the link.</span>
+      </div>`;
+    document.getElementById('copy').onclick = () => {
+      const text = shareText();
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Copied'), () => {
+        const r = document.createRange(); r.selectNodeContents(document.getElementById('shareText'));
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Press Ctrl+C to copy.');
+      });
+    };
+    document.getElementById('copy').focus({ preventScroll: true });
+  }
+
+  // ---------------- router ----------------
+  function route() {
+    if (S && S.db) { S.db.close(); S = null; }
+    const m = location.hash.match(/^#\/daily\/(\d{4}-\d{2}-\d{2})$/);
+    if (m) openCase(m[1]); else renderHome();
+  }
+  window.addEventListener('hashchange', route);
+  route();
+  window.__tai = { get state() { return S; } };
+})();
