@@ -163,6 +163,7 @@
           <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} wants to know why.</span></div>
           ${c.level ? `<p class="lvl lvl-${c.level}">${LEVEL_HINT[c.level]}</p>` : ''}
           <a class="btn primary" href="#/daily/${t}">${btn}</a>
+          ${status === 'solved' ? nextDailyHtml() : ''}
         </section>
 
         <h2>This week</h2>
@@ -192,6 +193,7 @@
         <footer>Made by Kishan · no account, no tracking</footer>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
+    startCountdown();
     document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { const open = b.getAttribute('aria-expanded') === 'true'; openLevel = open ? '' : b.dataset.l; const y = scrollY; renderHome(); scrollTo(0, y); const t2 = document.querySelector('.tab[data-l="' + b.dataset.l + '"]'); if (t2) t2.focus(); }; });
   }
 
@@ -548,7 +550,7 @@
         ${vsResult()}
         <div class="share" id="shareText">${esc(shareText())}</div>
         <div class="row">${canShare() ? '<button class="btn primary" id="shareBtn" type="button">Share</button><button class="btn" id="copy" type="button">Copy</button>' : '<button class="btn primary" id="copy" type="button">Copy result</button>'}${next}<a class="btn" href="#/">Home</a></div>
-        ${S.daily && S.iso === today() ? '<p class="countdown small" role="timer" aria-live="off">Next case in <b id="countdown">--:--:--</b></p>' : ''}
+        ${nextDailyHtml()}
         ${installCard('solved')}
         <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte${rec.star ? ' · ⭐ proved with SQL' : ''}</p>
       </div>
@@ -607,16 +609,26 @@
       : (me[0] > them[0] ? `Your friend was ${gap} minutes faster. Rematch tomorrow?` : 'Same time, but your friend used fewer queries.');
     return `<p class="vsres ${win ? 'won' : ''}">🏁 ${text} <span class="muted">(You: ${clockText(me[0])}, ${me[1]} q · Friend: ${clockText(them[0])}, ${them[1]} q)</span></p>`;
   }
-  // Counts down to local midnight, when the next daily case unlocks.
+  // When today's daily is solved: count down to local midnight, when the next one unlocks.
+  // When it isn't: point to it instead (shown on practice and past-day screens).
+  function nextDailyHtml() {
+    const day = today(); const r = TAI.store.get(day);
+    if (r && r.solved) return `<p class="countdown small" role="timer" aria-live="off">Next daily case in <b data-countdown="${day}">--:--:--</b></p>`;
+    if (S && S.daily && S.iso === day) return '';
+    return `<p class="countdown small"><a href="#/daily/${day}">Today’s case is waiting →</a></p>`;
+  }
   let countdownTimer = null;
   function startCountdown() {
     clearInterval(countdownTimer);
     const tick = () => {
-      const el = document.getElementById('countdown'); if (!el) { clearInterval(countdownTimer); return; }
+      const els = document.querySelectorAll('[data-countdown]'); if (!els.length) { clearInterval(countdownTimer); return; }
       const now = new Date(); const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const s = Math.max(0, Math.round((mid - now) / 1000));
-      if (s === 0 || today() !== S.iso) { el.parentElement.innerHTML = '<a href="#/">Today’s new case is out →</a>'; clearInterval(countdownTimer); return; }
-      el.textContent = U.pad(Math.floor(s / 3600)) + ':' + U.pad(Math.floor(s / 60) % 60) + ':' + U.pad(s % 60);
+      const s = Math.max(0, Math.ceil((mid - now) / 1000));
+      els.forEach((el) => {
+        // Past midnight: the next day's case is out. Link to that day explicitly, never the one just solved.
+        if (s === 0 || today() !== el.dataset.countdown) { el.parentElement.innerHTML = `<a href="#/daily/${U.addDays(el.dataset.countdown, 1)}">Today’s new case is out →</a>`; return; }
+        el.textContent = U.pad(Math.floor(s / 3600)) + ':' + U.pad(Math.floor(s / 60) % 60) + ':' + U.pad(s % 60);
+      });
     };
     tick(); countdownTimer = setInterval(tick, 1000);
   }

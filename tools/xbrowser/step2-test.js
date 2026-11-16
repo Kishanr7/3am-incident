@@ -35,9 +35,9 @@ const solve = (p) => p.evaluate(() => { const c = window.__tai.state.c; for (con
       const link = (share.match(/Beat my time: (\S+)/) || [])[1] || '';
       if (!link.endsWith('#/daily/' + today + '?vs=25.2')) bugs.push('share link wrong: ' + link);
       // countdown ticks
-      const c1 = await p.textContent('#countdown').catch(() => '');
+      const c1 = await p.textContent('[data-countdown]').catch(() => '');
       await p.waitForTimeout(1300);
-      const c2 = await p.textContent('#countdown').catch(() => '');
+      const c2 = await p.textContent('[data-countdown]').catch(() => '');
       if (!/^\d\d:\d\d:\d\d$/.test(c1) || c1 === c2) bugs.push(`countdown not ticking: "${c1}" -> "${c2}"`);
       // share button only on touch devices that support it
       const hasShare = await p.locator('#shareBtn').count();
@@ -68,7 +68,7 @@ const solve = (p) => p.evaluate(() => { const c = window.__tai.state.c; for (con
       if (!(await p.locator('#picks').count())) bugs.push('junk challenge broke the case page');
       // practice: no countdown
       await solve(p); await p.waitForTimeout(200);
-      if (await p.locator('#countdown').count()) bugs.push('countdown on a practice case');
+      if (!(await p.locator('[data-countdown]').count())) bugs.push('no countdown on practice after today is solved');
       // 5. home after a solve: tip only on phones, dismiss sticks
       await p.goto(BASE + '#/'); await p.waitForSelector('#howBtn');
       const homeTip = await p.locator('.install').count();
