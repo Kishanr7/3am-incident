@@ -40,24 +40,43 @@
   window.addEventListener('appinstalled', () => { installEvt = null; if (!S) renderHome(); });
   const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  function installCard() {
-    if (standalone()) return '';
-    if (installEvt) return `<div class="card install row" style="margin-top:12px"><span>📲 <b>Get the app.</b> <span class="small muted">Home-screen icon, works offline, no app store.</span></span><button class="btn primary" id="installBtn">Install</button></div>`;
-    if (isIOS()) return `<div class="card install small" style="margin-top:12px">📲 <b>Get the app on ${/iPad|Macintosh/.test(navigator.userAgent) ? 'iPad' : 'iPhone'}:</b> in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span>, then <b>Add to Home Screen</b>. It works offline.</div>`;
+  // Offered on phones and tablets only (desktop browsers have their own install icon), and on the
+  // home page only after a first solved case. Dismissing it hides it on this device.
+  const touchDevice = () => matchMedia('(pointer: coarse)').matches;
+  const anySolved = () => Object.values(TAI.store.all()).some((r) => r && r.solved);
+  function installCard(where) {
+    if (standalone() || !touchDevice()) return '';
+    if (where === 'home') { let off = false; try { off = localStorage.getItem('tai.noInstall') === '1'; } catch (e) { /* show */ } if (off || !anySolved()) return ''; }
+    const x = where === 'home' ? '<button class="pill" id="installX" type="button" aria-label="Hide this tip">✕</button>' : '';
+    if (installEvt) return `<div class="install">📲 <span>Add it to your home screen: one tap a day, works offline.</span><button class="btn" id="installBtn" type="button">Install</button>${x}</div>`;
+    if (isIOS()) return `<div class="install">📲 <span>Add it to your home screen: in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span> then <b>Add to Home Screen</b>.</span>${x}</div>`;
     return '';
   }
+  document.addEventListener('click', (e) => {
+    if (!(e.target.closest && e.target.closest('#installX'))) return;
+    try { localStorage.setItem('tai.noInstall', '1'); } catch (err) { /* hidden for this visit */ }
+    const card = e.target.closest('.install'); if (card) card.remove();
+  });
   document.addEventListener('click', (e) => {
     if (!(e.target.closest && e.target.closest('#installBtn')) || !installEvt) return;
     installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; if (!S) renderHome(); });
   });
 
   let openLevel = ''; // which practice level is unfolded (this visit only)
+  // A friend's result from a shared link: only their finish time and query count, never their answers.
+  let challenge = null;
+  function readChallenge() {
+    const q = location.hash.match(/\?vs=(\d{1,3})\.(\d{1,2})$/);
+    if (!q) return null;
+    const at = Number(q[1]), n = Number(q[2]);
+    return at >= 0 && at <= 600 && n <= 60 ? { at, n } : null;
+  }
   // ---------------- home ----------------
   function renderHome() {
     document.title = '3 a.m. Incident: a daily data mystery';
     const t = today();
     const st = TAI.streaks(t);
-    const c = TAI.caseFor(t);
+    const c = TAI.dailyCase(t);
     const rec = TAI.store.get(t);
     const status = rec && rec.solved ? 'solved' : rec && rec.timeline.length ? 'started' : 'new';
     const btn = status === 'solved' ? 'See your result' : status === 'started' ? 'Continue investigating' : 'Start investigating';
@@ -103,13 +122,14 @@
           <div class="kicker">Today’s case · ${U.fmtDay(t)}</div>
           <h1 id="todayTitle">${esc(c.teaser)}</h1>
           <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} wants to know why.</span></div>
+          ${c.level ? `<p class="lvl lvl-${c.level}">${LEVEL_HINT[c.level]}</p>` : ''}
           <a class="btn primary" href="#/daily/${t}">${btn}</a>
         </section>
 
-        ${installCard()}
         <h2>This week</h2>
         <nav class="week" aria-label="This week’s daily cases">${week}</nav>
         <p class="small muted">Missed a day? You can still play it. Only today’s case adds to your streak.</p>
+        ${installCard('home')}
 
         <h2 id="practice">Practice</h2>
         <p class="small muted" style="margin-top:-4px">100 more cases. Hard ones make you write a little SQL.</p>
@@ -167,6 +187,7 @@
   function clockText(m) { const h = 8 + Math.floor(m / 60), mm = m % 60; return U.pad(h) + ':' + U.pad(mm); }
 
   const LEVEL_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+  const LEVEL_HINT = { easy: 'Easy · about 5 min · no SQL needed', medium: 'Medium · about 8 min · finish one short query', hard: 'Hard · 15–20 min · write your own SQL (a laptop helps)' };
   function openCase(kind, id) {
     const t = today();
     if (kind === 'daily' && (id < TAI.EPOCH || id > t)) { location.hash = '#/'; return; }
@@ -175,11 +196,11 @@
     const token = openCase.token;
     loadSql().then(() => {
       if (token !== openCase.token) return; // the player navigated away while loading
-      const c = kind === 'daily' ? TAI.caseFor(id) : TAI.practiceCase(id);
+      const c = kind === 'daily' ? TAI.dailyCase(id) : TAI.practiceCase(id);
       const db = TAI.buildDb(SQL, c);
       const key = kind === 'daily' ? id : 'p' + id;
-      const label = kind === 'daily' ? `Daily #${c.no}` : `Practice #${id} · ${LEVEL_NAME[c.level]}`;
-      S = { c, db, key, iso: kind === 'daily' ? id : null, daily: kind === 'daily', practice: kind === 'practice' ? id : null, label, rec: TAI.store.get(key) || newRec() };
+      const label = kind === 'daily' ? `Daily #${c.no}${c.level ? ' · ' + LEVEL_NAME[c.level] : ''}` : `Practice #${id} · ${LEVEL_NAME[c.level]}`;
+      S = { c, db, key, iso: kind === 'daily' ? id : null, daily: kind === 'daily', practice: kind === 'practice' ? id : null, label, rec: TAI.store.get(key) || newRec(), vs: challenge };
       renderCase();
     }).catch(() => {
       app.innerHTML = '<div class="wrap"><div class="loading" role="alert">Couldn’t load the SQL engine. It needs an internet connection once. <a href="">Try again</a></div></div>';
@@ -208,12 +229,12 @@
       const card = c.cards.find((x) => x.id === e.id);
       let res; try { res = tableHtml(TAI.query(S.db, card.sql, 30)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
       const voice = card.voice ? `<div class="voice">${av(card.voice.who)}<p><b>${esc(CAST[card.voice.who].name)}:</b> ${esc(card.voice.text)}</p></div>` : '';
-      return `<article class="entry" id="e${i}" tabindex="-1"><span class="kind">${esc(card.kind)} · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><h3>${esc(card.title)}</h3>
+      return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><span class="kind">${esc(card.kind)} · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><h3>${esc(card.title)}</h3>
         <details><summary>Show SQL</summary><pre class="sql">${esc(card.sql)}</pre></details>${res}${voice}</article>`;
     }
     if (e.t === 'sql') {
       let res; try { res = tableHtml(TAI.query(S.db, e.sql, 50)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
-      return `<article class="entry" id="e${i}" tabindex="-1"><span class="kind">Your query · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div></article>`;
+      return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><span class="kind">Your query · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div></article>`;
     }
     if (e.t === 'hint') {
       const card = e.id && c.cards.find((x) => x.id === e.id);
@@ -238,6 +259,7 @@
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
         <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.teaser.startsWith(c.co.name + ' ') ? c.teaser : c.co.name + ': ' + c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
         ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
+        ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
         <p class="scene small"><b>Your job:</b> find out why the number is wrong, then tap <b>Report</b>. Each check takes 5 minutes, and the meeting is at 9:00.</p>
         <div class="chat" aria-label="Incident channel">${intro}</div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -245,11 +267,12 @@
         <section id="investigate">
           <h2>What do you want to check?</h2>
           <div class="picks" id="picks"></div>
-          <details class="card own" style="margin-top:10px">
-            <summary>Write your own SQL</summary>
+          <details class="card own" style="margin-top:10px" ${c.typed && c.level === 'medium' ? 'open' : ''}>
+            <summary>${c.typed && c.level === 'medium' ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
+            ${c.typed && c.level === 'medium' ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks above tell you what goes there.</p>' : ''}
             <div class="schema">${schema}</div>
             <label class="sr" for="ownSql">Your SQL</label>
-            <textarea id="ownSql" spellcheck="false" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;"></textarea>
+            <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.typed && c.level === 'medium' ? esc(fillInSql()) : ''}</textarea>
             <div class="row" style="margin-top:8px"><button class="btn" id="runOwn">Run (Ctrl+Enter)</button><span class="small muted">SQLite. Counts as one query.</span></div>
           </details>
         </section>
@@ -258,13 +281,18 @@
       </div>
       <div class="bar"><div class="wrap">
         <span class="pill clock" id="clock"></span><span class="pill" id="qn"></span>
-        <button class="btn sp" id="hintBtn" aria-label="Ask Byte for a hint (costs 5 minutes)">🐾 Byte</button>
+        <button class="btn sp" id="notesBtn" aria-expanded="false" aria-controls="notes" aria-label="Case notes">📝<span class="lbl"> Notes</span><span class="nbadge" id="notesN" hidden></span></button>
+        <button class="btn" id="hintBtn" aria-label="Ask Byte for a hint (costs 5 minutes)">🐾 Byte</button>
         <a class="btn primary" href="#report" id="toReport">Report</a>
-      </div></div>`;
+      </div></div>
+      <aside class="notes" id="notes" hidden aria-labelledby="notesTitle">
+        <div class="nhead"><h2 id="notesTitle">📝 Case notes</h2><span class="small muted">free · no time cost</span><button class="pill" id="notesClose" type="button" aria-label="Close notes">✕</button></div>
+        <div class="nbody" id="notesBody"></div>
+      </aside>`;
 
     const feed = document.getElementById('feed');
     feed.innerHTML = rec.timeline.map(entryHtml).join('');
-    renderPicks(); renderReport(); updateBar();
+    renderPicks(); renderReport(); updateBar(); updateNotesBtn();
     document.getElementById('runOwn').onclick = runOwn;
     document.getElementById('ownSql').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runOwn(); } });
     document.getElementById('hintBtn').onclick = hint;
@@ -300,7 +328,9 @@
   function runOwn() {
     const ta = document.getElementById('ownSql'); const sql = ta.value.trim();
     if (!sql) { ta.focus(); return; }
+    if (/____/.test(sql)) { toast('Fill in the ____ first'); ta.focus(); return; }
     push({ t: 'sql', sql });
+    if (checkStar(sql) && S.rec.solved) renderReport();
   }
   function hint() {
     const next = S.c.chain.find((id) => !ran(id));
@@ -314,6 +344,84 @@
     document.getElementById('qn').textContent = q + (q === 1 ? ' query' : ' queries');
   }
 
+
+  // ---------------- case notes ----------------
+  // A drawer for keeping track: mark each possible answer as ruled out or likely, pin results, jot numbers.
+  // Saved with the case on this device. Opening it never costs game time.
+  function notes() { if (!S.rec.notes) S.rec.notes = { marks: {}, pins: [], text: '' }; return S.rec.notes; }
+  const pinned = (i) => !!(S && S.rec.notes && S.rec.notes.pins.includes(i));
+  const MARK_NEXT = { '': 'no', no: 'yes', yes: '' };
+  const MARK_LABEL = { '': 'not marked', no: 'ruled out', yes: 'likely' };
+  function notesCount() { const n = S.rec.notes; if (!n) return 0; return Object.values(n.marks).filter(Boolean).length + n.pins.length + (n.text.trim() ? 1 : 0); }
+  function updateNotesBtn() { const b = document.getElementById('notesN'); if (b) { const k = notesCount(); b.textContent = k ? k : ''; b.hidden = !k; } }
+  function entryTitle(i) {
+    const e = S.rec.timeline[i]; if (!e) return '';
+    if (e.t === 'card') { const card = S.c.cards.find((x) => x.id === e.id); return card ? card.title : 'Check'; }
+    if (e.t === 'sql') return 'Your query: ' + e.sql.replace(/\s+/g, ' ').slice(0, 48) + (e.sql.length > 48 ? '…' : '');
+    return '';
+  }
+  function renderNotes() {
+    const n = notes(); const box = document.getElementById('notesBody'); if (!box) return;
+    const grid = S.c.questions.filter((q) => !isTyped(q)).map((q) => `<fieldset class="ng"><legend>${esc(q.prompt)}</legend>${q.options.map((o) => {
+      const m = n.marks[o.id] || '';
+      return `<button type="button" class="nrow m-${m || 'none'}" data-mark="${o.id}" aria-label="${esc(o.text)}: ${MARK_LABEL[m]}. Tap to change."><span class="nbox" aria-hidden="true">${m === 'yes' ? '✓' : m === 'no' ? '✕' : ''}</span><span class="ntext">${esc(o.text)}</span></button>`;
+    }).join('')}</fieldset>`).join('');
+    const pins = n.pins.filter((i) => S.rec.timeline[i]).map((i) => `<li><button type="button" class="link" data-goto="${i}">${esc(entryTitle(i))}</button><button type="button" class="unpin" data-unpin="${i}" aria-label="Unpin">✕</button></li>`).join('');
+    box.innerHTML = `<p class="small muted nhelp">Tap an answer to mark it: ✕ ruled out, ✓ likely, then clear.</p>${grid}
+      <h3>📌 Pinned evidence</h3>${pins ? `<ul class="npins">${pins}</ul>` : '<p class="small muted">Tap 📌 on any result to keep it here.</p>'}
+      <h3><label for="notesText">✏️ Scratchpad</label></h3>
+      <textarea id="notesText" rows="4" placeholder="Numbers, hunches, anything…">${esc(n.text)}</textarea>`;
+    box.querySelector('#notesText').addEventListener('input', (e) => { notes().text = e.target.value; save(); updateNotesBtn(); });
+    updateNotesBtn();
+  }
+  function setNotesOpen(open) {
+    const p = document.getElementById('notes'), b = document.getElementById('notesBtn'); if (!p) return;
+    p.hidden = !open; b.setAttribute('aria-expanded', String(open));
+    if (open) { renderNotes(); document.getElementById('notesClose').focus(); } else b.focus({ preventScroll: true });
+  }
+  document.addEventListener('click', (e) => {
+    if (!S || !e.target.closest) return;
+    const t = e.target;
+    if (t.closest('#notesBtn')) { setNotesOpen(document.getElementById('notes').hidden); return; }
+    if (t.closest('#notesClose')) { setNotesOpen(false); return; }
+    const mk = t.closest('[data-mark]');
+    if (mk) { const n = notes(); const id = mk.dataset.mark; n.marks[id] = MARK_NEXT[n.marks[id] || '']; save(); renderNotes(); renderReportMarks(); const again = document.querySelector(`[data-mark="${id}"]`); if (again) again.focus(); return; }
+    const pin = t.closest('[data-pin]');
+    if (pin) { const n = notes(); const i = Number(pin.dataset.pin); const k = n.pins.indexOf(i); if (k < 0) n.pins.push(i); else n.pins.splice(k, 1); save(); pin.setAttribute('aria-pressed', String(k < 0)); updateNotesBtn(); if (!document.getElementById('notes').hidden) renderNotes(); toast(k < 0 ? 'Pinned to notes' : 'Unpinned'); return; }
+    const un = t.closest('[data-unpin]');
+    if (un) { const n = notes(); const i = Number(un.dataset.unpin); n.pins = n.pins.filter((x) => x !== i); save(); const pb = document.querySelector(`[data-pin="${i}"]`); if (pb) pb.setAttribute('aria-pressed', 'false'); renderNotes(); return; }
+    const go = t.closest('[data-goto]');
+    if (go) { const el = document.getElementById('e' + go.dataset.goto); if (matchMedia('(max-width: 899px)').matches) setNotesOpen(false); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S && !document.querySelector('dialog[open]')) { const p = document.getElementById('notes'); if (p && !p.hidden) setNotesOpen(false); } });
+  // Answers ruled out in the notes look ruled out in the report too (the player can still pick them).
+  function renderReportMarks() {
+    const m = (S.rec.notes && S.rec.notes.marks) || {};
+    document.querySelectorAll('#report .opt input').forEach((inp) => { const l = inp.closest('.opt'); l.classList.toggle('ruled', m[inp.value] === 'no'); l.classList.toggle('likely', m[inp.value] === 'yes'); });
+  }
+
+
+  // ---------------- typed numbers, fill-in query, bonus star ----------------
+  const numQ = () => S.c.questions[S.c.questions.length - 1];
+  const isTyped = (q) => S.c.typed && q === numQ();
+  const parseNum = (s) => { const x = Number(String(s || '').replace(/[$,\s]/g, '')); return String(s || '').trim() && isFinite(x) ? x : NaN; };
+  function fillInSql() { const a = S.c.answerQ; return a ? a.sql.replace(a.blank, '____') : ''; }
+  // Any number in a query result that matches the real one earns the star.
+  function checkStar(sql) {
+    if (S.rec.star || !S.c.answerQ) return false;
+    try { const r = TAI.query(S.db, sql, 50); if (r.values.some((row) => row.some((v) => TAI.matchesAnswer(S.c, v)))) { S.rec.star = true; save(); return true; } } catch (e) { /* not a valid query */ }
+    return false;
+  }
+  function typedWhy(q) {
+    const x = parseNum(S.rec.picks[q.id]);
+    const near = q.options.find((o) => !o.correct && Math.abs(parseNum(o.text) - x) < (S.c.answerQ.money ? 1 : 0.5));
+    const tries = S.rec.numWrong || 0;
+    let text = near ? near.why : 'That’s not the number I get. Count it straight from the raw data, not the dashboard.';
+    if (isNaN(x)) text = 'I need a number, like 1234 or $1,234.56.';
+    const worked = tries >= 2 ? `<div class="worked"><b>🐾 Byte dragged this query onto your screen:</b><pre class="sql">${esc(S.c.answerQ.sql)}</pre><span class="small muted">Run it under “Write your own SQL”, then type what it returns.</span></div>` : '';
+    return `<div class="why">${av('maya')}${esc(text)}</div>${worked}`;
+  }
+
   // ---------------- report ----------------
   function renderReport() {
     const { c, rec } = S;
@@ -321,6 +429,13 @@
     if (rec.solved) { renderSolved(box); const tr = document.getElementById('toReport'); if (tr) tr.textContent = 'Result'; return; }
     const last = rec.lastWrong || {};
     const qs = c.questions.map((q) => {
+      if (isTyped(q)) {
+        const v = rec.picks[q.id] || '';
+        return `<fieldset><legend><label for="ans_${q.id}">${esc(q.prompt)}</label></legend>
+          <input class="numin ${last[q.id] ? 'wrong' : ''}" id="ans_${q.id}" data-q="${q.id}" inputmode="decimal" autocomplete="off" placeholder="${c.answerQ.money ? 'e.g. $12,345.67' : 'e.g. 1234'}" value="${esc(v)}">
+          <p class="small muted" style="margin:4px 0 0">Type the number. ${c.answerQ.money ? 'Within a dollar is fine.' : 'It has to be exact.'}</p>
+          ${last[q.id] ? typedWhy(q) : ''}</fieldset>`;
+      }
       const opts = q.options.map((o) => {
         const checked = rec.picks[q.id] === o.id;
         const wrong = checked && last[q.id];
@@ -333,16 +448,21 @@
       <div class="card">${qs}<div class="row"><button class="btn primary" id="send">Send report</button><span class="small muted" id="sendNote">${rec.reports.length ? 'Reports sent: ' + rec.reports.length : 'Pick one answer for each.'}</span></div></div>`;
     const mark = () => box.querySelectorAll('.opt').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
     box.querySelectorAll('input[type=radio]').forEach((inp) => { inp.onchange = () => { S.rec.picks[inp.name] = inp.value; save(); mark(); }; });
+    box.querySelectorAll('input.numin').forEach((inp) => { inp.oninput = () => { S.rec.picks[inp.dataset.q] = inp.value; save(); }; inp.onkeydown = (e) => { if (e.key === 'Enter') sendReport(); }; });
     mark();
     document.getElementById('send').onclick = sendReport;
+    renderReportMarks();
   }
 
   function sendReport() {
     const { c, rec } = S;
     const missing = c.questions.filter((q) => !rec.picks[q.id]);
-    if (missing.length) { document.getElementById('sendNote').textContent = 'Pick one answer for each question.'; return; }
+    if (missing.length) { document.getElementById('sendNote').textContent = c.typed ? 'Answer both questions.' : 'Pick one answer for each question.'; return; }
     const wrong = {};
-    for (const q of c.questions) { const o = q.options.find((x) => x.id === rec.picks[q.id]); if (!o.correct) wrong[q.id] = true; }
+    for (const q of c.questions) {
+      if (isTyped(q)) { if (!TAI.matchesAnswer(c, parseNum(rec.picks[q.id]))) { wrong[q.id] = true; rec.numWrong = (rec.numWrong || 0) + 1; } continue; }
+      const o = q.options.find((x) => x.id === rec.picks[q.id]); if (!o.correct) wrong[q.id] = true;
+    }
     const ok = !Object.keys(wrong).length;
     rec.reports.push(ok); rec.lastWrong = wrong;
     if (ok) {
@@ -361,12 +481,13 @@
       if (e.t === 'hint') return '🐾';
       if (e.t === 'sql') return '🟪';
       const card = c.cards.find((x) => x.id === e.id); return card.key ? '🟦' : '⬜';
-    }).join('') || '—';
+    }).join('') + (rec.star ? '⭐' : '') || '—';
     const reports = rec.reports.map((x) => (x ? '✅' : '❌')).join('');
     const late = rec.solvedAt > MEETING_MIN;
     const st = TAI.streaks(today());
     const daily = S.daily && rec.solvedOn === S.iso;
-    const url = /^https?:/.test(location.protocol) ? '\n' + location.origin + location.pathname : '';
+    const route = S.daily ? '#/daily/' + S.iso : '#/practice/' + S.practice;
+    const url = /^https?:/.test(location.protocol) ? '\nBeat my time: ' + location.origin + location.pathname + route + '?vs=' + rec.solvedAt + '.' + rec.queries : '';
     return `🕒 3 a.m. Incident · ${S.label}\n${grid}\nReport ${reports} · ${clockText(rec.solvedAt)}${late ? ', late' : ', on time'}` +
       (daily && st.current > 1 ? `\n🔥 ${st.current}-day streak` : '') + url;
   }
@@ -382,10 +503,14 @@
         <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>
         <h2 style="margin:16px 0 4px">Case closed${late ? ', a little late' : ' before 9:00'}.</h2>
         <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}` : S.practice ? ' · practice case' : ' · archive case (streaks count on the day)'}</p>
+        ${vsResult()}
         <div class="share" id="shareText">${esc(shareText())}</div>
-        <div class="row"><button class="btn primary" id="copy">Copy result</button>${next}<a class="btn" href="#/">Home</a></div>
-        <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte</p>
+        <div class="row">${canShare() ? '<button class="btn primary" id="shareBtn" type="button">Share</button><button class="btn" id="copy" type="button">Copy</button>' : '<button class="btn primary" id="copy" type="button">Copy result</button>'}${next}<a class="btn" href="#/">Home</a></div>
+        ${S.daily && S.iso === today() ? '<p class="countdown small" role="timer" aria-live="off">Next case in <b id="countdown">--:--:--</b></p>' : ''}
+        ${installCard('solved')}
+        <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte${rec.star ? ' · ⭐ proved with SQL' : ''}</p>
       </div>
+      ${starCard()}
       <div class="card lesson" style="margin-top:12px">
         <span class="kind small muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em">The pattern</span>
         <h3>${esc(L.name)}</h3>
@@ -405,7 +530,53 @@
         const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Press Ctrl+C to copy.');
       });
     };
-    document.getElementById('copy').focus({ preventScroll: true });
+    const sb = document.getElementById('shareBtn');
+    if (sb) sb.onclick = () => navigator.share({ text: shareText() }).catch(() => { /* closed the share sheet */ });
+    startCountdown();
+    (sb || document.getElementById('copy')).focus({ preventScroll: true });
+  }
+  const canShare = () => typeof navigator.share === 'function' && matchMedia('(pointer: coarse)').matches;
+  function starCard() {
+    const a = S.c.answerQ; if (!a) return '';
+    if (S.rec.star) return '<div class="card star done" style="margin-top:12px">⭐ <b>Proved with SQL.</b> <span class="muted">You wrote a query that returns the real number.</span></div>';
+    const pre = S.c.level === 'easy' || !S.c.level ? fillInSql() : '';
+    return `<div class="card star" style="margin-top:12px"><b>⭐ Bonus: prove it with SQL</b>
+      <p class="small" style="margin:4px 0 8px">Write one query that returns ${esc(a.what)}. Get it right for a ⭐ in your result.${pre ? ' Start from this and fill in the ____.' : ''}</p>
+      <label class="sr" for="starSql">Bonus query</label><textarea id="starSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT …">${esc(pre)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="starRun" type="button">Run</button><span class="small muted" id="starNote" role="status"></span></div></div>`;
+  }
+  document.addEventListener('click', (e) => {
+    if (!S || !(e.target.closest && e.target.closest('#starRun'))) return;
+    const ta = document.getElementById('starSql'); const sql = ta.value.trim();
+    if (!sql || /____/.test(sql)) { document.getElementById('starNote').textContent = 'Fill in the ____ first.'; ta.focus(); return; }
+    let r; try { r = TAI.query(S.db, sql, 20); } catch (err) { document.getElementById('starNote').textContent = 'SQL error: ' + err.message; return; }
+    push({ t: 'sql', sql });
+    if (checkStar(sql)) { renderReport(); toast('⭐ Proved it'); }
+    else document.getElementById('starNote').textContent = r.values.length ? 'It ran, but none of its numbers is the real one. Try again.' : 'It ran, but returned no rows.';
+  });
+  function vsResult() {
+    const v = S.vs, rec = S.rec; if (!v) return '';
+    const me = [rec.solvedAt, rec.queries], them = [v.at, v.n];
+    const win = me[0] < them[0] || (me[0] === them[0] && me[1] < them[1]);
+    const tie = me[0] === them[0] && me[1] === them[1];
+    const gap = Math.abs(me[0] - them[0]);
+    const text = tie ? 'Dead heat with your friend: same time, same number of queries.'
+      : win ? (me[0] < them[0] ? `You beat your friend by ${gap} minutes. 🎉` : 'Same time as your friend, but fewer queries. You win. 🎉')
+      : (me[0] > them[0] ? `Your friend was ${gap} minutes faster. Rematch tomorrow?` : 'Same time, but your friend used fewer queries.');
+    return `<p class="vsres ${win ? 'won' : ''}">🏁 ${text} <span class="muted">(You: ${clockText(me[0])}, ${me[1]} q · Friend: ${clockText(them[0])}, ${them[1]} q)</span></p>`;
+  }
+  // Counts down to local midnight, when the next daily case unlocks.
+  let countdownTimer = null;
+  function startCountdown() {
+    clearInterval(countdownTimer);
+    const tick = () => {
+      const el = document.getElementById('countdown'); if (!el) { clearInterval(countdownTimer); return; }
+      const now = new Date(); const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const s = Math.max(0, Math.round((mid - now) / 1000));
+      if (s === 0 || today() !== S.iso) { el.parentElement.innerHTML = '<a href="#/">Today’s new case is out →</a>'; clearInterval(countdownTimer); return; }
+      el.textContent = U.pad(Math.floor(s / 3600)) + ':' + U.pad(Math.floor(s / 60) % 60) + ':' + U.pad(s % 60);
+    };
+    tick(); countdownTimer = setInterval(tick, 1000);
   }
 
 
@@ -418,7 +589,7 @@
     const steps = [
       { art: `<div class="tmock"><div class="msg alert">${av('alert')}<div class="bubble"><span class="name">#data-alerts · 03:12</span>Orders: −35% vs normal. All jobs: SUCCESS.</div></div><div class="msg">${av('maya')}<div class="bubble"><span class="name">Maya · 08:10</span>Is this real, or is the dashboard lying?</div></div></div>`,
         title: 'Something looks wrong', text: 'Each morning a number on the dashboard looks off, and your boss Maya wants to know why before the 9:00 meeting.' },
-      { art: `<div class="tmock"><div class="tpick"><span>Logs</span>When did each source’s data arrive?</div><div class="tpick"><span>Raw data</span>Orders for yesterday, by source</div><div class="tclock">🕗 Each check: +5 min · 🐾 Byte has hints</div></div>`,
+      { art: `<div class="tmock"><div class="tpick"><span>Logs</span>When did each source’s data arrive?</div><div class="tpick"><span>Raw data</span>Orders for yesterday, by source</div><div class="tclock">🕗 Each check: +5 min · 📝 Notes keep track · 🐾 Byte hints</div></div>`,
         title: 'Tap to check the data', text: 'Pick what to look at. Each check runs a real SQL query on a small, made-up database. No typing needed.' },
       { art: `<div class="tmock"><div class="topt">The iOS data arrived late, after the nightly job ran</div><div class="topt on">✓ Real orders: 674</div><div class="tclock">🔥 New case every day · keep your streak</div></div>`,
         title: 'Tell Maya what happened', text: 'Choose the cause and the real number. Get it right before 9:00. A new case comes every day, plus 100 practice cases.' },
@@ -459,8 +630,9 @@
   function route() {
     if (S && S.db) { S.db.close(); S = null; }
     openCase.token = (openCase.token || 0) + 1;
-    const m = location.hash.match(/^#\/daily\/(\d{4}-\d{2}-\d{2})$/);
-    const p = location.hash.match(/^#\/practice\/(\d{1,3})$/);
+    const m = location.hash.match(/^#\/daily\/(\d{4}-\d{2}-\d{2})(?:\?|$)/);
+    const p = location.hash.match(/^#\/practice\/(\d{1,3})(?:\?|$)/);
+    challenge = readChallenge();
     if (m) openCase('daily', m[1]);
     else if (p) openCase('practice', Number(p[1]));
     else renderHome();

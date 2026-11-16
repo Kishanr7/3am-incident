@@ -26,6 +26,8 @@ Every case is a real failure pattern, with a short lesson at the end: what happe
 
 Daily #1–#7 used the first three types and are kept exactly as published. From Daily #8, days cycle through all seven, and the practice library covers every type at every difficulty.
 
+**Case notes** (📝 in the bottom bar): a drawer, closed by default, for keeping track. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
+
 The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 
 ## Phones: install it like an app

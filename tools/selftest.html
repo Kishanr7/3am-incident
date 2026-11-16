@@ -21,13 +21,13 @@
   const U = TAI.util;
   const fails = []; const stats = {}; let cases = 0; let maxRows = 0; const t0 = performance.now();
   const jobs = [];
-  for (let i = 0; i < n; i++) jobs.push(() => TAI.caseFor(U.addDays(TAI.EPOCH, i)));
+  for (let i = 0; i < n; i++) jobs.push(() => TAI.dailyCase(U.addDays(TAI.EPOCH, i)));
   for (let k = 1; k <= TAI.PRACTICE_COUNT; k++) jobs.push(() => TAI.practiceCase(k));
   const lv = {};
   for (const job of jobs) {
     const c = job();
     const iso = c.date;
-    if (c.practice) {
+    if (c.level) {
       lv[c.level] = (lv[c.level] || 0) + 1;
       const keys = c.cards.filter((x) => x.key).length; const herr = c.cards.length - keys;
       if (c.level === 'easy' && herr !== 1) fails.push('practice ' + c.practice + ': easy should have 1 herring, has ' + herr);
@@ -59,6 +59,19 @@
     const nq = c.questions.find((q) => q.id === 'number'); const right = nq.options.find((o) => o.correct).text;
     const truthVal = c.truth.answer;
     if (right !== truthVal) fail('numeric answer ' + right + ' != truth ' + truthVal);
+    // the answer query (fill-in, worked example, bonus star) must return the real number
+    if (!c.answerQ) fail('no answer query');
+    else {
+      try { const v = TAI.query(db, c.answerQ.sql, 5).values[0][0]; if (!TAI.matchesAnswer(c, v)) fail('answer query returns ' + v + ', want ' + c.answerQ.value); } catch (e) { fail('answer query error: ' + e.message); }
+      if (c.answerQ.sql.indexOf(c.answerQ.blank) < 0) fail('answer query has no blank');
+      // medium/hard: no ready-made check may show the real number for the incident day
+      if (c.typed) for (const card of c.cards) {
+        const r = TAI.query(db, card.sql, 200);
+        // a row about another day (its first date is not the incident day) only matches by coincidence
+        const leak = r.values.some((row) => { const d = row.find((x) => typeof x === 'string' && /^\d{4}-\d\d-\d\d/.test(x)); return row.some((x) => typeof x === 'number' && TAI.matchesAnswer(c, x)) && !(d && d.slice(0, 10) !== c.D); });
+        if (leak) fail('check "' + card.title + '" shows the real number');
+      }
+    }
     // determinism
     const c2 = job(); if (c2.teaser !== c.teaser || c2.questions[0].options[0].id !== c.questions[0].options[0].id) fail('not deterministic');
     db.close(); cases++;

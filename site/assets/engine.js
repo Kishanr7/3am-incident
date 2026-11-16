@@ -133,22 +133,46 @@
      easy   = only the key checks plus one red herring;
      medium = every card (the same as a daily case);
      hard   = the two most direct checks are removed, so you must write some SQL yourself. */
-  function practiceCase(n) {
-    const m = practiceMeta(n);
-    const c = caseFor(m.iso, { tpl: m.tpl, co: m.co, salt: 'practice-' + n });
-    c.practice = n; c.level = m.level;
-    if (m.level === 'easy') {
+  /* Medium and hard: the real number must be typed, and no ready-made check may print it.
+     Two checks used to print it outright; on medium and hard they show the evidence without the total. */
+  const NO_ANSWER_SQL = {
+    late: { raw_src: (D) => `SELECT source, COUNT(*) AS orders\nFROM orders\nWHERE DATE(created_at) = '${D}'\nGROUP BY source\nORDER BY orders DESC;` },
+    fanout: { raw_vs: (D) => `SELECT 'raw orders' AS source, COUNT(*) AS orders\nFROM orders WHERE DATE(ordered_at) = '${D}'\nUNION ALL\nSELECT 'dashboard', orders\nFROM daily_revenue WHERE day = '${D}';` },
+  };
+  function applyLevel(c, level) {
+    c.level = level;
+    if (level === 'easy') {
       const herrings = c.cards.filter((x) => !x.key);
       c.cards = c.cards.filter((x) => x.key || x === herrings[0]);
-    } else if (m.level === 'hard') {
+      return c;
+    }
+    c.typed = true;
+    const fix = NO_ANSWER_SQL[c.tpl.id] || {};
+    c.cards = c.cards.map((x) => (fix[x.id] ? Object.assign({}, x, { sql: fix[x.id](c.D), title: x.title.replace(/^Raw orders vs the dashboard/, 'Raw order count vs the dashboard') }) : x));
+    if (level === 'hard') {
       const drop = c.chain.slice(0, 2);
       c.cards = c.cards.filter((x) => drop.indexOf(x.id) < 0);
       c.chain = c.chain.slice(2);
-      c.hardNote = 'Hard case: two of the usual checks are missing. Use “Write your own SQL” to fill the gap.';
+      c.hardNote = 'Hard case: two of the usual checks are missing, and you type the real number. Write your own SQL to find it.';
     }
     return c;
   }
-  TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase;
+  function practiceCase(n) {
+    const m = practiceMeta(n);
+    const c = caseFor(m.iso, { tpl: m.tpl, co: m.co, salt: 'practice-' + n });
+    c.practice = n;
+    return applyLevel(c, m.level);
+  }
+  /* Daily difficulty follows the week (like a crossword): Mon–Tue easy, Wed–Thu and Sun medium, Fri–Sat hard.
+     Cases before RAMP_START stay exactly as they were published. */
+  TAI.RAMP_START = '2026-11-17';
+  const WEEK_LEVEL = ['medium', 'easy', 'easy', 'medium', 'medium', 'hard', 'hard'];
+  function dailyLevel(iso) { return iso < TAI.RAMP_START ? null : WEEK_LEVEL[dow(iso)]; }
+  function dailyCase(iso) { const c = caseFor(iso); const l = dailyLevel(iso); return l ? applyLevel(c, l) : c; }
+  // Does a typed or queried number match the real one? Counts must be exact; money within a dollar.
+  function matchesAnswer(c, x) { if (!c.answerQ || typeof x !== 'number' || !isFinite(x)) return false; return c.answerQ.money ? Math.abs(x - c.answerQ.value) < 1 : Math.abs(x - c.answerQ.value) < 0.5; }
+  TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase; TAI.applyLevel = applyLevel;
+  TAI.dailyLevel = dailyLevel; TAI.dailyCase = dailyCase; TAI.matchesAnswer = matchesAnswer;
 
 
   // ---------- database ----------

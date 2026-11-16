@@ -1,5 +1,4 @@
-// Cross-browser test for 3 a.m. Incident (see tools/xbrowser/README.md).
-// Usage: node xtest.js [baseUrl] [onlyProfile]
+// Cross-browser test for 3 a.m. Incident. Usage: node xtest.js [baseUrl] [onlyProfile]
 const { chromium, webkit, firefox, devices } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -55,11 +54,12 @@ async function playAll(page, bugs) {
       const h1 = document.querySelector('.case-head h1').textContent;
       if (h1.split(c.co.name).length > 2) fails.push(r + ' repeated company in title');
       // wrong answer first, then right
-      for (const q of c.questions) { const o = q.options.find((x) => !x.correct); const inp = document.querySelector(`input[name="${q.id}"][value="${o.id}"]`); inp.click(); }
+      const answer = (q, right) => { const ty = document.getElementById('ans_' + q.id); if (ty) { ty.value = right ? String(c.answerQ.value) : '1'; ty.dispatchEvent(new Event('input')); return; } const o = q.options.find((x) => (right ? x.correct : !x.correct)); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); };
+      for (const q of c.questions) answer(q, false);
       document.getElementById('send').click(); await sleep(5);
       if (st.rec.solved) fails.push(r + ' solved with wrong answers');
       if (!document.querySelector('.why')) fails.push(r + ' no explanation for wrong answer');
-      for (const q of c.questions) { const o = q.options.find((x) => x.correct); const inp = document.querySelector(`input[name="${q.id}"][value="${o.id}"]`); inp.click(); }
+      for (const q of c.questions) answer(q, true);
       document.getElementById('send').click(); await sleep(5);
       if (!st.rec.solved) fails.push(r + ' not solved with right answers');
       const w = document.documentElement.scrollWidth; widest = Math.max(widest, w);
