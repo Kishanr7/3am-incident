@@ -2,6 +2,8 @@
 
 Runs the real game in the three browser engines that matter, at real device sizes, with touch where the device has it.
 
+**Rule: every test run covers all platforms: Windows, Mac, Android and iPhone (plus iPad and a 320 px phone where it applies).** That includes feature tests, not only the full run. After each deploy, run the tests again against the live URL. Report results per platform, and say what could not be tested (real devices, Firefox on this PC, the native share sheet).
+
 | Platform | Setups |
 | --- | --- |
 | Windows | Chrome 1366×768, Edge 1920×1080 |

@@ -37,12 +37,15 @@ const SETUPS = [
   ['Small phone 320 (WebKit)', webkit, { ...D('iPhone SE'), viewport: { width: 320, height: 568 } }],
   ['Pixel 7 (Chrome)', chromium, D('Pixel 7')],
   ['Windows Chrome', chromium, { viewport: { width: 1366, height: 768 } }],
+  ['Windows Edge', chromium, { viewport: { width: 1920, height: 1080 } }, { channel: 'msedge' }],
+  ['Mac Safari engine', webkit, { viewport: { width: 1440, height: 900 } }],
+  ['iPad Mini (WebKit)', webkit, D('iPad Mini landscape')],
 ];
 (async () => {
   let first = true;
-  for (const [label, eng, opts] of SETUPS) {
+  for (const [label, eng, opts, launch] of SETUPS) {
     const bugs = [];
-    const b = await eng.launch(); const ctx = await b.newContext(opts);
+    const b = await eng.launch(launch || {}); const ctx = await b.newContext(opts);
     await ctx.addInitScript(() => localStorage.setItem('tai.toured', '1'));
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
     const touch = !!opts.hasTouch; const tap = (s) => (touch ? p.tap(s) : p.click(s));
