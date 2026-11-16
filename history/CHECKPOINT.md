@@ -1,0 +1,16 @@
+# Checkpoint (3 a.m. Incident entries)
+
+Copied from the shared worktree's CHECKPOINT.md (2026-11-15 onward). Earlier lines there are about other work.
+
+## 2026-11-15
+3 a.m. Incident case 1 built and play-tested (games/3am-incident/README.md). Run: `python -m http.server 8766 --directory games/3am-incident`. Waiting on Kishan to play it.
+
+## 2026-11-15 (later)
+Game work now lives in D:\Code\Anthropic\3am-incident (pushed: c284077). Daily cases + 100 practice cases + case 1, PWA, calm palette. Tests: tools/selftest.html?days=1000 (1100 cases pass); UI play-through of 107 cases at 375 px passes; offline passes. Not verified: real iPhone/Android devices, the live Netlify URL. Next: Kishan opens the Netlify link on his phone, installs it, and sends pilot links; add more templates before more cases.
+Later: 4 more case types added (7 total), pushed as 585c414. Daily #1-#7 unchanged (verified). Self-test 1100 cases + UI play-through 107 cases pass. Practice cases were reshuffled across the 7 types, so any practice progress saved before this points at different cases.
+Later: fonts changed to Fraunces + Lato (e439ff2). Home simplified after friend feedback E48 (e8c85bb, SW tai-v6): plain explainer, less text, crew folded; fixed "Lumen: Lumen lost..." titles. Self-test 465 cases + UI play-through 107 cases pass. Next: more friend/pilot feedback on the new home; still no public posting until the stage-2 gate.
+2026-11-16: first-visit tour added (a81cde9, SW tai-v7) after E49. Self-test 465 + UI play-through 107 pass. Public posting still waits on the stage-2 gate (owner told the friend "let's publish"; not yet asked of the agent).
+2026-11-16: cross-browser test (tools/xbrowser) passes on 11 setups after 9 fixes (90427f5, SW tai-v8): iPhone input zoom, large-text bar, tour focus, color-mix/:has fallbacks, iPad wording, tap sizes, 320 px logo, SQL-engine retry, no-dialog guard. Not verified: real devices, Firefox. Next: owner checks on own phone.
+2026-11-16: site now https://3am-incident-kish.netlify.app (owner rename); old URL 404. Retested iPhone SE, Pixel 7, Edge, Mac WebKit: pass.
+2026-11-16 (later): engagement batch live (611a644, SW tai-v12): notes, weekly difficulty from 17 Nov, typed numbers + fill-in SQL, bonus star, beat-my-time links, countdown, Share, install tip on phones only, streak protection, pattern deck. Tests in game tools/xbrowser (xtest, notes, step2–4) + selftest all pass; live verified. Next: collect friends' share lines (time, queries) to check the difficulty targets; first ramped daily is Tue 17 Nov (easy), first medium Wed 18 Nov.
+2026-11-16 (later): countdown on home + all solved screens, midnight link fix (29278d1, SW tai-v13). Tested on Windows/Mac/iPhone/Android/iPad locally and live. Rule: every test run covers all platforms (memory + tools/xbrowser/README).
