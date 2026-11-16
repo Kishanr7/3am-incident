@@ -28,6 +28,10 @@ Daily #1–#7 used the first three types and are kept exactly as published. From
 
 **Case notes** (📝 in the bottom bar): a drawer, closed by default, for keeping track. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
 
+**Difficulty by weekday** (dailies from 17 Nov 2026): Mon–Tue easy (pick from options, no SQL needed), Wed–Thu and Sun medium (type the real number; finish a fill-in-the-blank query), Fri–Sat hard (two checks missing; write your own SQL). After two wrong numbers Byte shows the full query. **Bonus ⭐**: write a query that returns the real number.
+
+**Beat my time**: the shared result links to the same case with your finish time; your friend sees it and who won. **Streak protection**: Byte covers one missed day in any 7. **Pattern deck**: one card per failure pattern, unlocked by solving that type (★ at 1, 3, 7 solves).
+
 The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 
 ## Phones: install it like an app

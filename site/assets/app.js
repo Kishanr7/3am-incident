@@ -62,6 +62,45 @@
     installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; if (!S) renderHome(); });
   });
 
+
+  // ---------------- pattern deck ----------------
+  // One card per failure pattern. Locked until you solve that type once; levels up at 3 and 7 solves.
+  let deckInfo = null;
+  function patternInfo() {
+    if (deckInfo) return deckInfo;
+    deckInfo = TAI.TEMPLATES.map((tpl) => { const c = TAI.caseFor(TAI.EPOCH, { tpl, salt: 'deck' }); return { id: tpl.id, name: c.lesson.name, what: c.lesson.what, spot: c.lesson.spot }; });
+    return deckInfo;
+  }
+  const PATTERN_ICON = { late: '⏰', fanout: '🪞', drift: '🧬', units: '💯', status: '🏷️', tz: '🌍', backfill: '♻️' };
+  function patternCounts() {
+    const counts = {}; const all = TAI.store.all();
+    for (const k of Object.keys(all)) {
+      const r = all[k]; if (!r || !r.solved) continue;
+      const m = /^p(\d+)$/.exec(k); const tpl = m ? TAI.practiceMeta(Number(m[1])).tpl : /^\d{4}-\d\d-\d\d$/.test(k) ? TAI.meta(k).tpl : null;
+      if (tpl) counts[tpl.id] = (counts[tpl.id] || 0) + 1;
+    }
+    return counts;
+  }
+  function deckHtml() {
+    const counts = patternCounts(); const info = patternInfo();
+    const got = info.filter((p) => counts[p.id]).length;
+    const tiles = info.map((p) => {
+      const n = counts[p.id] || 0; const stars = n >= 7 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0;
+      return n ? `<button class="pcard s${stars}" type="button" data-pattern="${p.id}" aria-label="${esc(p.name)}: solved ${n} times. Show tips."><span class="pic" aria-hidden="true">${PATTERN_ICON[p.id] || '🔎'}</span><b>${esc(p.name)}</b><span class="pst" aria-hidden="true">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span><span class="pn">${n} solved</span></button>`
+        : `<div class="pcard locked" aria-label="Locked pattern"><span class="pic" aria-hidden="true">?</span><b>Locked</b><span class="pn">Solve a new kind of case</span></div>`;
+    }).join('');
+    return `<h2>Pattern deck <span class="small muted" style="font-family:var(--sans);font-weight:600">${got} of ${info.length}</span></h2>
+      <p class="small muted" style="margin-top:-4px">Every case teaches a real failure pattern. Collect them all; ★ at 1, 3 and 7 solves.</p>
+      <div class="deck">${tiles}</div>`;
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-pattern]'); if (!b || typeof HTMLDialogElement !== 'function') return;
+    const p = patternInfo().find((x) => x.id === b.dataset.pattern); if (!p) return;
+    const dlg = document.createElement('dialog');
+    dlg.innerHTML = `<h2 style="margin-top:0">${PATTERN_ICON[p.id] || ''} ${esc(p.name)}</h2><p>${esc(p.what)}</p><h3 style="font-size:1rem">How to spot it</h3><ul>${p.spot.map((x) => `<li>${esc(x)}</li>`).join('')}</ul><form method="dialog" class="row"><button class="btn primary">Close</button></form>`;
+    document.body.appendChild(dlg); dlg.addEventListener('close', () => dlg.remove()); dlg.showModal();
+  });
+
   let openLevel = ''; // which practice level is unfolded (this visit only)
   // A friend's result from a shared link: only their finish time and query count, never their answers.
   let challenge = null;
@@ -136,6 +175,8 @@
         <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
         ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : ''}
 
+        ${deckHtml()}
+
         <h2>Big case</h2>
         <a class="card file" href="case-1/">
           <span class="num">#1</span>
@@ -161,6 +202,7 @@
     dlg.innerHTML = `<h2 style="margin-top:0">Your stats</h2>
       <div class="stats"><div><b>${st.played}</b><span>played</span></div><div><b>${st.solved}</b><span>solved</span></div><div><b>${st.current}</b><span>streak</span></div><div><b>${st.best}</b><span>best</span></div></div>
       <p class="small" style="margin:0 0 8px">Practice cases solved: <b>${st.practiceSolved}</b> / ${TAI.PRACTICE_COUNT}</p>
+      <p class="small" style="margin:0 0 8px">🛡️ <b>Streak protection:</b> Byte covers one missed day a week. ${st.coverReady ? 'Ready if you need it.' : `Used for ${U.fmtDay(st.lastCover)}; ready again on ${U.fmtDay(U.addDays(st.lastCover, 7))}.`}</p>
       <p class="small muted">No account needed: your streak lives in this browser. To keep it on another phone or laptop, copy your streak code there.</p>
       <div class="row"><button class="btn" id="exp" type="button">Copy streak code</button></div>
       <label class="small" for="imp" style="display:block;margin-top:12px;font-weight:600">Got a code from another device?</label>
@@ -502,7 +544,7 @@
       <div class="card win">
         <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>
         <h2 style="margin:16px 0 4px">Case closed${late ? ', a little late' : ' before 9:00'}.</h2>
-        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}` : S.practice ? ' · practice case' : ' · archive case (streaks count on the day)'}</p>
+        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}${st.covered.length ? ' (🛡️ Byte covered ' + st.covered.map(U.fmtDay).join(', ') + ')' : ''}` : S.practice ? ' · practice case' : ' · archive case (streaks count on the day)'}</p>
         ${vsResult()}
         <div class="share" id="shareText">${esc(shareText())}</div>
         <div class="row">${canShare() ? '<button class="btn primary" id="shareBtn" type="button">Share</button><button class="btn" id="copy" type="button">Copy</button>' : '<button class="btn primary" id="copy" type="button">Copy result</button>'}${next}<a class="btn" href="#/">Home</a></div>

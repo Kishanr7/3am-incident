@@ -236,15 +236,23 @@
   function streaks(today) {
     const cases = store.all();
     const ok = (iso) => { const r = cases[iso]; return !!(r && r.solved && r.solvedOn === iso); };
-    let cur = 0; let d = ok(today) ? today : addDays(today, -1);
-    while (d >= TAI.EPOCH && ok(d)) { cur++; d = addDays(d, -1); }
-    let best = 0, run = 0;
-    for (let x = TAI.EPOCH; x <= today; x = addDays(x, 1)) { if (ok(x)) { run++; best = Math.max(best, run); } else run = 0; }
+    // Streak protection: Byte covers one missed day in any 7 days, so one busy day doesn't wipe a long streak.
+    // A covered day doesn't add to the count; two misses close together still end the streak.
+    // Today is never a miss: there is still time to play it.
+    let best = 0, run = 0, lastCover = null; let covered = [];
+    for (let x = TAI.EPOCH; x <= today; x = addDays(x, 1)) {
+      if (ok(x)) { run++; best = Math.max(best, run); continue; }
+      if (x === today) continue;
+      if (run > 0 && (!lastCover || diffDays(x, lastCover) >= 7)) { lastCover = x; covered.push(x); continue; }
+      run = 0; covered = [];
+    }
+    const cur = run;
+    const coverReady = !lastCover || diffDays(today, lastCover) >= 7;
     const recs = Object.keys(cases).filter((k) => /^\d{4}-/.test(k)).map((k) => cases[k]);
     const prac = Object.keys(cases).filter((k) => /^p\d+$/.test(k) && cases[k].solved).length;
     const solved = recs.filter((r) => r.solved);
     const avgQ = solved.length ? solved.reduce((a, r) => a + r.timeline.filter((e) => e.t !== 'hint').length, 0) / solved.length : 0;
-    return { practiceSolved: prac, current: cur, best, played: recs.filter((r) => r.timeline.length || r.reports.length).length, solved: solved.length, avgQueries: avgQ };
+    return { covered, coverReady, lastCover, practiceSolved: prac, current: cur, best, played: recs.filter((r) => r.timeline.length || r.reports.length).length, solved: solved.length, avgQueries: avgQ };
   }
   TAI.streaks = streaks;
 })();

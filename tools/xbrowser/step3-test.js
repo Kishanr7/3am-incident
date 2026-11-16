@@ -25,7 +25,7 @@ async function engineChecks(page) {
         if (c.answerQ.sql.replace(c.answerQ.blank, '____') === c.answerQ.sql) out.bugs.push(`${c.tpl.id}: blank not found in SQL`);
         for (const card of c.cards) {
           const r = TAI.query(db, card.sql, 200);
-          if (r.values.some((row) => row.some((x) => typeof x === 'number' && TAI.matchesAnswer(c, x)) && !(row.length >= 2 && typeof row[0] === 'string' && /^\d{4}-\d\d-\d\d$/.test(row[0]) && row[0] !== c.D))) { out.leaks++; if (out.leaks <= 5) out.bugs.push(`LEAK ${lvl} ${c.tpl.id} ${c.date}: "${card.title}" shows the answer ${c.answerQ.value}`); }
+          if (r.values.some((row) => { const d = row.find((x) => typeof x === 'string' && /^\d{4}-\d\d-\d\d/.test(x)); return row.some((x) => typeof x === 'number' && TAI.matchesAnswer(c, x)) && !(d && d.slice(0, 10) !== c.D); })) { out.leaks++; if (out.leaks <= 5) out.bugs.push(`LEAK ${lvl} ${c.tpl.id} ${c.date}: "${card.title}" shows the answer ${c.answerQ.value}`); }
         }
       }
       db.close();
