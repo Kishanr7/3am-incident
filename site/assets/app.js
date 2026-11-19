@@ -130,7 +130,7 @@
     const done = { easy: 0, medium: 0, hard: 0 };
     for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) { const r = TAI.store.get('p' + n); if (r && r.solved) done[TAI.practiceMeta(n).level]++; }
     let lib = '';
-    if (lvl) for (let n = TAI.LEVELS[lvl][0]; n <= TAI.LEVELS[lvl][1]; n++) {
+    if (lvl) for (const n of TAI.levelCases(lvl)) {
       const pm = TAI.practiceMeta(n); const r = TAI.store.get('p' + n);
       const st2 = r && r.solved ? 'solved' : r && r.timeline.length ? 'started' : '';
       lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}, ${esc(pm.tpl.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
@@ -172,8 +172,8 @@
         ${installCard('home')}
 
         <h2 id="practice">Practice</h2>
-        <p class="small muted" style="margin-top:-4px">100 more cases. Hard ones make you write a little SQL.</p>
-        <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.LEVELS[l][1] - TAI.LEVELS[l][0] + 1}</span></button>`).join('')}</div>
+        <p class="small muted" style="margin-top:-4px">${TAI.PRACTICE_COUNT} more cases. Hard ones make you write a little SQL.</p>
+        <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.levelCases(l).length}</span></button>`).join('')}</div>
         ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : ''}
 
         ${deckHtml()}
@@ -290,6 +290,13 @@
     return '';
   }
 
+  // Case title: lead with the company once. "Brewly’s revenue…" becomes "Brewly: Revenue…"; a teaser that already
+  // names the company anywhere is used as it is.
+  function caseTitle(c) {
+    const t = c.teaser, n = c.co.name;
+    if (t.startsWith(n + '’s ')) return n + ': ' + t.slice(n.length + 3).replace(/^./, (x) => x.toUpperCase());
+    return t.includes(n) ? t : n + ': ' + t;
+  }
   function renderCase() {
     const { c, rec } = S;
     document.title = `${S.label} · 3 a.m. Incident`;
@@ -304,7 +311,7 @@
       <div class="wrap case">
         <div class="chead">
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
-        <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.teaser.startsWith(c.co.name + ' ') ? c.teaser : c.co.name + ': ' + c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
+        <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(caseTitle(c))}</h1></div>
         ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
         ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
         <p class="scene small"><b>Your job:</b> find out why the number is wrong, then tap <b>Report</b>. Each check takes 5 minutes, and the meeting is at 9:00.</p>
@@ -692,7 +699,7 @@
       { art: `<div class="tmock"><div class="tpick"><span>Logs</span>When did each source’s data arrive?</div><div class="tpick"><span>Raw data</span>Orders for yesterday, by source</div><div class="tclock">🕗 Each check: +5 min · 📝 Notes keep track · 🐾 Byte hints</div></div>`,
         title: 'Tap to check the data', text: 'Pick what to look at. Each check runs a real SQL query on a small, made-up database. No typing needed.' },
       { art: `<div class="tmock"><div class="topt">The iOS data arrived late, after the nightly job ran</div><div class="topt on">✓ Real orders: 674</div><div class="tclock">🔥 New case every day · keep your streak</div></div>`,
-        title: 'Tell Maya what happened', text: 'Choose the cause and the real number. Get it right before 9:00. A new case comes every day, plus 100 practice cases.' },
+        title: 'Tell Maya what happened', text: 'Choose the cause and the real number. Get it right before 9:00. A new case comes every day, plus ' + TAI.PRACTICE_COUNT + ' practice cases.' },
     ];
     const onCase = () => /^#\/(daily|practice)\//.test(location.hash); // a case link, even while it loads
     const dlg = document.createElement('dialog');

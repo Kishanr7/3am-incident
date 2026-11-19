@@ -9,7 +9,7 @@
 | Mode | What | Where |
 | --- | --- | --- |
 | **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. Same case for everyone on a given date. Streak kept on the device | Home page |
-| **Practice library** | 100 cases: 40 easy, 35 medium, 25 hard. Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
+| **Practice library** | 136 cases: 52 easy, 47 medium, 37 hard. #1–100 cover the first seven types; #101–136 the four production incidents (3 of each per level). Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
 Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are eleven patterns: seven where a dashboard number is wrong, and four production incidents.
@@ -28,7 +28,7 @@ Every case is a real failure pattern, with a short lesson at the end: what happe
 | The Wrong Goodbye | A clean-up job turned a missing login into 1970 and deleted active app users |
 | The Expensive Refresh | A new 5-minute dashboard tile filters on `DATE(event_time)`, so every refresh scans the whole table |
 
-Daily #1–#7 used the first three types and are kept exactly as published, dialogue included. Daily #8–#11 cycled through the first seven. From Daily #12 (20 Nov 2026), days cycle through all eleven, with the production incidents mixed in. The practice library stays on the first seven types, so saved progress keeps pointing at the same cases.
+Daily #1–#7 used the first three types and are kept exactly as published, dialogue included. Daily #8–#11 cycled through the first seven. From Daily #12 (20 Nov 2026), days cycle through all eleven, with the production incidents mixed in. Practice #1–100 stay on the first seven types, so saved progress keeps pointing at the same cases; #101–136 add the four production incidents.
 
 Each case picks one of several versions of its opening, reactions and closing, so a type reads differently each time it comes round. Cast: Maya (CFO), Sam (growth), Nia (support lead), Theo (CRM and email), Byte, Old Gus and The Vendor.
 
@@ -65,9 +65,9 @@ Each template also ships **self-checks**: SQL that must return the intended answ
 
 | Test | How | Result (2026-11-15) |
 | --- | --- | --- |
-| Case generator: 1000 daily dates + 100 practice cases, all 7 types | Serve the repo root, open `tools/selftest.html?days=1000`. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases, about 155 per type) |
+| Case generator: 1000 daily dates + 136 practice cases, all 11 types | Serve the repo root, open `tools/selftest.html?days=1000`. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases, about 155 per type) |
 | Published dailies unchanged | Old and new engine compared for Daily #1–#7: same company, story, numbers, answer order | **Identical** |
-| Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 100 practice cases (every type at easy, medium and hard): runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
+| Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 136 practice cases (every type at easy, medium and hard): runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
 | Streak rules | Today's solve counts; archive and practice solves don't; streak code round-trips; junk code rejected | Pass |
 | Offline | Load once, stop the server, reload: today's case and the SQL engine run from the device | Pass |
 | Light and dark themes, theme switch remembered | Manual + script | Pass |

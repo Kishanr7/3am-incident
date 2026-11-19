@@ -14,7 +14,7 @@ async function engineChecks(page) {
     const SQL = await initSqlJs({ locateFile: (f) => TAI.SQL_CDN + f });
     const jobs = [];
     for (let i = 0; i < 140; i++) jobs.push(() => TAI.dailyCase(TAI.util.addDays('2026-11-17', i)));
-    for (let n = 1; n <= 100; n++) jobs.push(() => TAI.practiceCase(n));
+    for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) jobs.push(() => TAI.practiceCase(n));
     for (const job of jobs) {
       const c = job(); out.cases++;
       const lvl = c.level || 'classic'; out.levels[lvl] = (out.levels[lvl] || 0) + 1;

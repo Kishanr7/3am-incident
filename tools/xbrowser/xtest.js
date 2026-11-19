@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 
 async function playAll(page, bugs) {
-  // Every daily of this week + all 100 practice cases. Opens every check so every table is drawn.
+  // Every daily of this week + every practice case. Opens every check so every table is drawn.
   return page.evaluate(async () => {
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     TAI.store.reset();
@@ -163,7 +163,7 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
     await shot('2b-home-other-theme');
     await tap('#themeBtn');
     await tap('.tab[data-l="hard"]'); await sleep(200);
-    if ((await page.locator('.lcase').count()) !== 25) res.bugs.push('hard level did not show 25 cases');
+    const nHard = await page.evaluate(() => TAI.levelCases('hard').length); if ((await page.locator('.lcase').count()) !== nHard) res.bugs.push('hard level did not show ' + nHard + ' cases');
     await tap('.lcase >> nth=0'); await page.waitForSelector('#picks', { timeout: 20000 }).catch(() => res.bugs.push('practice case did not open'));
     await page.goto(BASE + '#/'); await page.waitForSelector('#statsBtn');
     await tap('#statsBtn'); await page.waitForSelector('dialog[open]').catch(() => res.bugs.push('stats did not open'));

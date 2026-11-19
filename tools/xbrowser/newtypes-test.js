@@ -27,6 +27,8 @@ async function play(page) {
       if (!st || !document.getElementById('picks')) { fails.push(r + ' did not open'); continue; }
       const c = st.c; types.add(c.tpl.id); c.intro.forEach((m) => people.add(m.who));
       if (document.querySelectorAll('.chat .msg svg').length < c.intro.length) fails.push(r + ' a chat portrait is missing');
+      const h1 = document.querySelector('.case-head h1').textContent;
+      if (h1.split(c.co.name).length !== 2) fails.push(r + ' company named ' + (h1.split(c.co.name).length - 1) + ' times in title: ' + h1);
       for (const b of [...document.querySelectorAll('#picks button')]) { b.click(); await sleep(5); }
       if (document.querySelectorAll('#feed .err').length) fails.push(r + ' a check shows an SQL error');
       const answer = (q, right) => { const ty = document.getElementById('ans_' + q.id); if (ty) { ty.value = right ? String(c.answerQ.value) : '1'; ty.dispatchEvent(new Event('input')); return; } const o = q.options.find((x) => (right ? x.correct : !x.correct)); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); };

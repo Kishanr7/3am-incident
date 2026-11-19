@@ -133,11 +133,20 @@
   }
   TAI.dayNo = dayNo; TAI.meta = meta; TAI.caseFor = caseFor;
   // ---------- practice library: 100 fixed cases, not tied to a date ----------
-  TAI.PRACTICE_COUNT = 100;
+  // #1–100: the first seven types, as published. #101–136: the four production incidents,
+  // 3 easy, 3 medium and 3 hard of each (101–112 easy, 113–124 medium, 125–136 hard).
+  TAI.PRACTICE_COUNT = 136;
   const LEVELS = { easy: [1, 40], medium: [41, 75], hard: [76, 100] };
   TAI.LEVELS = LEVELS;
-  function level(n) { return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
+  const LEVEL_NAMES = ['easy', 'medium', 'hard'];
+  function level(n) { if (n > 100) return LEVEL_NAMES[Math.floor((n - 101) / 12)]; return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
+  // Every practice case number at a level, in order.
+  TAI.levelCases = (l) => { const out = []; for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) if (level(n) === l) out.push(n); return out; };
   function practiceMeta(n) {
+    if (n > 100) {
+      const j = n - 101; const NEW = TAI.TEMPLATES.slice(7);
+      return { n, level: level(n), tpl: NEW[j % NEW.length], co: TAI.COMPANIES[(j + Math.floor(j / NEW.length) * 3 + 1) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
+    }
     const T = TAI.TEMPLATES.slice(0, 7); // the library was published with the first seven types; keep saved progress pointing at the same cases
     return { n, level: level(n), tpl: T[(n - 1) % T.length], co: TAI.COMPANIES[((n - 1) + Math.floor((n - 1) / T.length) * 3) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
   }
