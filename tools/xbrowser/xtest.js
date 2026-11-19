@@ -112,7 +112,8 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
     const byte = page.locator('button:has-text("Byte")').first();
     if (await byte.count()) { await (touch ? byte.tap() : byte.click()); await sleep(200); }
     // own SQL
-    await page.locator('details.own summary').first().click();
+    // Medium cases open the SQL box by themselves; clicking its summary then would close it.
+    if (!(await page.locator('details.own').first().evaluate((d) => d.open))) await page.locator('details.own summary').first().click();
     const ta = page.locator('#ownSql');
     const fs16 = await ta.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
     if (touch && fs16 < 16) res.bugs.push(`SQL box text is ${fs16}px: iPhone Safari zooms the page when it is tapped`);
@@ -128,7 +129,11 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
     await shot('4-report');
     const ok = await page.evaluate(() => {
       const c = window.__tai.state.c;
-      for (const q of c.questions) { const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).closest('label').click(); }
+      for (const q of c.questions) {
+        const typed = document.getElementById('ans_' + q.id); // medium and hard: the last answer is a typed number
+        if (typed) { typed.value = String(c.answerQ.value); typed.dispatchEvent(new Event('input', { bubbles: true })); continue; }
+        const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).closest('label').click();
+      }
       const hl = getComputedStyle(document.querySelector('.opt input:checked').closest('.opt')).borderColor;
       const plain = getComputedStyle(document.querySelector('.opt input:not(:checked)').closest('.opt')).borderColor;
       return { hl, plain };

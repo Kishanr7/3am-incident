@@ -293,3 +293,27 @@ button.pcard{cursor:pointer}
 .pcard.locked .pic{font-weight:800;color:var(--mute)}
 .pcard.s3{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 
+/* ---------- own-query tips and folding ---------- */
+.entry .fold.hide{position:absolute;top:6px;right:52px;min-height:40px;font-size:.8rem;cursor:pointer;color:var(--mute)}
+.entry:has(.fold.hide)>.kind{padding-right:120px}
+.entry.folded{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;box-shadow:none;background:var(--surface-2)}
+.entry.folded .fsql{flex:1;min-width:0;font:12px/1.4 var(--mono);color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry.folded .fold{cursor:pointer;font-size:.8rem}
+.entry.still{animation:none}
+.tips{margin-top:10px;border-left:3px solid var(--paw);background:var(--surface-2);border-radius:0 10px 10px 0;padding:6px 12px}
+.tips p{margin:4px 0;font-size:.86rem;line-height:1.4}
+.tips code{font-family:var(--mono);font-size:.8rem;background:var(--code);border-radius:5px;padding:1px 4px}
+@media (max-width:400px){.entry .fold.hide{position:static;float:right;margin:0 44px 4px 8px}.entry:has(.fold.hide)>.kind{padding-right:0}.entry.folded .fsql{visibility:hidden}}
+/* ---------- wide screens: evidence on the left, checks and your SQL beside it ---------- */
+@media (min-width:1100px){
+  .wrap.case,.bar .wrap{max-width:1240px}
+  .wrap.case{display:grid;grid-template-columns:minmax(0,1fr) 400px;column-gap:28px;grid-template-areas:"head head" "main side" "report side";align-items:start}
+  .case .chead{grid-area:head}
+  .case .main{grid-area:main;min-width:0}
+  .case .report{grid-area:report;min-width:0}
+  .case .side{grid-area:side;position:sticky;top:12px;max-height:calc(100vh - 100px);overflow:auto;padding:2px 4px 12px;margin-top:0}
+  .case .side h2{margin-top:0}
+  .case .side .picks{grid-template-columns:1fr}
+  .case .side .own textarea{min-height:170px}
+  .notes{right:auto;left:20px}
+}

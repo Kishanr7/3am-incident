@@ -277,8 +277,10 @@
         <details><summary>Show SQL</summary><pre class="sql">${esc(card.sql)}</pre></details>${res}${voice}</article>`;
     }
     if (e.t === 'sql') {
-      let res; try { res = tableHtml(TAI.query(S.db, e.sql, 50)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
-      return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><span class="kind">Your query · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div></article>`;
+      const at = clockText(START_MIN + STEP_MIN * (i + 1));
+      if (e.fold) return `<article class="entry folded" id="e${i}" tabindex="-1"><span class="kind">Your query · ${at}</span><code class="fsql">${esc(e.sql.replace(/\s+/g, ' ').slice(0, 70))}${e.sql.length > 70 ? '…' : ''}</code><button type="button" class="pill fold" data-fold="${i}" aria-label="Show this query again">Show</button></article>`;
+      let res, r = null; try { r = TAI.query(S.db, e.sql, 50); res = tableHtml(r); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
+      return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><button type="button" class="pill fold hide" data-fold="${i}" aria-label="Fold this query away">Hide</button><span class="kind">Your query · ${at}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div>${ownTips(e, i, r)}</article>`;
     }
     if (e.t === 'hint') {
       const card = e.id && c.cards.find((x) => x.id === e.id);
@@ -299,21 +301,25 @@
     }).join('');
     const schema = c.tables.map((tb) => `<b>${tb.name}</b>(${tb.cols.map((x) => x[0]).join(', ')})`).join('<br>');
     app.innerHTML = `
-      <div class="wrap">
+      <div class="wrap case">
+        <div class="chead">
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
         <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(c.teaser.startsWith(c.co.name + ' ') ? c.teaser : c.co.name + ': ' + c.teaser.replace(c.co.name + '’s ', '').replace(/^./, (x) => x.toUpperCase()))}</h1></div>
         ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
         ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
         <p class="scene small"><b>Your job:</b> find out why the number is wrong, then tap <b>Report</b>. Each check takes 5 minutes, and the meeting is at 9:00.</p>
+        </div>
+        <div class="main">
         <div class="chat" aria-label="Incident channel">${intro}</div>
         <div class="feed" id="feed" aria-live="polite"></div>
+        </div>
 
-        <section id="investigate">
+        <section id="investigate" class="side">
           <h2>What do you want to check?</h2>
           <div class="picks" id="picks"></div>
           <details class="card own" style="margin-top:10px" ${c.typed && c.level === 'medium' ? 'open' : ''}>
             <summary>${c.typed && c.level === 'medium' ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
-            ${c.typed && c.level === 'medium' ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks above tell you what goes there.</p>' : ''}
+            ${c.typed && c.level === 'medium' ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
             <div class="schema">${schema}</div>
             <label class="sr" for="ownSql">Your SQL</label>
             <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.typed && c.level === 'medium' ? esc(fillInSql()) : ''}</textarea>
@@ -342,6 +348,44 @@
     document.getElementById('hintBtn').onclick = hint;
     document.getElementById('toReport').onclick = (e) => { e.preventDefault(); document.getElementById('report').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     window.scrollTo(0, 0);
+  }
+
+  // ---------------- tips under the player's own SQL ----------------
+  // SQLite compares text exactly, so 'pebble pay' never matches 'Pebble Pay'. Point that out, and say when a
+  // query returns exactly what an earlier one did (the edit made no difference).
+  let valueIndex = null;
+  function textValues() {
+    if (valueIndex && valueIndex.c === S.c) return valueIndex;
+    const exact = new Set(), lower = new Map();
+    for (const tb of S.c.tables) for (const row of tb.rows) for (const v of row) {
+      if (typeof v !== 'string' || v.length > 60) continue;
+      exact.add(v); const k = v.toLowerCase(); if (!lower.has(k)) lower.set(k, v);
+    }
+    valueIndex = { c: S.c, exact, lower }; return valueIndex;
+  }
+  function caseTraps(sql) {
+    const { exact, lower } = textValues(); const out = []; const seen = new Set();
+    const re = /'((?:[^']|'')*)'/g; let m;
+    while ((m = re.exec(sql))) {
+      const lit = m[1].replace(/''/g, "'");
+      if (!lit || seen.has(lit) || exact.has(lit) || /[%_]/.test(lit)) continue;
+      seen.add(lit); const real = lower.get(lit.toLowerCase());
+      if (real) out.push([lit, real]);
+    }
+    return out;
+  }
+  function resultKey(r) { return r ? JSON.stringify([r.columns, r.values, r.total]) : null; }
+  function ownTips(e, i, r) {
+    const tips = caseTraps(e.sql).map(([lit, real]) => `🐾 No row says <code>'${esc(lit)}'</code> exactly. The data says <code>'${esc(real)}'</code>. Text matches are case-sensitive, so that part of your query matched nothing.`);
+    const key = resultKey(r);
+    if (key) {
+      for (let j = i - 1; j >= 0; j--) {
+        const p = S.rec.timeline[j]; if (!p || p.t !== 'sql' || p.sql.trim() === e.sql.trim()) continue;
+        let k2 = null; try { k2 = resultKey(TAI.query(S.db, p.sql, 50)); } catch (err) { /* that earlier query failed */ }
+        if (k2 === key) { tips.push(`Same result as your query at ${clockText(START_MIN + STEP_MIN * (j + 1))}, so this change made no difference.`); break; }
+      }
+    }
+    return tips.length ? `<div class="tips">${tips.map((t) => `<p>${t}</p>`).join('')}</div>` : '';
   }
 
   function ran(id) { return S.rec.timeline.some((e) => e.t === 'card' && e.id === id); }
@@ -434,6 +478,8 @@
     if (pin) { const n = notes(); const i = Number(pin.dataset.pin); const k = n.pins.indexOf(i); if (k < 0) n.pins.push(i); else n.pins.splice(k, 1); save(); pin.setAttribute('aria-pressed', String(k < 0)); updateNotesBtn(); if (!document.getElementById('notes').hidden) renderNotes(); toast(k < 0 ? 'Pinned to notes' : 'Unpinned'); return; }
     const un = t.closest('[data-unpin]');
     if (un) { const n = notes(); const i = Number(un.dataset.unpin); n.pins = n.pins.filter((x) => x !== i); save(); const pb = document.querySelector(`[data-pin="${i}"]`); if (pb) pb.setAttribute('aria-pressed', 'false'); renderNotes(); return; }
+    const fold = t.closest('[data-fold]');
+    if (fold) { const i = Number(fold.dataset.fold); const e = S.rec.timeline[i]; if (!e) return; e.fold = !e.fold; save(); document.getElementById('e' + i).outerHTML = entryHtml(e, i); const again = document.getElementById('e' + i); again.classList.add('still'); again.focus({ preventScroll: true }); return; }
     const go = t.closest('[data-goto]');
     if (go) { const el = document.getElementById('e' + go.dataset.goto); if (matchMedia('(max-width: 899px)').matches) setNotesOpen(false); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
   });
