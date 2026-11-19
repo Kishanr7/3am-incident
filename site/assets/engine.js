@@ -94,10 +94,17 @@
     const n = dayNo(iso);
     const T = TAI.TEMPLATES; const C = TAI.COMPANIES;
     if (n <= TAI.LEGACY_DAILIES) return { no: n, date: iso, tpl: T[mod(n - 1, 3)], co: C[mod(n - 1, C.length)] };
-    // From #8: cycle through every template; shift the company each cycle so pairings vary.
-    const k = n - 1 - TAI.LEGACY_DAILIES;
-    return { no: n, date: iso, tpl: T[mod(k, T.length)], co: C[mod(k + Math.floor(k / T.length) * 3, C.length)] };
+    // #8 to #11: cycle through the first seven templates; shift the company each cycle so pairings vary.
+    if (n < TAI.ROTATION2_FROM) {
+      const k = n - 1 - TAI.LEGACY_DAILIES;
+      return { no: n, date: iso, tpl: T[mod(k, 7)], co: C[mod(k + Math.floor(k / 7) * 3, C.length)] };
+    }
+    // From #12 (20 Nov 2026): every template, production incidents mixed in between the dashboard ones.
+    const k = n - TAI.ROTATION2_FROM; const order = TAI.ROTATION2.map((id) => T.find((x) => x.id === id)).filter(Boolean);
+    return { no: n, date: iso, tpl: order[mod(k, order.length)], co: C[mod(k + Math.floor(k / order.length) * 3 + 2, C.length)] };
   }
+  TAI.ROTATION2_FROM = 12;
+  TAI.ROTATION2 = ['nowhere', 'late', 'email', 'fanout', 'purge', 'units', 'bill', 'drift', 'status', 'tz', 'backfill'];
   /* Build the full case for a calendar date. Deterministic: same date, same case, for everyone. */
   function caseFor(iso, opts) {
     const m = meta(iso);
@@ -110,7 +117,12 @@
     let c, t, attempt = 0;
     do {
       t = tools(hash('3am|' + iso + '|' + tpl.id + '|' + co.name + '|' + ((opts && opts.salt) || '') + '|' + attempt));
-      c = tpl.build(t, { D, days, co, caseDate: iso, no: m.no });
+      // Dialogue variety comes from its own random stream, so it never changes a case's data or answers.
+      // Daily #1–#7 keep the first line of each list: the words they were published with.
+      const vr = mulberry32(hash('voice|' + iso + '|' + tpl.id + '|' + co.name + '|' + ((opts && opts.salt) || '')));
+      const plain = !(opts && opts.salt) && !(opts && opts.tpl) && m.no <= TAI.LEGACY_DAILIES;
+      const v = (list) => (plain ? list[0] : list[Math.floor(vr() * list.length)]);
+      c = tpl.build(t, { D, days, co, caseDate: iso, no: m.no, v });
       attempt++;
     } while (c.valid === false && attempt < 20);
     c.attempts = attempt;
@@ -126,7 +138,7 @@
   TAI.LEVELS = LEVELS;
   function level(n) { return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
   function practiceMeta(n) {
-    const T = TAI.TEMPLATES;
+    const T = TAI.TEMPLATES.slice(0, 7); // the library was published with the first seven types; keep saved progress pointing at the same cases
     return { n, level: level(n), tpl: T[(n - 1) % T.length], co: TAI.COMPANIES[((n - 1) + Math.floor((n - 1) / T.length) * 3) % TAI.COMPANIES.length], iso: addDays('2026-01-05', (n - 1) * 3) };
   }
   /* Difficulty changes the evidence, not the answer:

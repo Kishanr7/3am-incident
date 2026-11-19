@@ -27,7 +27,7 @@
     id: 'late',
     name: 'The Late Partition',
     pattern: 'Late-arriving data',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const sources = ['web', 'ios', 'android', 'partner_api'];
       const broken = t.pick(sources);
@@ -150,8 +150,8 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders for ${Df}: ${num(dashD)} orders (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: `Morning. The dashboard says we took ${num(dashD)} orders yesterday. We normally do about ${num(avgPrev)}. Is ${co.name} falling off a cliff, or is the dashboard lying? One number, one sentence, before 9.` },
-          { who: 'sam', text: `ok but is this because ${campName} ended?? i literally SAID don’t stop it 😭` },
+          { who: 'maya', text: v([`Morning. The dashboard says we took ${num(dashD)} orders yesterday. We normally do about ${num(avgPrev)}. Is ${co.name} falling off a cliff, or is the dashboard lying? One number, one sentence, before 9.`, `${num(dashD)} orders yesterday, against a usual ${num(avgPrev)}. I’m on the school run, so keep it short: are we in trouble or is the chart?`, `Before anyone panics: the dashboard says ${num(dashD)} orders. We never do that few. Real drop or broken report? I need to know before the 9:00.`, `I’ve had three coffees and one terrifying chart. ${num(dashD)} orders, normally ${num(avgPrev)}. Find me the truth.`]) },
+          { who: 'sam', text: v([`ok but is this because ${campName} ended?? i literally SAID don’t stop it 😭`, `${campName} ended and we immediately flop?? i’m not saying i told you so. i’m just saying it`, `can we restart ${campName} like right now. asking for me`]) },
         ],
         tables, cards,
         chain: ['dash_src', 'raw_src', 'parts', 'runs'],
@@ -159,7 +159,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `How many orders did ${co.name} really take on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: `So the orders are fine and the dashboard was early. Re-run it for ${fmtShort(D)}, and make that job wait for every source. Thank you.` },
+        closing: { who: 'maya', text: v([`So the orders are fine and the dashboard was early. Re-run it for ${fmtShort(D)}, and make that job wait for every source. Thank you.`, `So nobody stopped buying; one source just hadn’t arrived yet. Re-run ${fmtShort(D)} and make the job wait for every source. Thanks.`, `Good. I can stop drafting the bad-news email. Re-run the day, and let’s get an alert for late files.`]) },
         lesson: {
           name: 'Late-arriving data',
           what: 'The job ran on a clock, not on readiness. It read whatever had landed by 02:00, reported SUCCESS, and the missing partition was invisible.',
@@ -186,7 +186,7 @@
     id: 'fanout',
     name: 'The Best Day Ever',
     pattern: 'Fan-out join (double counting)',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const cs = t.shuffle(COUNTRIES).slice(0, 5);
       const broken = cs[0][0]; const brokenName = cs[0][1];
@@ -287,8 +287,8 @@
         reporter: 'sam',
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (+${pct(up)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'sam', text: `REVENUE UP ${pct(up)} YESTERDAY 🚀🚀 we are SO back. it’s ${code}, i called it` },
-          { who: 'maya', text: 'If it looks too good to be true… Check it before I put it in front of the board. One number, one sentence.' },
+          { who: 'sam', text: v([`REVENUE UP ${pct(up)} YESTERDAY 🚀🚀 we are SO back. it’s ${code}, i called it`, `+${pct(up)} revenue!!! ${code} is officially the best code ever written. not SQL. the discount code`, `we’re up ${pct(up)}. i’m printing the chart and framing it`]) },
+          { who: 'maya', text: v(['If it looks too good to be true… Check it before I put it in front of the board. One number, one sentence.', 'I love good news. I love checked good news more. Is this real?', 'Sam is already writing a LinkedIn post. Please tell me the real revenue before he hits publish.', 'Last time a number jumped like this, we had counted something twice. Prove me wrong.']) },
         ],
         tables, cards,
         chain: ['raw_vs', 'distinct', 'dims', 'crm'],
@@ -296,7 +296,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: `So not our best day: a normal one, counted twice in ${brokenName}. I’d rather know now than in the board meeting. Thank you.` },
+        closing: { who: 'maya', text: v([`So not our best day: a normal one, counted twice in ${brokenName}. I’d rather know now than in the board meeting. Thank you.`, `A normal day, with ${brokenName} counted twice. Sam, unframe the chart. Fix the join and re-run. Thank you.`, `I’ll take boring and correct over exciting and wrong. Dedupe the customers and re-run the day. Thanks.`]) },
         lesson: {
           name: 'Fan-out join',
           what: 'The orders joined to a customer table that was no longer unique on customer_id. Every duplicated customer multiplied their orders. Nothing failed; the numbers just grew.',
@@ -323,7 +323,7 @@
     id: 'drift',
     name: 'The Vanishing Sign-ups',
     pattern: 'Schema drift',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const platforms = ['ios', 'android', 'web'];
       const P = t.pick(['ios', 'android']);
@@ -440,8 +440,8 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_signups for ${Df}: ${num(dashD)} (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: `Sign-ups fell ${pct(drop)} yesterday. Marketing says it’s the holiday in ${H[1]} and wants to pause spend everywhere. Before anyone does anything: is it real? One number, one sentence.` },
-          { who: 'sam', text: 'drafting an apology to investors rn. jk. unless?? 💀' },
+          { who: 'maya', text: v([`Sign-ups fell ${pct(drop)} yesterday. Marketing says it’s the holiday in ${H[1]} and wants to pause spend everywhere. Before anyone does anything: is it real? One number, one sentence.`, `Marketing wants to pause all spend because sign-ups fell ${pct(drop)}. That costs real money either way. Is the drop real?`, `I’m about to approve a budget freeze based on one chart. Convince me the chart is right. Or wrong.`, `${pct(drop)} fewer sign-ups, and everyone has a theory. I’d like a fact instead. Before 9, please.`]) },
+          { who: 'sam', text: v(['drafting an apology to investors rn. jk. unless?? 💀', `it’s the ${H[1]} holiday. has to be. nobody signs up on a holiday right`, 'sign-ups down?? did the button break again. please say the button broke']) },
         ],
         tables, cards,
         chain: ['by_country', 'raw_ver', 'payload', 'releases'],
@@ -449,7 +449,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `How many people really signed up on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: `So nobody stopped signing up; we stopped counting them. Tell marketing to keep the budget, and get the ${P} team and data team in one room. Thank you.` },
+        closing: { who: 'maya', text: v([`So nobody stopped signing up; we stopped counting them. Tell marketing to keep the budget, and get the ${P} team and data team in one room. Thank you.`, `So the users are real; our join dropped them. Keep the budget, fix the join on country, and add a check for NULLs. Thank you.`, `Good, no freeze. The ${P} release and the dashboard need to talk to each other more. Thanks.`]) },
         lesson: {
           name: 'Schema drift',
           what: 'An upstream producer renamed a field. Nothing errored: the old column just became NULL, and an inner join quietly dropped those rows.',

@@ -54,8 +54,8 @@ const SETUPS = [
       await p.goto(BASE + '#/'); await p.waitForSelector('#howBtn');
       if (first) { for (const x of await streakRules(p)) bugs.push(x); first = false; }
       await p.reload(); await p.waitForSelector('.deck');
-      if ((await p.locator('.pcard').count()) !== 7) bugs.push('deck should have 7 cards');
-      if ((await p.locator('.pcard.locked').count()) !== 7) bugs.push('all cards should start locked');
+      const nT = await p.evaluate(() => TAI.TEMPLATES.length); if ((await p.locator('.pcard').count()) !== nT) bugs.push('deck should have ' + nT + ' cards');
+      if ((await p.locator('.pcard.locked').count()) !== nT) bugs.push('all cards should start locked');
       // solve practice 1 (late) and 2 (fanout), easy cases
       for (const n of [1, 2]) {
         await p.goto(BASE + '#/practice/' + n); await p.waitForFunction((k) => window.__tai.state && window.__tai.state.practice === k && document.getElementById('picks'), n);

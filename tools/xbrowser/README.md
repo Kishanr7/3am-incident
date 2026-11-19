@@ -22,6 +22,7 @@ node xtest.js http://localhost:8767/site/          # about 10 minutes; screensho
 node offline-test.js                               # loads the site, switches the server off, plays a case
 node notes-test.js http://localhost:8767/site/     # case notes drawer on 6 setups
 node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, Hide/Show, wide-screen layout on 8 setups
+node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake clock: all 11 case types, new cast, 11-card deck, 8 setups
 ```
 
 Limits: WebKit here is Playwright's build of Safari's engine on Windows, not Safari on a real iPhone or Mac. Playwright's own offline switch blocks the service worker in WebKit, so offline is tested by stopping the server instead. Firefox's test build does not start on this PC (missing Windows runtime); Firefox was checked by feature review only.

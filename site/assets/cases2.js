@@ -28,7 +28,7 @@
     id: 'units',
     name: 'The Hundredfold Day',
     pattern: 'Unit mismatch (cents vs dollars)',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const NEW = 'Pebble Pay';
       const pw = [0.5, 0.3, 0.2];
@@ -108,8 +108,8 @@
         reporter: 'sam',
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (+${pct(up)} vs 7-day average). Orders: ${num(byDay[D].orders)}, normal. All jobs: SUCCESS.` },
-          { who: 'sam', text: `REVENUE ${times}?? ${creator} posted about us yesterday. i’m literally shaking rn 🚀` },
-          { who: 'maya', text: `Same number of orders, ${times} the money. Before I say this out loud to anyone: what happened? One number, one sentence.` },
+          { who: 'sam', text: v([`REVENUE ${times}?? ${creator} posted about us yesterday. i’m literally shaking rn 🚀`, `${creator} effect is REAL. ${times} revenue. i’m buying a ring light`, `we’re basically a unicorn now right. ${times}. i did the maths twice`]) },
+          { who: 'maya', text: v([`Same number of orders, ${times} the money. Before I say this out loud to anyone: what happened? One number, one sentence.`, `Same orders, ${times} the money. Either we’re geniuses or something is very wrong. I know which one I’d bet on.`, `I’m not telling the board we had a ${times} day until someone shows me where the money came from.`, `Sam is celebrating. I’m suspicious. One of us is right. Go find out which.`]) },
         ],
         tables, cards,
         chain: ['aov', 'big', 'hooks', 'integrations'],
@@ -117,7 +117,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: `So a pilot with a few dozen payments nearly became our best quarter. Divide ${NEW} by 100, and nothing goes live without a test payment next time. Thank you.` },
+        closing: { who: 'maya', text: v([`So a pilot with a few dozen payments nearly became our best quarter. Divide ${NEW} by 100, and nothing goes live without a test payment next time. Thank you.`, `So ${NEW} speaks cents and we heard dollars. Divide by 100, re-run the day, and test every new provider with one known payment. Thanks.`, `Our best day ever was a decimal point. Fix ${NEW}’s amounts, and Sam can return the ring light. Thank you.`]) },
         lesson: {
           name: 'Unit mismatch',
           what: 'Two systems agreed on the field name (amount) but not its unit. One sent cents, the other expected dollars. Nothing failed; the number was just 100 times too big.',
@@ -143,7 +143,7 @@
     id: 'status',
     name: 'The Quiet Rename',
     pattern: 'New status value filtered out',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const P = t.pick(PROVIDERS);
       const share = 0.32 + t.r() * 0.14;
@@ -224,8 +224,8 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: `Revenue down ${pct(drop)} yesterday. Sam wants an emergency discount to fight ${rival[0][0]}. I’m not spending a cent until I know what happened. One number, one sentence.` },
-          { who: 'sam', text: `they literally launched ${rival[0][3].toLowerCase()} the day before. it’s giving sabotage` },
+          { who: 'maya', text: v([`Revenue down ${pct(drop)} yesterday. Sam wants an emergency discount to fight ${rival[0][0]}. I’m not spending a cent until I know what happened. One number, one sentence.`, `Sam wants a 20% discount by lunchtime to fight ${rival[0][0]}. Before we give away margin: did revenue really drop ${pct(drop)}?`, `I’m calling the bank at 9:30. I’d like to know whether we really lost ${pct(drop)} of yesterday’s revenue before then.`, `Revenue down ${pct(drop)}, a competitor sale, and Sam in full battle mode. Find me the real number first.`]) },
+          { who: 'sam', text: v([`they literally launched ${rival[0][3].toLowerCase()} the day before. it’s giving sabotage`, `${rival[0][0]} is stealing our customers in broad daylight. i have a counter-campaign ready. say the word`, 'i already made the discount banner. it’s very orange. can i ship it']) },
         ],
         tables, cards,
         chain: ['status_days', 'status_prov', 'model', 'changelog'],
@@ -233,7 +233,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: `So no emergency discount. We stopped counting a word, not customers. Count “succeeded” as paid and re-run the day. Thank you.` },
+        closing: { who: 'maya', text: v([`So no emergency discount. We stopped counting a word, not customers. Count “succeeded” as paid and re-run the day. Thank you.`, `So customers kept paying; the provider just said it differently. No discount. Count “succeeded” as paid and alert on new status values. Thanks.`, `One new word cost us a scary morning. Re-run the day with both statuses, and Sam, delete the orange banner. Thank you.`]) },
         lesson: {
           name: 'A new value nobody expected',
           what: 'The model filtered on a fixed list of values. A provider added a new one, and every row with it silently fell out. No error, no failed job.',
@@ -261,7 +261,7 @@
     id: 'tz',
     name: 'Who Orders at 3 a.m.?',
     pattern: 'Timezone mix-up',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const prev = days.slice(0, -1);
       const OFF = 5; // the company runs on UTC−5
       const deployAt = ts(D, t.int(6, 10), t.int(0, 59), t.int(0, 59));
@@ -331,8 +331,8 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders for ${Df}: ${num(dashD)} (−${pct(drop)} vs 7-day average). Also: unusual order volume between 00:00 and 05:00. All jobs: SUCCESS.` },
-          { who: 'maya', text: `Orders down ${pct(drop)} yesterday, and apparently half the city went shopping at 3 a.m. Those can’t both be real. What happened? One number, one sentence.` },
-          { who: 'sam', text: 'ok the 3am thing is lowkey creepy. are we being hacked' },
+          { who: 'maya', text: v([`Orders down ${pct(drop)} yesterday, and apparently half the city went shopping at 3 a.m. Those can’t both be real. What happened? One number, one sentence.`, `Our customers apparently shop at 3 a.m. now, and yesterday was down ${pct(drop)}. I don’t believe either. Explain please.`, `I’m reading the dashboard on the train and it makes no sense. Orders down ${pct(drop)}, a 3 a.m. rush. What happened?`, `Either the city has insomnia or our clock is wrong. Find out which, and tell me the real number for yesterday.`]) },
+          { who: 'sam', text: v(['ok the 3am thing is lowkey creepy. are we being hacked', '3am orders?? our customers are night owls. new campaign idea: midnight snacks', 'it was pouring yesterday. everyone stayed in. that explains it. right??']) },
         ],
         tables, cards,
         chain: ['hourly', 'night', 'versions', 'deploys'],
@@ -340,7 +340,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `How many orders did ${co.name} really take on ${Df} (local time)?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: 'So the city slept fine and our clock jumped five hours. Store UTC, report in local time, and re-run the day. Thank you.' },
+        closing: { who: 'maya', text: v(['So the city slept fine and our clock jumped five hours. Store UTC, report in local time, and re-run the day. Thank you.', 'So the orders were real, just stamped in the wrong time zone. Convert to local time before counting, and re-run the day. Thanks.', 'Nobody shops at 3 a.m. Good. Fix the time zone in the ingest service and let’s add a test for it. Thank you.']) },
         lesson: {
           name: 'Timezone mix-up',
           what: 'Old rows were in local time, new rows in UTC, in the same column, with nothing to tell them apart. Grouping by date put every evening order on the next day.',
@@ -366,7 +366,7 @@
     id: 'backfill',
     name: 'The Rewritten Week',
     pattern: 'Backfill gone wrong',
-    build(t, { D, days, co }) {
+    build(t, { D, days, co, v }) {
       const channels = ['web', 'ios', 'android'];
       const appShare = 0.4 + t.r() * 0.15;
       const share = { web: 1 - appShare, ios: appShare * (0.45 + t.r() * 0.1) }; share.android = appShare - share.ios;
@@ -431,8 +431,8 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders: 3 past days changed since yesterday (${Rf}), down ${pct(missing / sum(R.map(tot)))}. All jobs: SUCCESS.` },
-          { who: 'maya', text: `My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.` },
-          { who: 'sam', text: 'not me this time. i swear 👀' },
+          { who: 'maya', text: v([`My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.`, `Last week’s numbers changed overnight. My report already went to the board. Was I wrong, or was the dashboard changed? And by how much?`, `${midF}: my report says ${num(tot(mid))} orders, the dashboard now says ${num(cnt[mid].web)}. Past days don’t change by themselves. Who changed them?`, `I hate it when history changes. Three past days look different this morning. Tell me what happened and how many orders went missing.`]) },
+          { who: 'sam', text: v(['not me this time. i swear 👀', 'i didn’t touch anything. i don’t even know where the backfill button is. is there a button', 'the new dark mode is cute though. unrelated. probably']) },
         ],
         tables, cards,
         chain: ['raw_vs', 'channels', 'backfill', 'dash'],
@@ -440,7 +440,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `How many orders are missing from the dashboard across ${Rf}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: 'So my report was right and the dashboard was rewritten. Re-run those three days without the filter, and no more backfills without a second pair of eyes. Thank you.' },
+        closing: { who: 'maya', text: v(['So my report was right and the dashboard was rewritten. Re-run those three days without the filter, and no more backfills without a second pair of eyes. Thank you.', 'So history was rewritten with a test filter still on. Re-run those days properly, and backfills need a review from now on. Thanks.', 'Good: my report stands. Restore the three days, and let’s compare row counts before and after every backfill. Thank you.']) },
         lesson: {
           name: 'Backfill gone wrong',
           what: 'A manual re-run overwrote good history with partial data. It reported SUCCESS because it did exactly what it was told, including a filter left over from testing.',

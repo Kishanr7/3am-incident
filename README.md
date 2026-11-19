@@ -12,7 +12,7 @@
 | **Practice library** | 100 cases: 40 easy, 35 medium, 25 hard. Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
-Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are seven patterns:
+Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are eleven patterns: seven where a dashboard number is wrong, and four production incidents.
 
 | Case type | The failure |
 | --- | --- |
@@ -23,8 +23,14 @@ Every case is a real failure pattern, with a short lesson at the end: what happe
 | The Quiet Rename | A provider says "succeeded" instead of "paid"; the model only counts "paid" |
 | Who Orders at 3 a.m.? | A new ingest service stamps UTC; evening orders move to the next day |
 | The Rewritten Week | A backfill with a test filter left in overwrote three past days |
+| The Missing WHERE | A hand-run `UPDATE` meant for one product had no `WHERE`; every price became $0.99 |
+| The Double Send | An email job timed out and the retry started from batch 1, so early batches got it twice |
+| The Wrong Goodbye | A clean-up job turned a missing login into 1970 and deleted active app users |
+| The Expensive Refresh | A new 5-minute dashboard tile filters on `DATE(event_time)`, so every refresh scans the whole table |
 
-Daily #1–#7 used the first three types and are kept exactly as published. From Daily #8, days cycle through all seven, and the practice library covers every type at every difficulty.
+Daily #1–#7 used the first three types and are kept exactly as published, dialogue included. Daily #8–#11 cycled through the first seven. From Daily #12 (20 Nov 2026), days cycle through all eleven, with the production incidents mixed in. The practice library stays on the first seven types, so saved progress keeps pointing at the same cases.
+
+Each case picks one of several versions of its opening, reactions and closing, so a type reads differently each time it comes round. Cast: Maya (CFO), Sam (growth), Nia (support lead), Theo (CRM and email), Byte, Old Gus and The Vendor.
 
 **Case notes** (📝 in the bottom bar): a drawer, closed by default, for keeping track. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
 

@@ -71,7 +71,7 @@
     deckInfo = TAI.TEMPLATES.map((tpl) => { const c = TAI.caseFor(TAI.EPOCH, { tpl, salt: 'deck' }); return { id: tpl.id, name: c.lesson.name, what: c.lesson.what, spot: c.lesson.spot }; });
     return deckInfo;
   }
-  const PATTERN_ICON = { late: '⏰', fanout: '🪞', drift: '🧬', units: '💯', status: '🏷️', tz: '🌍', backfill: '♻️' };
+  const PATTERN_ICON = { late: '⏰', fanout: '🪞', drift: '🧬', units: '💯', status: '🏷️', tz: '🌍', backfill: '♻️', nowhere: '✂️', email: '📨', purge: '🗑️', bill: '💸' };
   function patternCounts() {
     const counts = {}; const all = TAI.store.all();
     for (const k of Object.keys(all)) {
@@ -135,7 +135,7 @@
       const st2 = r && r.solved ? 'solved' : r && r.timeline.length ? 'started' : '';
       lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}, ${esc(pm.tpl.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
     }
-    const cast = ['maya', 'sam', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
+    const cast = ['maya', 'sam', 'nia', 'theo', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
 
     app.innerHTML = `
       <div class="wrap">

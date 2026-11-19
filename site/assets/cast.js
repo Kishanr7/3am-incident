@@ -107,9 +107,45 @@
 
   const alert = svg((id) => `<circle cx="48" cy="48" r="48" fill="#34403f"/><path d="M48 22a15 15 0 0 0-15 15v12l-6 10h42l-6-10V37a15 15 0 0 0-15-15z" fill="#e8c46a"/><circle cx="48" cy="66" r="5" fill="#e8c46a"/><path d="M37 37a11 11 0 0 1 8-9" stroke="#f6e3ad" stroke-width="2" fill="none" stroke-linecap="round"/>`);
 
+  // Nia: support lead. Headset, braids, calm but tired.
+  const nia = svg((id) => bg(id, '#ece4f1', '#d3c4de') + skin(id, '#a8714f', '#7d4f33') +
+    '<path d="M25 56c-3-22 7-36 23-36s26 14 23 36c-1 8-3 14-5 18H30c-2-4-4-10-5-18z" fill="#1f1512"/>' +
+    '<path d="M27 58v24M31 60v26M65 60v26M69 58v24" stroke="#2b1d18" stroke-width="3.2" stroke-linecap="round"/>' +
+    `<defs><linearGradient id="${id}sw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f8f86"/><stop offset="1" stop-color="#467069"/></linearGradient></defs>` +
+    `<path d="M15 96c2-15 12-24 24-26h18c12 2 22 11 24 26z" fill="url(#${id}sw)"/><path d="M40 70q8 6 16 0" stroke="#3a5f59" stroke-width="2" fill="none"/>` +
+    `<path d="M42 60h12v11c-3 3-9 3-12 0z" fill="url(#${id}sk)"/>` +
+    `<ellipse cx="48" cy="47" rx="14.5" ry="17" fill="url(#${id}sk)"/>` +
+    '<path d="M33 42c1-11 7-17 15-17s14 6 15 16c-5-5-10-7-15-7s-11 3-15 8z" fill="#2b1d18"/>' +
+    '<path d="M38.5 40q3.5-1.6 7 0M50.5 40q3.5-1.6 7 0" stroke="#1a110e" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+    eye(42, 45.5, '#3b2418') + eye(54, 45.5, '#3b2418') +
+    '<path d="M48 48.5v4.5l-1.5 1" stroke="#6a4129" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+    '<path d="M43.5 57.8q4.5 1.8 9 0" stroke="#5e2a22" stroke-width="1.7" fill="none" stroke-linecap="round"/>' +
+    // headset
+    '<path d="M31 46c0-12 7-20 17-20s17 8 17 20" stroke="#2d3436" stroke-width="2.6" fill="none"/><rect x="28" y="42" width="6" height="10" rx="3" fill="#2d3436"/><rect x="62" y="42" width="6" height="10" rx="3" fill="#2d3436"/><path d="M31 52q1 8 9 9" stroke="#2d3436" stroke-width="1.8" fill="none"/><circle cx="41" cy="61" r="1.8" fill="#2d3436"/>');
+
+  // Theo: CRM and email lead. Beanie, round glasses, a coffee.
+  const theo = svg((id) => bg(id, '#f3e6dc', '#e3c9b6') + skin(id, '#f0cfb7', '#d4a688') +
+    `<defs><linearGradient id="${id}sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5d8c"/><stop offset="1" stop-color="#36466e"/></linearGradient></defs>` +
+    `<path d="M15 96c2-15 12-24 24-26h18c12 2 22 11 24 26z" fill="url(#${id}sh)"/><path d="M42 70l6 8 6-8" stroke="#f3efe7" stroke-width="2" fill="none"/>` +
+    `<path d="M42 60h12v11c-3 3-9 3-12 0z" fill="url(#${id}sk)"/>` +
+    `<ellipse cx="48" cy="48" rx="14.5" ry="17" fill="url(#${id}sk)"/>` +
+    '<ellipse cx="33.8" cy="49" rx="2.4" ry="3.6" fill="#d9a587"/><ellipse cx="62.2" cy="49" rx="2.4" ry="3.6" fill="#d9a587"/>' +
+    '<path d="M35 56q2 10 13 11q11-1 13-11q-2 5-13 6q-11-1-13-6z" fill="#9a6a45" opacity=".85"/>' +
+    // beanie
+    '<path d="M31 40c0-12 8-19 17-19s17 7 17 19z" fill="#c4573f"/><rect x="30" y="37" width="36" height="6" rx="3" fill="#a9452f"/><circle cx="48" cy="20" r="3.2" fill="#e9c6a8"/>' +
+    '<path d="M38.5 44.5q3.5-1.8 7 0M50.5 44.5q3.5-1.8 7 0" stroke="#6b4a33" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
+    eye(42, 48.5, '#4f6b48') + eye(54, 48.5, '#4f6b48') +
+    '<circle cx="42" cy="48.5" r="5" fill="none" stroke="#2a2522" stroke-width="1.3"/><circle cx="54" cy="48.5" r="5" fill="none" stroke="#2a2522" stroke-width="1.3"/><path d="M47 48.2h2" stroke="#2a2522" stroke-width="1.2"/>' +
+    '<path d="M48 51.5v4l-1.4 1" stroke="#b07c5a" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+    '<path d="M44 59.5q4 1.4 8-.6" stroke="#8a3f33" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+    // coffee cup
+    '<rect x="64" y="70" width="11" height="14" rx="2" fill="#f4efe7"/><rect x="64" y="74" width="11" height="4" fill="#c4573f"/><path d="M75 74q4 0 4 4t-4 4" stroke="#f4efe7" stroke-width="1.8" fill="none"/>');
+
   const C = {
-    maya: { name: 'Maya', role: 'CFO', draw: maya, blurb: 'Sharp, impatient, fair. Wants one number and one sentence.' },
+    maya: { name: 'Maya', role: 'CFO', draw: maya, blurb: 'Sharp, impatient, fair. Wants the real number before the 9:00 meeting.' },
     sam: { name: 'Sam', role: 'Growth lead', draw: sam, blurb: 'Panics first, apologises later. Owns every campaign.' },
+    nia: { name: 'Nia', role: 'Support lead', draw: nia, blurb: 'First to hear when something breaks, because customers tell her. Loudly.' },
+    theo: { name: 'Theo', role: 'CRM & email lead', draw: theo, blurb: 'Writes every subject line nine times. Lives in the send schedule.' },
     byte: { name: 'Byte', role: 'On-call cat', draw: byte, blurb: 'Walks across your keyboard when you’re stuck. Usually right.' },
     gus: { name: 'Old Gus', role: 'Legacy cron job', draw: gus, blurb: 'Nobody knows what he does. Everything breaks without him.' },
     vendor: { name: 'The Vendor', role: 'Data supplier', draw: vendor, blurb: 'Never late, according to the vendor. Always “investigating”.' },
