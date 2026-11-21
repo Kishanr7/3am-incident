@@ -32,11 +32,11 @@ Daily #1–#7 used the first three types and are kept exactly as published, dial
 
 Each case picks one of several versions of its opening, reactions and closing, so a type reads differently each time it comes round. Cast: Maya (CFO), Sam (growth), Nia (support lead), Theo (CRM and email), Byte, Old Gus and The Vendor.
 
-**Case notes** (📝 in the bottom bar): a drawer, closed by default, for keeping track. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
+**Case notes** (📝 in the bottom bar): a panel, closed by default, for keeping track. It can be minimized to its title bar (–). On screens 900 px and wider it can be dragged anywhere by its title bar or the ⠿ handle (arrow keys work too) and resized; the position is remembered. On phones the minimized bar sits just above the bottom bar. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
 
 **Difficulty by weekday** (dailies from 17 Nov 2026): Mon–Tue easy (pick from options, no SQL needed), Wed–Thu and Sun medium (type the real number; finish a fill-in-the-blank query), Fri–Sat hard (two checks missing; write your own SQL). After two wrong numbers Byte shows the full query. **Bonus ⭐**: write a query that returns the real number.
 
-**Beat my time**: the shared result links to the same case with your finish time; your friend sees it and who won. **Streak protection**: Byte covers one missed day in any 7. **Pattern deck**: one card per failure pattern, unlocked by solving that type (★ at 1, 3, 7 solves).
+**Beat my time**: the shared result links to the same case with your finish time; your friend sees it and who won. **Streak protection**: Byte covers one missed day in any 7, automatically; the covered day shows a 🐾 on "This week" and the streak button, with a line saying when the next cover is ready. Solving a missed day later doesn't count for the streak. **Pattern deck**: one card per failure pattern, unlocked by solving that type (★ at 1, 3, 7 solves).
 
 The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 

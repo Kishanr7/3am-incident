@@ -111,6 +111,12 @@
     return at >= 0 && at <= 600 && n <= 60 ? { at, n } : null;
   }
   // ---------------- home ----------------
+  // A line under "This week" when Byte covered a missed day, so a streak that skips a day makes sense.
+  function coverLine(st, days) {
+    const mine = st.covered.filter((d) => days.indexOf(d) >= 0); if (!mine.length) return '';
+    const next = st.coverReady ? 'Byte can cover one more missed day if you need it.' : `Next cover ready on ${U.fmtDay(U.addDays(st.lastCover, 7))}.`;
+    return `<p class="small cover">🐾 You missed ${mine.map(U.fmtDay).join(' and ')}, so Byte covered it and your streak kept going. Byte covers one missed day in any 7. ${next}</p>`;
+  }
   function renderHome() {
     document.title = '3 a.m. Incident: a daily data mystery';
     const t = today();
@@ -121,10 +127,13 @@
     const btn = status === 'solved' ? 'See your result' : status === 'started' ? 'Continue investigating' : 'Start investigating';
     const days = []; for (let i = 6; i >= 0; i--) { const d = U.addDays(t, -i); if (d >= TAI.EPOCH) days.push(d); }
     const week = days.map((d) => {
-      const r = TAI.store.get(d); const solved = r && r.solved;
+      const r = TAI.store.get(d); const solved = r && r.solved && r.solvedOn === d;
+      const late = r && r.solved && !solved; const covered = st.covered.indexOf(d) >= 0;
       const m = TAI.meta(d);
-      return `<a class="day ${solved ? 'solved' : ''} ${d === t ? 'today' : ''}" href="#/daily/${d}" aria-label="Daily #${m.no}, ${U.fmtDay(d)}, ${m.co.name}${solved ? ', solved' : ''}">
-        <span>${U.fmtDay(d).slice(0, 3)}</span><b>#${m.no}</b><span class="st">${solved ? '✓' : r && r.timeline.length ? '•' : '&nbsp;'}</span></a>`;
+      const mark = solved ? '✓' : covered ? '🐾' : late ? '✓' : r && r.timeline.length ? '•' : '&nbsp;';
+      const note = solved ? ', solved' : covered ? ', missed, covered by Byte so your streak continued' : late ? ', solved later (does not count for the streak)' : '';
+      return `<a class="day ${solved ? 'solved' : ''} ${covered ? 'covered' : ''} ${late ? 'late' : ''} ${d === t ? 'today' : ''}" href="#/daily/${d}" aria-label="Daily #${m.no}, ${U.fmtDay(d)}, ${m.co.name}${note}"${covered ? ' title="Missed, but Byte covered it: your streak kept going"' : ''}>
+        <span>${U.fmtDay(d).slice(0, 3)}</span><b>#${m.no}</b><span class="st">${mark}</span></a>`;
     }).join('');
     const lvl = TAI.LEVELS[openLevel] ? openLevel : ''; // folded on every visit until a level is tapped
     const done = { easy: 0, medium: 0, hard: 0 };
@@ -142,7 +151,7 @@
         <div class="top">
           <a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a>
           <button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button>
-          <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}">🔥 ${st.current}</button>
+          <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}${st.covered.length ? ', including ' + st.covered.length + ' missed ' + (st.covered.length === 1 ? 'day' : 'days') + ' covered by Byte' : ''}"${st.covered.length ? ` title="Streak ${st.current} · Byte covered ${st.covered.map(U.fmtDay).join(', ')}"` : ''}>🔥 ${st.current}${st.covered.length ? '<span class="cov" aria-hidden="true">🐾</span>' : ''}</button>
         </div>
 
         <section class="intro" aria-label="What is this?">
@@ -168,6 +177,7 @@
 
         <h2>This week</h2>
         <nav class="week" aria-label="This week’s daily cases">${week}</nav>
+        ${coverLine(st, days)}
         <p class="small muted">Missed a day? You can still play it. Only today’s case adds to your streak.</p>
         ${installCard('home')}
 
@@ -343,13 +353,14 @@
         <a class="btn primary" href="#report" id="toReport">Report</a>
       </div></div>
       <aside class="notes" id="notes" hidden aria-labelledby="notesTitle">
-        <div class="nhead"><h2 id="notesTitle">📝 Case notes</h2><span class="small muted">free · no time cost</span><button class="pill" id="notesClose" type="button" aria-label="Close notes">✕</button></div>
+        <div class="nhead" id="notesHead"><button class="ngrip" id="notesGrip" type="button" aria-label="Move notes: drag, or use the arrow keys">⠿</button><h2 id="notesTitle">📝 Case notes</h2><span class="small muted nfree">free · no time cost</span><button class="pill" id="notesMin" type="button" aria-label="Minimize notes" aria-expanded="true">–</button><button class="pill" id="notesClose" type="button" aria-label="Close notes">✕</button></div>
         <div class="nbody" id="notesBody"></div>
       </aside>`;
 
     const feed = document.getElementById('feed');
     feed.innerHTML = rec.timeline.map(entryHtml).join('');
     renderPicks(); renderReport(); updateBar(); updateNotesBtn();
+    if (lsGet(NOTES_MIN)) setNotesMin(true);
     document.getElementById('runOwn').onclick = runOwn;
     document.getElementById('ownSql').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runOwn(); } });
     document.getElementById('hintBtn').onclick = hint;
@@ -472,13 +483,71 @@
   function setNotesOpen(open) {
     const p = document.getElementById('notes'), b = document.getElementById('notesBtn'); if (!p) return;
     p.hidden = !open; b.setAttribute('aria-expanded', String(open));
-    if (open) { renderNotes(); document.getElementById('notesClose').focus(); } else b.focus({ preventScroll: true });
+    if (open) { renderNotes(); placeNotes(); document.getElementById(p.classList.contains('min') ? 'notesMin' : 'notesClose').focus(); } else b.focus({ preventScroll: true });
   }
+  // Notes can be minimized to their title bar, and on wider screens dragged anywhere by the title bar
+  // (or moved with the arrow keys on the ⠿ handle). Position and minimized state are remembered on this device.
+  const floating = () => matchMedia('(min-width: 900px)').matches;
+  const NOTES_POS = 'tai.notesPos', NOTES_MIN = 'tai.notesMin';
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (err) { return null; } };
+  const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (err) { /* private mode */ } };
+  function setNotesMin(min) {
+    const p = document.getElementById('notes'); if (!p) return;
+    p.classList.toggle('min', min); lsSet(NOTES_MIN, min ? '1' : null);
+    const m = document.getElementById('notesMin');
+    m.textContent = min ? '▢' : '–'; m.setAttribute('aria-label', min ? 'Expand notes' : 'Minimize notes'); m.setAttribute('aria-expanded', String(!min));
+    placeNotes();
+  }
+  function moveNotesTo(x, y) {
+    const p = document.getElementById('notes'); const r = p.getBoundingClientRect();
+    const barH = (document.querySelector('.bar') || { offsetHeight: 0 }).offsetHeight;
+    const nx = Math.max(8, Math.min(x, innerWidth - r.width - 8)), ny = Math.max(8, Math.min(y, innerHeight - Math.min(r.height, 60) - barH));
+    Object.assign(p.style, { left: nx + 'px', top: ny + 'px', right: 'auto', bottom: 'auto' });
+    return [nx, ny];
+  }
+  function placeNotes() {
+    const p = document.getElementById('notes'); if (!p) return;
+    const bar = document.querySelector('.bar'); if (bar) document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
+    if (!floating()) { Object.assign(p.style, { left: '', top: '', right: '', bottom: '', width: '', height: '' }); return; }
+    let pos = null; try { pos = JSON.parse(lsGet(NOTES_POS)); } catch (err) { pos = null; }
+    if (pos && isFinite(pos.x) && isFinite(pos.y)) moveNotesTo(pos.x, pos.y);
+    else Object.assign(p.style, { left: '', top: '', right: '', bottom: '' });
+  }
+  addEventListener('resize', () => { const p = document.getElementById('notes'); if (p && !p.hidden) placeNotes(); });
+  document.addEventListener('pointerdown', (e) => {
+    const head = e.target.closest && e.target.closest('#notesHead'); if (!head || e.button > 0) return;
+    if (!floating()) {
+      // Phones: a tap on the minimized title bar opens it. iPhone Safari sends no click for taps on plain
+      // text, so this listens for the finger lifting instead.
+      if (document.getElementById('notes').classList.contains('min') && !e.target.closest('button')) head.addEventListener('pointerup', () => setNotesMin(false), { once: true });
+      return;
+    }
+    if (e.target.closest('button') && !e.target.closest('#notesGrip')) return;
+    const p = document.getElementById('notes'); const r = p.getBoundingClientRect();
+    const dx = e.clientX - r.left, dy = e.clientY - r.top; let moved = false;
+    head.setPointerCapture(e.pointerId); p.classList.add('dragging'); e.preventDefault();
+    const mv = (ev) => { moved = true; moveNotesTo(ev.clientX - dx, ev.clientY - dy); };
+    const up = () => {
+      head.removeEventListener('pointermove', mv); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up);
+      p.classList.remove('dragging');
+      if (moved) { const q = p.getBoundingClientRect(); lsSet(NOTES_POS, JSON.stringify({ x: Math.round(q.left), y: Math.round(q.top) })); }
+      else if (p.classList.contains('min') && !e.target.closest('#notesGrip')) setNotesMin(false); // a tap on a minimized title bar opens it
+    };
+    head.addEventListener('pointermove', mv); head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!e.target.closest || !e.target.closest('#notesGrip') || !floating()) return;
+    const step = e.shiftKey ? 60 : 20; const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key]; if (!d) return;
+    e.preventDefault(); const r = document.getElementById('notes').getBoundingClientRect();
+    const [x, y] = moveNotesTo(r.left + d[0], r.top + d[1]); lsSet(NOTES_POS, JSON.stringify({ x: Math.round(x), y: Math.round(y) }));
+  });
   document.addEventListener('click', (e) => {
     if (!S || !e.target.closest) return;
     const t = e.target;
-    if (t.closest('#notesBtn')) { setNotesOpen(document.getElementById('notes').hidden); return; }
+    if (t.closest('#notesBtn')) { const p = document.getElementById('notes'); if (!p.hidden && p.classList.contains('min')) { setNotesMin(false); return; } setNotesOpen(p.hidden); return; }
     if (t.closest('#notesClose')) { setNotesOpen(false); return; }
+    if (t.closest('#notesMin')) { setNotesMin(!document.getElementById('notes').classList.contains('min')); return; }
+    if (!floating() && t.closest('#notesHead') && !t.closest('button') && document.getElementById('notes').classList.contains('min')) { setNotesMin(false); return; }
     const mk = t.closest('[data-mark]');
     if (mk) { const n = notes(); const id = mk.dataset.mark; n.marks[id] = MARK_NEXT[n.marks[id] || '']; save(); renderNotes(); renderReportMarks(); const again = document.querySelector(`[data-mark="${id}"]`); if (again) again.focus(); return; }
     const pin = t.closest('[data-pin]');
@@ -488,7 +557,7 @@
     const fold = t.closest('[data-fold]');
     if (fold) { const i = Number(fold.dataset.fold); const e = S.rec.timeline[i]; if (!e) return; e.fold = !e.fold; save(); document.getElementById('e' + i).outerHTML = entryHtml(e, i); const again = document.getElementById('e' + i); again.classList.add('still'); again.focus({ preventScroll: true }); return; }
     const go = t.closest('[data-goto]');
-    if (go) { const el = document.getElementById('e' + go.dataset.goto); if (matchMedia('(max-width: 899px)').matches) setNotesOpen(false); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
+    if (go) { const el = document.getElementById('e' + go.dataset.goto); if (!floating()) setNotesMin(true); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S && !document.querySelector('dialog[open]')) { const p = document.getElementById('notes'); if (p && !p.hidden) setNotesOpen(false); } });
   // Answers ruled out in the notes look ruled out in the report too (the player can still pick them).
@@ -586,7 +655,7 @@
     const route = S.daily ? '#/daily/' + S.iso : '#/practice/' + S.practice;
     const url = /^https?:/.test(location.protocol) ? '\nBeat my time: ' + location.origin + location.pathname + route + '?vs=' + rec.solvedAt + '.' + rec.queries : '';
     return `🕒 3 a.m. Incident · ${S.label}\n${grid}\nReport ${reports} · ${clockText(rec.solvedAt)}${late ? ', late' : ', on time'}` +
-      (daily && st.current > 1 ? `\n🔥 ${st.current}-day streak` : '') + url;
+      (daily && st.current > 1 ? `\n🔥 ${st.current}-day streak${st.covered.length ? ` (🐾 ${st.covered.length} covered)` : ''}` : '') + url;
   }
 
   function renderSolved(box) {

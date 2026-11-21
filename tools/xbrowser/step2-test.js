@@ -9,7 +9,7 @@ const SETUPS = [
   ['iPhone SE', webkit, D('iPhone SE'), 'ios'],
   ['Pixel 7', chromium, D('Pixel 7'), 'android'],
 ];
-const solve = (p) => p.evaluate(() => { const c = window.__tai.state.c; for (const q of c.questions) { const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); } document.getElementById('send').click(); });
+const solve = (p) => p.evaluate(() => { const c = window.__tai.state.c; for (const q of c.questions) { const ty = document.getElementById('ans_' + q.id); if (ty) { ty.value = String(c.answerQ.value); ty.dispatchEvent(new Event('input')); continue; } const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); } document.getElementById('send').click(); });
 (async () => {
   for (const [label, eng, opts, kind] of SETUPS) {
     const bugs = []; const notes = [];

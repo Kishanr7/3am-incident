@@ -58,7 +58,7 @@ const SETUPS = [
       await tap('.npins .link');
       await p.waitForTimeout(600);
       const phone = vp.width < 900;
-      if (phone && (await p.isVisible('#notes'))) bugs.push('drawer should close after jumping to a pin on phones');
+      if (phone && !(await p.locator('#notes').evaluate((n) => n.hidden || n.classList.contains('min')))) bugs.push('notes should minimize after jumping to a pin on phones');
       if (!phone && !(await p.isVisible('#notes'))) bugs.push('drawer should stay open on desktop after jumping');
       // close with Escape or ✕
       if (await p.isVisible('#notes')) { await p.keyboard.press('Escape'); await p.waitForTimeout(100); if (await p.isVisible('#notes')) bugs.push('Escape did not close notes'); }

@@ -204,7 +204,7 @@ dialog::backdrop{background:rgba(10,18,20,.45)}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin:12px 0}
 .stats b{display:block;font-size:1.5rem}
 .stats span{font-size:.75rem;color:var(--mute)}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.88rem;z-index:20}
+.toast{position:fixed;left:50%;bottom:calc(var(--barh,64px) + 26px);pointer-events:none;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.88rem;z-index:20}
 .codein{flex:1;min-width:0;font:14px var(--mono);padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--code);color:var(--ink);min-height:44px}
 .scene{margin:0 0 10px;background:var(--surface-2);border-radius:10px;padding:7px 12px}
 .tabs{display:flex;gap:6px;margin:8px 0 10px}
@@ -317,3 +317,29 @@ button.pcard{cursor:pointer}
   .case .side .own textarea{min-height:170px}
   .notes{right:auto;left:20px}
 }
+/* ---------- notes: minimize, move, resize ---------- */
+.nhead .pill{flex:none}
+.nhead #notesMin{margin-left:auto}
+.nhead #notesMin+.pill{margin-left:0}
+.ngrip{display:none;flex:none;width:32px;height:40px;margin-left:-6px;border:0;border-radius:8px;background:none;color:var(--mute);font-size:1.1rem;cursor:grab;touch-action:none}
+.ngrip:hover{background:var(--surface-2)}
+.notes.min{max-height:none}
+.notes.min .nbody{display:none}
+.notes.min .nhead{border-bottom:0;cursor:pointer}
+@media (max-width:899px){
+  .notes.min{left:8px;right:8px;bottom:calc(var(--barh,64px) + 6px);border:1px solid var(--line);border-radius:14px;padding-bottom:0}
+  .nhead .nfree{display:none}
+}
+@media (min-width:900px){
+  .ngrip{display:inline-flex;align-items:center;justify-content:center}
+  .nhead{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .notes.dragging,.notes.dragging .nhead{cursor:grabbing}
+  .notes.dragging{opacity:.96;box-shadow:0 18px 50px rgba(10,18,20,.3)}
+  .notes{resize:both;overflow:hidden;min-width:300px;min-height:56px;max-width:calc(100vw - 16px)}
+  .notes.min{resize:none;height:auto !important;width:300px !important}
+}
+/* ---------- streak protection made visible ---------- */
+.day.covered{border:1px dashed var(--paw);background:var(--surface)}
+.day.late .st{opacity:.6}
+#statsBtn .cov{font-size:.8em;margin-left:1px}
+.cover{background:var(--surface-2);border-left:3px solid var(--paw);border-radius:0 10px 10px 0;padding:6px 12px;margin:10px 0 4px}
