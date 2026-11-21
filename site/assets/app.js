@@ -353,14 +353,13 @@
         <a class="btn primary" href="#report" id="toReport">Report</a>
       </div></div>
       <aside class="notes" id="notes" hidden aria-labelledby="notesTitle">
-        <div class="nhead" id="notesHead"><button class="ngrip" id="notesGrip" type="button" aria-label="Move notes: drag, or use the arrow keys">⠿</button><h2 id="notesTitle">📝 Case notes</h2><span class="small muted nfree">free · no time cost</span><button class="pill" id="notesMin" type="button" aria-label="Minimize notes" aria-expanded="true">–</button><button class="pill" id="notesClose" type="button" aria-label="Close notes">✕</button></div>
+        <div class="nhead" id="notesHead"><button class="ngrip" id="notesGrip" type="button" aria-label="Move notes: drag, or use the arrow keys">⠿</button><h2 id="notesTitle">📝 Case notes</h2><span class="small muted nfree">free · no time cost</span><button class="pill" id="notesMin" type="button" aria-label="Minimize notes to the Notes button" title="Minimize to the Notes button">–</button></div>
         <div class="nbody" id="notesBody"></div>
       </aside>`;
 
     const feed = document.getElementById('feed');
     feed.innerHTML = rec.timeline.map(entryHtml).join('');
     renderPicks(); renderReport(); updateBar(); updateNotesBtn();
-    if (lsGet(NOTES_MIN)) setNotesMin(true);
     document.getElementById('runOwn').onclick = runOwn;
     document.getElementById('ownSql').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runOwn(); } });
     document.getElementById('hintBtn').onclick = hint;
@@ -480,24 +479,35 @@
     box.querySelector('#notesText').addEventListener('input', (e) => { notes().text = e.target.value; save(); updateNotesBtn(); });
     updateNotesBtn();
   }
+  // Minimizing shrinks the notes into the Notes button; opening grows them back out of it, where they were.
+  function notesFly(p, b, closing) {
+    if (!p.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    const r = p.getBoundingClientRect(), t = b.getBoundingClientRect();
+    const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
+    const small = { transform: `translate(${dx}px, ${dy}px) scale(.08)`, opacity: 0 }, full = { transform: 'none', opacity: 1 };
+    return p.animate(closing ? [full, small] : [small, full], { duration: 220, easing: closing ? 'ease-in' : 'ease-out' });
+  }
   function setNotesOpen(open) {
     const p = document.getElementById('notes'), b = document.getElementById('notesBtn'); if (!p) return;
-    p.hidden = !open; b.setAttribute('aria-expanded', String(open));
-    if (open) { renderNotes(); placeNotes(); document.getElementById(p.classList.contains('min') ? 'notesMin' : 'notesClose').focus(); } else b.focus({ preventScroll: true });
+    b.setAttribute('aria-expanded', String(open));
+    if (open) {
+      if (p._fly) { p._fly.cancel(); p._fly = null; }
+      p.hidden = false; renderNotes(); placeNotes(); notesFly(p, b, false);
+      document.getElementById('notesMin').focus({ preventScroll: true });
+    } else {
+      if (p.hidden) return;
+      const a = notesFly(p, b, true); p._fly = a;
+      const done = () => { if (p._fly !== a) return; p._fly = null; p.hidden = true; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); };
+      if (a) a.onfinish = done; else done();
+      b.focus({ preventScroll: true });
+    }
   }
-  // Notes can be minimized to their title bar, and on wider screens dragged anywhere by the title bar
-  // (or moved with the arrow keys on the ⠿ handle). Position and minimized state are remembered on this device.
+  // On wider screens the notes can be dragged anywhere by the title bar (or moved with the arrow keys
+  // on the ⠿ handle) and resized. The position is remembered on this device.
   const floating = () => matchMedia('(min-width: 900px)').matches;
-  const NOTES_POS = 'tai.notesPos', NOTES_MIN = 'tai.notesMin';
+  const NOTES_POS = 'tai.notesPos';
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (err) { return null; } };
   const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (err) { /* private mode */ } };
-  function setNotesMin(min) {
-    const p = document.getElementById('notes'); if (!p) return;
-    p.classList.toggle('min', min); lsSet(NOTES_MIN, min ? '1' : null);
-    const m = document.getElementById('notesMin');
-    m.textContent = min ? '▢' : '–'; m.setAttribute('aria-label', min ? 'Expand notes' : 'Minimize notes'); m.setAttribute('aria-expanded', String(!min));
-    placeNotes();
-  }
   function moveNotesTo(x, y) {
     const p = document.getElementById('notes'); const r = p.getBoundingClientRect();
     const barH = (document.querySelector('.bar') || { offsetHeight: 0 }).offsetHeight;
@@ -516,12 +526,7 @@
   addEventListener('resize', () => { const p = document.getElementById('notes'); if (p && !p.hidden) placeNotes(); });
   document.addEventListener('pointerdown', (e) => {
     const head = e.target.closest && e.target.closest('#notesHead'); if (!head || e.button > 0) return;
-    if (!floating()) {
-      // Phones: a tap on the minimized title bar opens it. iPhone Safari sends no click for taps on plain
-      // text, so this listens for the finger lifting instead.
-      if (document.getElementById('notes').classList.contains('min') && !e.target.closest('button')) head.addEventListener('pointerup', () => setNotesMin(false), { once: true });
-      return;
-    }
+    if (!floating()) return;
     if (e.target.closest('button') && !e.target.closest('#notesGrip')) return;
     const p = document.getElementById('notes'); const r = p.getBoundingClientRect();
     const dx = e.clientX - r.left, dy = e.clientY - r.top; let moved = false;
@@ -531,7 +536,6 @@
       head.removeEventListener('pointermove', mv); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up);
       p.classList.remove('dragging');
       if (moved) { const q = p.getBoundingClientRect(); lsSet(NOTES_POS, JSON.stringify({ x: Math.round(q.left), y: Math.round(q.top) })); }
-      else if (p.classList.contains('min') && !e.target.closest('#notesGrip')) setNotesMin(false); // a tap on a minimized title bar opens it
     };
     head.addEventListener('pointermove', mv); head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
   });
@@ -544,10 +548,8 @@
   document.addEventListener('click', (e) => {
     if (!S || !e.target.closest) return;
     const t = e.target;
-    if (t.closest('#notesBtn')) { const p = document.getElementById('notes'); if (!p.hidden && p.classList.contains('min')) { setNotesMin(false); return; } setNotesOpen(p.hidden); return; }
-    if (t.closest('#notesClose')) { setNotesOpen(false); return; }
-    if (t.closest('#notesMin')) { setNotesMin(!document.getElementById('notes').classList.contains('min')); return; }
-    if (!floating() && t.closest('#notesHead') && !t.closest('button') && document.getElementById('notes').classList.contains('min')) { setNotesMin(false); return; }
+    if (t.closest('#notesBtn')) { const p = document.getElementById('notes'); setNotesOpen(p.hidden || !!p._fly); return; }
+    if (t.closest('#notesMin')) { setNotesOpen(false); return; }
     const mk = t.closest('[data-mark]');
     if (mk) { const n = notes(); const id = mk.dataset.mark; n.marks[id] = MARK_NEXT[n.marks[id] || '']; save(); renderNotes(); renderReportMarks(); const again = document.querySelector(`[data-mark="${id}"]`); if (again) again.focus(); return; }
     const pin = t.closest('[data-pin]');
@@ -557,7 +559,7 @@
     const fold = t.closest('[data-fold]');
     if (fold) { const i = Number(fold.dataset.fold); const e = S.rec.timeline[i]; if (!e) return; e.fold = !e.fold; save(); document.getElementById('e' + i).outerHTML = entryHtml(e, i); const again = document.getElementById('e' + i); again.classList.add('still'); again.focus({ preventScroll: true }); return; }
     const go = t.closest('[data-goto]');
-    if (go) { const el = document.getElementById('e' + go.dataset.goto); if (!floating()) setNotesMin(true); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
+    if (go) { const el = document.getElementById('e' + go.dataset.goto); if (!floating()) setNotesOpen(false); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S && !document.querySelector('dialog[open]')) { const p = document.getElementById('notes'); if (p && !p.hidden) setNotesOpen(false); } });
   // Answers ruled out in the notes look ruled out in the report too (the player can still pick them).

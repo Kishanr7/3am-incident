@@ -76,7 +76,7 @@ const SETUPS = [
       await tap('#notesBtn'); await sleep(150);
       const rows = await p.locator('[data-mark]').count();
       if (rows !== 4) bugs.push('notes grid rows on medium: ' + rows + ' (want 4 causes)');
-      await tap('#notesClose');
+      await tap('#notesMin'); await p.waitForTimeout(400);
       // two wrong numbers -> worked example appears
       const pickCause = () => p.evaluate(() => { const c = window.__tai.state.c; const q = c.questions[0]; const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); });
       await pickCause();

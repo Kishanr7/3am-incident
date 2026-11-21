@@ -61,15 +61,15 @@ const SETUPS = [
       if (phone && !(await p.locator('#notes').evaluate((n) => n.hidden || n.classList.contains('min')))) bugs.push('notes should minimize after jumping to a pin on phones');
       if (!phone && !(await p.isVisible('#notes'))) bugs.push('drawer should stay open on desktop after jumping');
       // close with Escape or ✕
-      if (await p.isVisible('#notes')) { await p.keyboard.press('Escape'); await p.waitForTimeout(100); if (await p.isVisible('#notes')) bugs.push('Escape did not close notes'); }
+      if (await p.isVisible('#notes')) { await p.keyboard.press('Escape'); await p.waitForTimeout(400); if (await p.isVisible('#notes')) bugs.push('Escape did not close notes'); }
       // reload: everything kept
       await p.reload(); await p.waitForSelector('#picks');
       if ((await p.textContent('#notesN')).trim() !== '3') bugs.push('badge after reload is ' + (await p.textContent('#notesN')) + ', expected 3 (1 mark, 1 pin, text)');
       if ((await p.getAttribute('#e0 .pin', 'aria-pressed')) !== 'true') bugs.push('pin lost after reload');
-      await tap('#notesBtn'); await p.waitForTimeout(150);
+      await tap('#notesBtn'); await p.waitForTimeout(400);
       if ((await p.inputValue('#notesText')) !== 'ios rows missing? 674 vs 435') bugs.push('scratchpad text lost after reload');
-      await tap('#notesClose'); await p.waitForTimeout(100);
-      if (await p.isVisible('#notes')) bugs.push('✕ did not close notes');
+      await tap('#notesMin'); await p.waitForTimeout(400);
+      if (await p.isVisible('#notes')) bugs.push('– did not minimize notes into the Notes button');
       // the report shows the ruled-out answer struck through
       const ruled = await p.locator('#report .opt.ruled').count();
       if (ruled !== 1) bugs.push('report should show 1 ruled-out answer, shows ' + ruled);
@@ -82,7 +82,7 @@ const SETUPS = [
       if (!(await p.evaluate(() => window.__tai.state.rec.solved))) bugs.push('could not solve with notes in use');
       if (await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) bugs.push('sideways scroll');
       // dark mode drawer
-      await tap('#themeBtn'); await tap('#notesBtn'); await p.waitForTimeout(150);
+      await tap('#themeBtn'); await tap('#notesBtn'); await p.waitForTimeout(400);
       await p.screenshot({ path: path.join(__dirname, 'shots', `notes-${slug}-dark.png`) });
     } catch (e) { bugs.push('STOPPED: ' + e.message.split('\n')[0]); }
     for (const e of errs) bugs.push('page error: ' + e);

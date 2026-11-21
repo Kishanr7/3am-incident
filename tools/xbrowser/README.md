@@ -23,7 +23,7 @@ node offline-test.js                               # loads the site, switches th
 node notes-test.js http://localhost:8767/site/     # case notes drawer on 6 setups
 node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, Hide/Show, wide-screen layout on 8 setups
 node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake clock: all 11 case types, new cast, 11-card deck, 8 setups
-node notesmove-test.js http://localhost:8767/site/ # notes: minimize, drag, arrow keys, remembered position, never over the bottom bar, 8 setups
+node notesmove-test.js http://localhost:8767/site/ # notes: minimize into the Notes button, reopen in place, drag, arrow keys, remembered position, 8 setups
 node streakui-test.js http://localhost:8767/site/  # a missed day covered by Byte is shown on the week, the streak button and in words, 8 setups
 ```
 

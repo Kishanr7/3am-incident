@@ -46,6 +46,7 @@
       const after = items.filter((r) => r[1] >= X);
       const loss = round2(sum(after.map((r) => r[3] * (price[r[2]] - r[4]))));
       const lossNoQty = round2(sum(after.map((r) => price[r[2]] - r[4])));
+      const maxQty = Math.max(...after.map((r) => r[3]));
       const charged = round2(sum(after.map((r) => r[3] * r[4])));
       const daily = days.map((d) => [d, byDay[d].orders, round2(byDay[d].rev)]);
       const dashRev = round2(byDay[D].rev); const avgPrev = round2(mean(prev.map((d) => byDay[d].rev)));
@@ -110,11 +111,11 @@
       const numberQ = [opt('n_true', money(loss), true)].concat(wrongN.map((w, i) => opt('n_' + i, money(w.v), false, w.why)));
       return {
         valid: drop > 0.1 && ordersUp > 0.12 && loss > 50,
-        teaser: v([`${co.name} sold more than ever yesterday and made less money than usual.`, `${co.name}: orders up ${pct(ordersUp)}, revenue down ${pct(drop)}. Pick one.`, `Every product at ${co.name} cost ${money(NEWP)} yesterday afternoon.`]),
+        teaser: v([`${co.name} sold more than ever yesterday and made less money than usual.`, `${co.name}: orders up ${pct(ordersUp)}, revenue down ${pct(drop)}. Pick one.`, `From ${X.slice(11, 16)} yesterday, every product at ${co.name} cost ${money(NEWP)}.`]),
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_sales for ${Df}: revenue ${money(dashRev)} (−${pct(drop)} vs 7-day average). Orders: ${num(byDay[D].orders)} (+${pct(ordersUp)}). All jobs: SUCCESS.` },
-          { who: 'nia', text: v([`Support here. Since lunch customers keep asking if ${money(NEWP)} is a mistake. One bought ${t.int(30, 60)} of the same thing.`, `My queue is full of “is this price real??” and three people asking for a bulk discount on top of ${money(NEWP)}.`]) },
+          { who: 'nia', text: (t.int(30, 60), v([`Support here. Since about ${X.slice(11, 13)}:00 customers keep asking if ${money(NEWP)} is a mistake. Some are buying ${maxQty} at a time.`, `My queue is full of “is this price real??” and people asking for a bulk discount on top of ${money(NEWP)}.`])) },
           { who: 'maya', text: v([`More orders and less money. Those don’t go together. Tell me what happened and what it cost us before 9.`, `I’m at the airport with bad Wi-Fi. Short version please: what happened yesterday, and how much did it cost?`, `If we accidentally ran a closing-down sale, I want to know who, when and how much. The meeting is at 9.`]) },
         ],
         tables, cards,
@@ -159,16 +160,17 @@
       const sends = [];
       const sendBatch = (start, b) => batchOf.filter((x) => x[1] === b).forEach((x) => sends.push(['', x[0], campaign, atMin(D, start + (b - 1) * per + t.int(0, per - 1), t.int(0, 59)), b]));
       for (let b = 1; b <= k; b++) sendBatch(s1, b);
-      const timeoutAt = s1 + 30; const r1 = timeoutAt + t.int(10, 20);
+      const timeoutAt = s1 + k * per + 2; const r1 = timeoutAt + t.int(10, 20); // run 1 stalls right after batch k
       for (let b = 1; b <= B; b++) sendBatch(r1, b);
       sends.sort(byTime(3)); sends.forEach((r, i) => { r[0] = 's' + (700000 + i); });
       const dup = sum(sizes.slice(0, k));
       const total = sends.length;
       const usual = days.slice(0, -1).map(() => t.int(150, 420));
-      const daily = days.map((d, i) => [d, d === D ? total + t.int(150, 400) : usual[i]]);
+      // Other emails (receipts, password resets) are counted separately, so the campaign numbers add up.
+      const daily = days.map((d, i) => [d, d === D ? total : 0, d === D ? t.int(150, 400) : usual[i]]);
       const jobs = [];
       for (const d of days.slice(-4, -1)) jobs.push([atMin(d, 9 * 60 + t.int(0, 10)), atMin(d, 9 * 60 + 12 + t.int(0, 5)), 'SUCCESS', 'Transactional digest']);
-      jobs.push([atMin(D, s1), atMin(D, timeoutAt), 'TIMEOUT', 'Stopped after 30 min (limit 30)']);
+      jobs.push([atMin(D, s1), atMin(D, timeoutAt), 'TIMEOUT', 'No reply from the mail API; worker stopped']);
       jobs.push([atMin(D, r1), atMin(D, r1 + B * per + 2), 'SUCCESS', 'Automatic retry 1 of 3']);
       const campaigns = [[campaign, 'theo', atMin(D, s1), A], [t.pick(['Spring Hello', 'Summer Sale', 'Autumn Picks']), 'theo', addDays(D, -t.int(20, 40)), t.int(1500, 3000)]];
       const feedback = days.slice(-4).map((d) => [d, d === D ? t.int(60, 140) : t.int(3, 12), d === D ? t.int(20, 60) : t.int(0, 3)]);
@@ -177,7 +179,7 @@
 
       const tables = [
         { name: 'email_sends', cols: [['send_id', 'TEXT'], ['customer_id', 'TEXT'], ['campaign', 'TEXT'], ['sent_at', 'TEXT'], ['batch', 'INTEGER']], rows: sends },
-        { name: 'daily_email', cols: [['day', 'TEXT'], ['emails_sent', 'INTEGER']], rows: daily },
+        { name: 'daily_email', cols: [['day', 'TEXT'], ['campaign_emails', 'INTEGER'], ['other_emails', 'INTEGER']], rows: daily },
         { name: 'job_runs', cols: [['started_at', 'TEXT'], ['ended_at', 'TEXT'], ['status', 'TEXT'], ['note', 'TEXT']], rows: jobs },
         { name: 'campaigns', cols: [['campaign', 'TEXT'], ['owner', 'TEXT'], ['scheduled_for', 'TEXT'], ['audience', 'INTEGER']], rows: campaigns },
         { name: 'email_feedback', cols: [['day', 'TEXT'], ['unsubscribes', 'INTEGER'], ['spam_reports', 'INTEGER']], rows: feedback },
@@ -185,7 +187,7 @@
       ];
       const Df = fmtDay(D);
       const cards = [
-        { id: 'dash', kind: 'Dashboard', key: true, title: 'Dashboard: emails sent per day', sql: 'SELECT day, emails_sent\nFROM daily_email\nORDER BY day;' },
+        { id: 'dash', kind: 'Dashboard', key: true, title: 'Dashboard: emails sent per day', sql: 'SELECT day, campaign_emails,\n  other_emails\nFROM daily_email\nORDER BY day;' },
         { id: 'camp', kind: 'Context', key: true, title: 'Campaigns', sql: 'SELECT campaign, scheduled_for, audience\nFROM campaigns\nORDER BY scheduled_for DESC;',
           voice: { who: 'theo', text: v(['One campaign. One audience. One send. That was the plan.', `I wrote that subject line ${t.int(4, 9)} times. People were meant to read it once.`]) } },
         { id: 'jobs', kind: 'Logs', key: true, title: `Campaign sender runs`, sql: 'SELECT started_at, ended_at, status, note\nFROM job_runs\nORDER BY started_at DESC\nLIMIT 6;',
@@ -200,7 +202,7 @@
       ];
       const cause = [
         opt('retry', `The sender timed out after batch ${k}, and the automatic retry started again from batch 1, so batches 1–${k} were sent twice.`, true),
-        opt('esp', 'The email provider delivered some messages twice.', false, 'Our own email_sends table has two separate rows for those customers, about 40 minutes apart, one from each run. We sent them twice.'),
+        opt('esp', 'The email provider delivered some messages twice.', false, `Our own email_sends table has two rows for each of those customers, one from each run (compare the send times). We sent them twice.`),
         opt('list', 'The customer list had duplicate entries.', false, 'Each batch has as many distinct customers as the campaign planned; the extra sends are the same customer_id in the same batch, sent again later.'),
         opt('two', 'Two campaigns were scheduled for the same morning.', false, `There is only one campaign on ${Df}; the other is weeks old.`),
       ];
@@ -215,9 +217,9 @@
         teaser: v([`${co.name} emailed thousands of customers twice. Theo wants to know who and why.`, `“Why did I get this twice?” ${co.name}’s inbox is on fire.`, `${co.name}’s ${campaign} email went out. Then it went out again.`]),
         reporter: 'theo',
         intro: [
-          { who: 'alert', text: `daily_email for ${Df}: ${num(daily[daily.length - 1][1])} emails sent (campaign audience: ${num(A)}). Spam reports: ${feedback[feedback.length - 1][2]}. All jobs: SUCCESS.` },
+          { who: 'alert', text: `daily_email for ${Df}: ${num(total)} ${campaign} emails sent (campaign audience: ${num(A)}). Spam reports: ${feedback[feedback.length - 1][2]}. All jobs: SUCCESS.` },
           { who: 'theo', text: v([`Morning. Half my replies to the ${campaign} email say “you sent this twice”. How many people got it twice, and how do I stop it happening again?`, `I’m drafting an apology email. Before I send one more email to anyone: how many people got ${campaign} twice?`, `Did we really email the same customers twice? I need the number for the apology and the reason for my boss.`]) },
-          { who: 'nia', text: v([`Support is drowning in “unsubscribe me” replies. Please tell me it stopped.`, `${feedback[feedback.length - 1][1]} unsubscribes since yesterday. Normal is about ten.`]) },
+          { who: 'nia', text: v([`Support is drowning in “unsubscribe me” replies. Please tell me it stopped.`, `${feedback[feedback.length - 1][1]} unsubscribes yesterday. Normal is about ${Math.round(mean(feedback.slice(0, -1).map((x) => x[1])))}.`]) },
         ],
         tables, cards,
         chain: ['batches', 'jobs', 'one', 'camp'],
@@ -239,6 +241,8 @@
           { label: 'customers with 2+ sends = batches before the timeout', sql: 'SELECT COUNT(*) FROM (SELECT customer_id FROM email_sends GROUP BY customer_id HAVING COUNT(*) > 1)', test: (r) => r[0][0] === dup },
           { label: 'nobody got it three times', sql: 'SELECT MAX(n) FROM (SELECT COUNT(*) AS n FROM email_sends GROUP BY customer_id)', test: (r) => r[0][0] === 2 },
           { label: 'every customer got it at least once', sql: 'SELECT COUNT(DISTINCT customer_id) FROM email_sends', test: (r) => r[0][0] === A },
+          { label: 'dashboard campaign emails = rows in email_sends', sql: `SELECT campaign_emails, (SELECT COUNT(*) FROM email_sends) FROM daily_email WHERE day = '${D}'`, test: (r) => r[0][0] === r[0][1] && r[0][0] === total },
+          { label: 'first run stops before the retry starts, and sends nothing after it stops', sql: "SELECT (SELECT ended_at FROM job_runs WHERE status = 'TIMEOUT'), (SELECT started_at FROM job_runs WHERE note LIKE 'Automatic retry%'), (SELECT COUNT(*) FROM email_sends WHERE sent_at > (SELECT ended_at FROM job_runs WHERE status = 'TIMEOUT') AND sent_at < (SELECT started_at FROM job_runs WHERE note LIKE 'Automatic retry%'))", test: (r) => r[0][0] < r[0][1] && r[0][2] === 0 },
         ],
       };
     },
@@ -296,14 +300,14 @@
         { id: 'sample', kind: 'Raw data', key: true, title: `A few accounts deleted on ${Df}`, sql: `SELECT user_id, last_login, signup_channel\nFROM deleted_users\nWHERE DATE(deleted_at) = '${D}'\nORDER BY user_id DESC\nLIMIT 10;` },
         { id: 'code', kind: 'Logs', key: true, title: 'Recent code changes', sql: 'SELECT merged_at, author, file, summary\nFROM code_changes\nORDER BY merged_at DESC;' },
         { id: 'seen', kind: 'Raw data', title: 'When deleted users last opened the app', sql: `SELECT DATE(s.last_seen) AS day, COUNT(*) AS users\nFROM app_last_seen s\nJOIN deleted_users d ON d.user_id = s.user_id\nGROUP BY 1\nORDER BY 1;`,
-          voice: { who: 'nia', text: v(['“Inactive”. This one used the app on Tuesday and wrote to me in capital letters today.', 'They were using the app this week. Now they don’t exist. They are not happy.']) } },
+          voice: { who: 'nia', text: v(['“Inactive”. These people used the app this week, and some of them have written to me in capital letters.', 'They were using the app this week. Now they don’t exist. They are not happy.']) } },
         { id: 'tickets', kind: 'Context', title: 'Support tickets: “cannot log in”', sql: 'SELECT day, tickets\nFROM support_tickets\nORDER BY day;' },
         { id: 'outage', kind: 'Logs', title: 'Incidents', sql: 'SELECT started_at, ended_at, title, status\nFROM incidents;',
           voice: { who: 'vendor', text: 'Sign-in was briefly degraded for some users. All accounts remain exactly as you left them.' } },
       ];
       const cause = [
         opt('null', 'A change to the clean-up job turned a missing last_login into 1970, so every app user with no web login looked inactive and was deleted.', true),
-        opt('outage', 'The identity provider outage logged people out and broke their accounts.', false, `The outage lasted about 20 minutes in the afternoon. The accounts were deleted at 02:30, by our own job, and they are in deleted_users.`),
+        opt('outage', 'The identity provider outage logged people out and broke their accounts.', false, `The outage ran from ${outage[0][0].slice(11, 16)} to ${outage[0][1].slice(11, 16)} in the afternoon. The accounts were deleted at 02:30, by our own job, and they are in deleted_users.`),
         opt('fine', 'The job worked as designed: these really were inactive accounts.', false, 'Those accounts have no web login, but app_last_seen shows they used the app in the last week.'),
         opt('onboarding', 'The new onboarding screens stopped people from signing in.', false, 'Onboarding affects new sign-ups. These accounts no longer exist: they are rows in deleted_users.'),
       ];
@@ -414,7 +418,7 @@
         opt('scan', 'A new dashboard tile refreshes every 5 minutes, and its filter wraps the date column in a function, so every refresh reads the whole events table.', true),
         opt('backfill', `${analysts[0]}’s big one-off backfill query on ${Df}.`, false, `That query ran once and cost ${money(cost(hist.find((r) => r[3] === 'q_backfill')[4]))}. The bill went up by far more than that.`),
         opt('price', 'The warehouse raised its prices.', false, `The price per TB has been ${money(RATE)} for over a year. We scanned more, we didn’t pay more per TB.`),
-        opt('growth', 'The events table grew, so every query got more expensive.', false, 'The table grew by about 2% in a week. The bill tripled.'),
+        opt('growth', 'The events table grew, so every query got more expensive.', false, `The table grew by about ${pct(sizes[1][3] / sizes[0][3] - 1)} in a week. The bill went up ${times}.`),
       ];
       const wrongN = distractors(tileCost, [
         { v: round2(dashCost - avgPrev), why: 'That’s how much more the whole day cost than usual. Other queries vary too: add up that one tile’s runs.' },
@@ -429,7 +433,7 @@
         intro: [
           { who: 'alert', text: `daily_cost for ${Df}: ${money(dashCost)} (${times} the usual ${money(avgPrev)}). Budget alert: 80% of the monthly budget used.` },
           { who: 'maya', text: v([`Our warehouse bill was ${times} normal yesterday. If that keeps up, it eats this month’s budget by Friday. What is it, and what did it cost yesterday alone?`, `The cloud bill just emailed me, which it never does. ${money(dashCost)} in one day. Who, what, how much?`, `Before I approve any more “real-time” anything: why did yesterday cost ${times} as much as usual?`]) },
-          { who: 'sam', text: v(['not me. i only made a tiny dashboard tile', 'is the cloud just… more expensive on Wednesdays??']) },
+          { who: 'sam', text: v(['not me. i only made a tiny dashboard tile', `is the cloud just… more expensive on ${['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'][new Date(D + 'T12:00:00').getDay()]}??`]) },
         ],
         tables, cards,
         chain: ['top', 'tiles', 'sql', 'users'],

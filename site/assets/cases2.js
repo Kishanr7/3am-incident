@@ -117,7 +117,7 @@
           { id: 'cause', prompt: 'What happened?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
-        closing: { who: 'maya', text: v([`So a pilot with a few dozen payments nearly became our best quarter. Divide ${NEW} by 100, and nothing goes live without a test payment next time. Thank you.`, `So ${NEW} speaks cents and we heard dollars. Divide by 100, re-run the day, and test every new provider with one known payment. Thanks.`, `Our best day ever was a decimal point. Fix ${NEW}’s amounts, and Sam can return the ring light. Thank you.`]) },
+        closing: { who: 'maya', text: v([`So a pilot with ${pebbleN} payments nearly became our best quarter. Divide ${NEW} by 100, and nothing goes live without a test payment next time. Thank you.`, `So ${NEW} speaks cents and we heard dollars. Divide by 100, re-run the day, and test every new provider with one known payment. Thanks.`, `Our best day ever was a decimal point. Fix ${NEW}’s amounts, and Sam can return the ring light. Thank you.`]) },
         lesson: {
           name: 'Unit mismatch',
           what: 'Two systems agreed on the field name (amount) but not its unit. One sent cents, the other expected dollars. Nothing failed; the number was just 100 times too big.',
@@ -416,7 +416,7 @@
       const cause = [
         opt('backfill', `A backfill yesterday rewrote ${Rf} with a test filter (web orders only) left in, so those days lost their app orders.`, true),
         opt('dedupe', 'The old numbers were double counted, and a fix brought them down to the truth.', false, `The raw orders table has every app order once. Nothing was double counted; app orders were dropped from three days.`),
-        opt('privacy', 'Privacy deletion requests removed those customers’ orders.', false, 'Deletions removed a handful of orders this week. The gap is in the thousands.'),
+        opt('privacy', 'Privacy deletion requests removed those customers’ orders.', false, `Deletion requests removed ${sum(deletions.map((x) => x[2]))} orders in the last four days. The gap is ${num(missing)}.`),
         opt('ui', 'The dashboard redesign broke the chart, so it shows the wrong values.', false, 'The table under the chart changed: its updated_at shows those rows were rewritten yesterday.'),
       ];
       const wrongN = distractors(missing, [

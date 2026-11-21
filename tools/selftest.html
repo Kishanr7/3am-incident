@@ -73,6 +73,36 @@
         if (leak) fail('check "' + card.title + '" shows the real number');
       }
     }
+    // story integrity: every number the story states (teaser, alert, dialogue, closing, wrong-answer notes)
+    // must be something a player can find in the data: a value in a table or check, or a total or average
+    // of a column a check shows. Day-of-month numbers in dates and a few fixed constants are skipped.
+    {
+      const ev = []; const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+      for (const tb of c.tables) for (const row of tb.rows) for (const x of row) if (typeof x === 'number') ev.push(x);
+      // rows per day in any table (what COUNT(*) ... GROUP BY day would give)
+      for (const tb of c.tables) { const per = {}; for (const row of tb.rows) { const d = row.find((x) => typeof x === 'string' && /^\d{4}-\d\d-\d\d/.test(x)); if (d) per[d.slice(0, 10)] = (per[d.slice(0, 10)] || 0) + 1; } ev.push(...Object.values(per)); }
+      // rows per value of any text column (what COUNT(*) ... GROUP BY that column would give)
+      for (const tb of c.tables) tb.cols.forEach((_, j) => { const per = {}; for (const row of tb.rows) if (typeof row[j] === 'string') per[row[j]] = (per[row[j]] || 0) + 1; const v = Object.values(per); if (v.length > 1 && v.length < 40) ev.push(...v); });
+      for (const card of c.cards) {
+        let r; try { r = TAI.query(db, card.sql, 500); } catch (e) { continue; }
+        for (const row of r.values) for (const x of row) if (typeof x === 'number') ev.push(x);
+        r.columns.forEach((_, j) => { const col = r.values.map((row) => row[j]).filter((x) => typeof x === 'number'); if (col.length > 1) ev.push(avg(col), avg(col.slice(0, -1)), avg(col.slice(0, -2)), col.reduce((s, x) => s + x, 0)); });
+      }
+      const CONST = [100, 1970, 4599, 45.99, 47];
+      const MON = /^\s(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/;
+      const texts = [['teaser', c.teaser], ['closing', c.closing.text]].concat(c.intro.map((m) => ['intro ' + m.who, m.text]), c.cards.filter((x) => x.voice).map((x) => ['voice ' + x.id, x.voice.text]), c.questions.filter((q) => q.id !== 'number').flatMap((q) => q.options.map((o) => ['option ' + o.id, o.text + ' ' + o.why])));
+      for (const [where, text] of texts) {
+        const re = /(\$?)(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?/g; let m;
+        while ((m = re.exec(text))) {
+          const after = text.slice(m.index + m[0].length); const before = text.slice(Math.max(0, m.index - 1), m.index);
+          if (/^[%×:\-\d]/.test(after) || /[:#\-_.a-z]/i.test(before) || MON.test(after)) continue;
+          const v = parseFloat((m[2] + (m[3] || '')).replace(/,/g, ''));
+          if ((v < 10 && !m[1]) || CONST.includes(v)) continue;
+          const tol = Number.isInteger(v) && !m[1] ? 0.5 : 0.011;
+          if (!ev.some((x) => Math.abs(x - v) <= tol) && Math.abs(v - c.answerQ.value) >= 1) fail(`story number ${m[0]} (${where}) is not in the data`);
+        }
+      }
+    }
     // determinism
     const c2 = job(); if (c2.teaser !== c.teaser || c2.questions[0].options[0].id !== c.questions[0].options[0].id) fail('not deterministic');
     db.close(); cases++;
