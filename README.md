@@ -98,3 +98,7 @@ The palette was chosen for calm, not drama. Research on colour and emotion finds
 | 2026-11-15 | Author | Case 1: Q1–Q3 right first time; stuck on Q4 ("yesterday" was ambiguous). Solved after the fix | Q4 names the date; specific feedback for common wrong answers; fourth hint |
 
 All rights reserved until a licence is chosen at public release.
+
+## Licence
+
+MIT: see [LICENSE](LICENSE). Fonts (Fraunces, Lato) are SIL Open Font License; sql.js is MIT.
