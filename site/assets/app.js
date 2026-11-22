@@ -199,8 +199,8 @@
           <div class="cast">${cast}</div>
         </details>
 
-        <p class="pilot">Test version. The companies and data are made up, and your progress stays on this device. Please don’t share the link yet.</p>
-        <footer>Made by Kishan · no account, no tracking</footer>
+        <p class="pilot">The companies and data are made up, and your progress stays on this device.</p>
+        <footer>Made by Kishan · no account, no tracking · <a href="https://github.com/Kishanr7/3am-incident" rel="noopener">Code on GitHub</a></footer>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
     startCountdown();

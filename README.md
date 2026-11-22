@@ -2,7 +2,9 @@
 
 **A daily data mystery.** The dashboard says something terrible happened overnight. Every job says SUCCESS. Find out what really happened before the 9:00 meeting.
 
-> Status: **private pilot**, unlisted (`noindex`). Not yet tested by players outside the author.
+**Play it:** https://3am-incident-kish.netlify.app (free, no sign-up, works offline once loaded; install it on your phone from the browser menu).
+
+> Status: public since 22 Nov 2026. Early days: a handful of players so far. Feedback and case ideas welcome as GitHub issues.
 
 ## What's in it
 
