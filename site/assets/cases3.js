@@ -88,7 +88,7 @@
           voice: { who: 'gus', text: v(['Orders up, money down. I just add it up. Interpreting is above my pay grade, which is zero.', 'I report what’s in the table. The table has been through a lot today.']) } },
         { id: 'prices', kind: 'Raw data', key: true, title: 'Product prices right now', sql: 'SELECT price, COUNT(*) AS products\nFROM products\nGROUP BY price\nORDER BY products DESC;' },
         { id: 'audit', kind: 'Logs', key: true, title: 'Recent price changes', sql: 'SELECT changed_at, changed_by,\n  COUNT(*) AS products\nFROM price_audit\nGROUP BY changed_at, changed_by\nORDER BY changed_at DESC\nLIMIT 6;' },
-        { id: 'qlog', kind: 'Logs', key: true, title: `Statements run by hand in production, ${Df}`, sql: `SELECT ran_at, user_name, statement, rows_affected\nFROM query_log\nWHERE DATE(ran_at) = '${D}'\nORDER BY ran_at;` },
+        { id: 'qlog', kind: 'Logs', key: true, title: `Production query log, ${Df}`, sql: `SELECT ran_at, user_name, statement, rows_affected\nFROM query_log\nWHERE DATE(ran_at) = '${D}'\nORDER BY ran_at;` },
         { id: 'ticket', kind: 'Context', key: true, title: 'Ops tickets', sql: 'SELECT ticket, opened_at, title, assignee\nFROM tickets\nORDER BY opened_at DESC;',
           voice: { who: 'nia', text: v([`One clearance item. That was the whole ticket.`, 'I asked for one price. I got a closing-down sale.']) } },
         { id: 'deploys', kind: 'Logs', title: 'Deploys', sql: 'SELECT deployed_at, service, author, note\nFROM deploys\nORDER BY deployed_at DESC;',

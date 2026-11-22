@@ -149,13 +149,14 @@
     const cast = ['maya', 'sam', 'nia', 'theo', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
 
     app.innerHTML = `
-      <div class="wrap">
+      <div class="wrap home">
         <div class="top">
           <a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a>
           <button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button>
           <button class="pill" id="statsBtn" aria-label="Your stats. Current streak ${st.current}${st.covered.length ? ', including ' + st.covered.length + ' missed ' + (st.covered.length === 1 ? 'day' : 'days') + ' covered by Byte' : ''}"${st.covered.length ? ` title="Streak ${st.current} · Byte covered ${st.covered.map(U.fmtDay).join(', ')}"` : ''}>🔥 ${st.current}${st.covered.length ? '<span class="cov" aria-hidden="true">🐾</span>' : ''}</button>
         </div>
 
+        <div class="hmain">
         <section class="intro" aria-label="What is this?">
           <p class="lead">A 5-minute daily puzzle for people who work with data.</p>
           <p>A number on the dashboard looks wrong. Check the data, find out why, and tell your boss before the 9:00 meeting.</p>
@@ -172,7 +173,7 @@
           <div class="kicker">Today’s case · ${U.fmtDay(t)}</div>
           <h1 id="todayTitle">${esc(c.teaser)}</h1>
           <div class="who">${av(c.reporter)}<span class="small muted">${esc(CAST[c.reporter].name)} wants to know why.</span></div>
-          ${c.level ? `<p class="lvl lvl-${c.level}">${LEVEL_HINT[c.level]}</p>` : ''}
+          ${c.level ? `<p class="lvl lvl-${c.level}">${c.level === 'easy' && c.fillIn ? 'Easy · about 5 min · pick the answers, fill in one value' : LEVEL_HINT[c.level]}</p>` : ''}
           <a class="btn primary" href="#/daily/${t}">${btn}</a>
           ${status === 'solved' ? nextDailyHtml() : ''}
         </section>
@@ -183,6 +184,8 @@
         <p class="small muted">Missed a day? You can still play it. Only today’s case adds to your streak.</p>
         ${installCard('home')}
 
+        </div>
+        <div class="hside">
         <h2 id="practice">Practice</h2>
         <p class="small muted" style="margin-top:-4px">${TAI.PRACTICE_COUNT} more cases. Hard ones make you write a little SQL.</p>
         <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.levelCases(l).length}</span></button>`).join('')}</div>
@@ -201,8 +204,11 @@
           <div class="cast">${cast}</div>
         </details>
 
+        </div>
+        <div class="hfoot">
         <p class="pilot">The companies and data are made up, and your progress stays on this device.</p>
         <footer>Made by Kishan · no account, no tracking · <a href="https://github.com/Kishanr7/3am-incident" rel="noopener">Code on GitHub</a></footer>
+        </div>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
     startCountdown();
@@ -334,9 +340,8 @@
         <div class="chead">
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
         <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(caseTitle(c))}</h1></div>
-        ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
         ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
-        <div class="brief"><b>Your job before 9:00</b><ol><li>Find out what caused it.</li><li>${esc(numQ().prompt)}</li></ol><p class="small muted">Answer both in the <b>Report</b>. Each check you run costs 5 minutes.</p></div>
+        <div class="brief"><b>Your job before 9:00</b><ol><li>Find out what caused it.</li><li>${esc(numQ().prompt)}</li></ol><p class="small muted">Answer both in the <b>Report</b>. Each check you run costs 5 minutes.</p>${c.hardNote ? `<p class="lvlnote"><b>${esc(c.hardNote)}</b></p>` : ''}</div>
         </div>
         <div class="main">
         <div class="chat" aria-label="Incident channel">${intro}</div>
@@ -347,12 +352,12 @@
           <h2>What do you want to check?</h2>
           <div class="picks" id="picks"></div>
           <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables)</summary>${tablesHtml}</details>
-          <details class="card own" style="margin-top:10px" ${c.typed && c.level === 'medium' ? 'open' : ''}>
-            <summary>${c.typed && c.level === 'medium' ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
-            ${c.typed && c.level === 'medium' ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
+          <details class="card own" style="margin-top:10px" ${c.fillIn ? 'open' : ''}>
+            <summary>${c.fillIn ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
+            ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
             <div class="schema">${schema}</div>
             <label class="sr" for="ownSql">Your SQL</label>
-            <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.typed && c.level === 'medium' ? esc(fillInSql()) : ''}</textarea>
+            <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.fillIn ? esc(fillInSql()) : ''}</textarea>
             <div class="row" style="margin-top:8px"><button class="btn" id="runOwn">Run (Ctrl+Enter)</button><span class="small muted">SQLite. Counts as one query.</span></div>
           </details>
         </section>

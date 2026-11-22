@@ -9,7 +9,7 @@ async function engineChecks(page) {
   // Pure data checks, run inside the page.
   return page.evaluate(async () => {
     const out = { bugs: [], leaks: 0, cases: 0, levels: {} };
-    const want = { '2026-11-16': null, '2026-11-17': 'easy', '2026-11-18': 'medium', '2026-11-19': 'medium', '2026-11-20': 'hard', '2026-11-21': 'hard', '2026-11-22': 'medium', '2026-11-23': 'easy' };
+    const want = { '2026-11-16': null, '2026-11-17': 'easy', '2026-11-18': 'medium', '2026-11-19': 'medium', '2026-11-20': 'hard', '2026-11-21': 'hard', '2026-11-22': 'medium', '2026-11-23': 'easy', '2026-11-29': 'easy', '2026-12-02': 'medium', '2026-12-04': 'hard' };
     for (const [d, l] of Object.entries(want)) if (TAI.dailyLevel(d) !== l) out.bugs.push(`level for ${d}: ${TAI.dailyLevel(d)} (want ${l})`);
     const SQL = await initSqlJs({ locateFile: (f) => TAI.SQL_CDN + f });
     const jobs = [];
@@ -106,7 +106,7 @@ const SETUPS = [
       await h.goto(BASE + '#/daily/2026-11-20'); await h.waitForSelector('#picks');
       if (!/Hard/.test(await h.textContent('.case-head .kicker'))) bugs.push('Friday not hard');
       if ((await h.inputValue('#ownSql')) !== '') bugs.push('hard SQL box should start empty');
-      if (!(await h.locator('.scene b').first().textContent()).includes('Hard case')) bugs.push('no hard-case note');
+      if (!(await h.locator('.lvlnote').textContent()).includes('Hard case')) bugs.push('no hard-case note');
       await ctxH.close();
 
       // Levels v2 (from Mon 23 Nov): Wed 25 medium hides one check, Fri 27 hard hides three; the job brief lists both questions
@@ -115,7 +115,7 @@ const SETUPS = [
       for (const [d, lvl, word, hidden] of [['2026-11-25', 'Medium', 'Medium case', 1], ['2026-11-27', 'Hard', 'three of the usual', 3]]) {
         await v2.goto(BASE + '#/daily/' + d); await v2.waitForFunction((x) => window.__tai.state && window.__tai.state.iso === x && document.getElementById('picks'), d);
         if (!new RegExp(lvl).test(await v2.textContent('.case-head .kicker'))) bugs.push(d + ' not ' + lvl);
-        if (!(await v2.locator('.scene b').first().textContent()).includes(word)) bugs.push(d + ': no "' + word + '" note');
+        if (!(await v2.locator('.lvlnote').textContent()).includes(word)) bugs.push(d + ': no "' + word + '" note');
         const gone = await v2.evaluate(() => { const S = window.__tai.state; const raw = TAI.caseFor(S.iso); return raw.chain.filter((id) => !S.c.cards.some((x) => x.id === id)).length; });
         if (gone !== hidden && !(hidden === 3 && gone === 2)) bugs.push(`${d}: ${gone} checks hidden, want ${hidden}`);
         const li = await v2.locator('.brief li').allTextContents();

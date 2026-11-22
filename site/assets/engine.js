@@ -160,29 +160,38 @@
     late: { raw_src: (D) => `SELECT source, COUNT(*) AS orders\nFROM orders\nWHERE DATE(created_at) = '${D}'\nGROUP BY source\nORDER BY orders DESC;` },
     fanout: { raw_vs: (D) => `SELECT 'raw orders' AS source, COUNT(*) AS orders\nFROM orders WHERE DATE(ordered_at) = '${D}'\nUNION ALL\nSELECT 'dashboard', orders\nFROM daily_revenue WHERE day = '${D}';` },
   };
-  /* Levels, second version (dailies from LEVEL2_FROM, and every practice case): medium also hides one of the usual
-     checks, hard hides three. Earlier dailies keep the rules they were published with (v1). */
+  /* Level rules have versions, so a published daily never changes (practice always uses the newest):
+     v1 (before LEVEL2_FROM): easy = key checks + one red herring; medium = every check, type the number;
+        hard = two checks hidden.
+     v2 (from LEVEL2_FROM): medium also hides one of the usual checks, hard hides three.
+     v3 (from LEVEL3_FROM): easy no longer has a check that prints the real number; it gets the fill-in query that
+        medium has, and two red herrings; Sunday becomes easy, so a week is 3 easy, 2 medium, 2 hard. */
   TAI.LEVEL2_FROM = '2026-11-23';
-  function applyLevel(c, level, v1) {
+  TAI.LEVEL3_FROM = '2026-11-24';
+  const NEWEST = 3;
+  const fixCards = (c) => { const fix = NO_ANSWER_SQL[c.tpl.id] || {}; c.cards = c.cards.map((x) => (fix[x.id] ? Object.assign({}, x, { sql: fix[x.id](c.D), title: x.title.replace(/^Raw orders vs the dashboard/, 'Raw order count vs the dashboard') }) : x)); };
+  function applyLevel(c, level, gen) {
+    gen = gen || NEWEST;
     c.level = level;
     if (level === 'easy') {
-      const herrings = c.cards.filter((x) => !x.key);
-      c.cards = c.cards.filter((x) => x.key || x === herrings[0]);
+      const herrings = c.cards.filter((x) => !x.key).slice(0, gen >= 3 ? 2 : 1);
+      c.cards = c.cards.filter((x) => x.key || herrings.indexOf(x) >= 0);
+      if (gen >= 3) { fixCards(c); c.fillIn = true; c.hardNote = 'Easy case: pick the answers from the options. No check shows the real number by itself: finish the query on the right to find it.'; }
       return c;
     }
     c.typed = true;
-    const fix = NO_ANSWER_SQL[c.tpl.id] || {};
-    c.cards = c.cards.map((x) => (fix[x.id] ? Object.assign({}, x, { sql: fix[x.id](c.D), title: x.title.replace(/^Raw orders vs the dashboard/, 'Raw order count vs the dashboard') }) : x));
+    if (level === 'medium') c.fillIn = true;
+    fixCards(c);
     // Hard hides three checks, but always leaves one key check besides the dashboard.
-    const k = v1 ? (level === 'hard' ? 2 : 0) : (level === 'hard' ? (c.chain[3] === 'dash' ? 2 : 3) : 1);
+    const k = gen === 1 ? (level === 'hard' ? 2 : 0) : (level === 'hard' ? (c.chain[3] === 'dash' ? 2 : 3) : 1);
     if (k) {
       const drop = c.chain.slice(0, k);
       c.cards = c.cards.filter((x) => drop.indexOf(x.id) < 0);
       c.chain = c.chain.slice(k);
     }
-    if (level === 'hard') c.hardNote = v1 ? 'Hard case: two of the usual checks are missing, and you type the real number. Write your own SQL to find it.'
+    if (level === 'hard') c.hardNote = gen === 1 ? 'Hard case: two of the usual checks are missing, and you type the real number. Write your own SQL to find it.'
       : 'Hard case: three of the usual checks are missing, and you type the real number. All the tables are there: write your own SQL.';
-    else if (!v1) c.hardNote = 'Medium case: one of the usual checks is missing, and you type the real number.';
+    else if (gen > 1) c.hardNote = 'Medium case: one of the usual checks is missing, and you type the real number.';
     return c;
   }
   function practiceCase(n) {
@@ -191,12 +200,13 @@
     c.practice = n;
     return applyLevel(c, m.level);
   }
-  /* Daily difficulty follows the week (like a crossword): Mon–Tue easy, Wed–Thu and Sun medium, Fri–Sat hard.
-     Cases before RAMP_START stay exactly as they were published. */
+  /* Daily difficulty follows the week (like a crossword). From LEVEL3_FROM: Sun–Tue easy, Wed–Thu medium,
+     Fri–Sat hard. Before that Sunday was medium. Cases before RAMP_START stay exactly as they were published. */
   TAI.RAMP_START = '2026-11-17';
   const WEEK_LEVEL = ['medium', 'easy', 'easy', 'medium', 'medium', 'hard', 'hard'];
-  function dailyLevel(iso) { return iso < TAI.RAMP_START ? null : WEEK_LEVEL[dow(iso)]; }
-  function dailyCase(iso) { const c = caseFor(iso); const l = dailyLevel(iso); return l ? applyLevel(c, l, iso < TAI.LEVEL2_FROM) : c; }
+  const levelGen = (iso) => (iso < TAI.LEVEL2_FROM ? 1 : iso < TAI.LEVEL3_FROM ? 2 : 3);
+  function dailyLevel(iso) { if (iso < TAI.RAMP_START) return null; const w = dow(iso); return w === 0 && levelGen(iso) >= 3 ? 'easy' : WEEK_LEVEL[w]; }
+  function dailyCase(iso) { const c = caseFor(iso); const l = dailyLevel(iso); return l ? applyLevel(c, l, levelGen(iso)) : c; }
   // Does a typed or queried number match the real one? Counts must be exact; money within a dollar.
   function matchesAnswer(c, x) { if (!c.answerQ || typeof x !== 'number' || !isFinite(x)) return false; return c.answerQ.money ? Math.abs(x - c.answerQ.value) < 1 : Math.abs(x - c.answerQ.value) < 0.5; }
   TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase; TAI.applyLevel = applyLevel;

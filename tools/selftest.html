@@ -32,7 +32,7 @@
     if (c.level) {
       lv[c.level] = (lv[c.level] || 0) + 1;
       const keys = c.cards.filter((x) => x.key).length; const herr = c.cards.length - keys;
-      if (c.level === 'easy' && herr !== 1) fails.push('practice ' + c.practice + ': easy should have 1 herring, has ' + herr);
+      { const want = c.practice || iso >= TAI.LEVEL3_FROM ? 2 : 1; if (c.level === 'easy' && (herr > want || herr < 1)) fails.push((c.practice ? 'practice ' + c.practice : iso) + ': easy should have ' + want + ' herrings, has ' + herr); }
       if (c.level === 'hard' && (keys < 2 || !c.hardNote)) fails.push('practice ' + c.practice + ': hard has ' + keys + ' key cards');
       if (c.cards.length < 3) fails.push('practice ' + c.practice + ': only ' + c.cards.length + ' cards');
       const v2 = c.practice || iso >= TAI.LEVEL2_FROM;
@@ -81,13 +81,16 @@
     else {
       try { const v = TAI.query(db, c.answerQ.sql, 5).values[0][0]; if (!TAI.matchesAnswer(c, v)) fail('answer query returns ' + v + ', want ' + c.answerQ.value); } catch (e) { fail('answer query error: ' + e.message); }
       if (c.answerQ.sql.indexOf(c.answerQ.blank) < 0) fail('answer query has no blank');
-      // medium/hard: no ready-made check may show the real number for the incident day
-      if (c.typed) for (const card of c.cards) {
+      // medium/hard, and easy from level rules v3: no ready-made check may show the real number for the incident day
+      const v3easy = c.level === 'easy' && (c.practice || iso >= TAI.LEVEL3_FROM);
+      if (c.typed || v3easy) for (const card of c.cards) {
         const r = TAI.query(db, card.sql, 200);
         // a row about another day (its first date is not the incident day) only matches by coincidence
         const leak = r.values.some((row) => { const d = row.find((x) => typeof x === 'string' && /^\d{4}-\d\d-\d\d/.test(x)); return row.some((x) => typeof x === 'number' && TAI.matchesAnswer(c, x)) && !(d && d.slice(0, 10) !== c.D); });
         if (leak) fail('check "' + card.title + '" shows the real number');
       }
+      // easy (v3) and medium get the fill-in query, which is how they find the number
+      if ((v3easy || (c.typed && c.level === 'medium')) && !c.fillIn) fail('no fill-in query for ' + c.level);
     }
     // story integrity: every number the story states (teaser, alert, dialogue, closing, wrong-answer notes)
     // must be something a player can find in the data: a value in a table or check, or a total or average
@@ -126,7 +129,7 @@
   }
   const ms = Math.round(performance.now() - t0);
   out.innerHTML = `<b class="${fails.length ? 'bad' : 'ok'}">${fails.length ? fails.length + ' FAILURES' : 'ALL PASS'}</b>\n` +
-    `cases: ${cases} incl. practice ${JSON.stringify(lv)} (${Object.entries(stats).map(([k, v]) => k + ' ' + v).join(', ')}) in ${ms} ms; largest card result ${maxRows} rows\n\n` + fails.slice(0, 60).join('\n');
+    `cases: ${cases} incl. practice ${JSON.stringify(lv)} (${Object.entries(stats).map(([k, v]) => k + ' ' + v).join(', ')}) in ${ms} ms; largest card result ${maxRows} rows\n\n` + fails.slice(0, 400).join('\n');
   window.__selftest = { cases, fails, ms };
 })();
 </script>

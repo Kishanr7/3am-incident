@@ -32,6 +32,9 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
     const slug = label.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
     try {
       await p.goto(BASE + '#/'); await p.waitForSelector('#howBtn');
+      { const hm = await p.locator('.hmain').boundingBox(), hs = await p.locator('.hside').boundingBox(), W = await p.evaluate(() => innerWidth);
+        if (W >= 960 && !(hs.x > hm.x + hm.width - 1)) bugs.push('home: practice column is not beside the case of the day');
+        if (W < 960 && !(hs.y > hm.y + hm.height - 1)) bugs.push('home: practice should sit below on narrow screens'); }
       await p.evaluate(() => TAI.store.reset());
       await p.goto(BASE + CASE); await p.waitForSelector('#ownSql', { state: 'attached' });
       const own = p.locator('details.own');
@@ -65,7 +68,7 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if (w >= 960) {
         if (!(s.x > m.x + m.width - 1)) bugs.push('checks panel is not beside the evidence');
         if (m.width < 560) bugs.push('evidence column too narrow: ' + m.width);
-        const used = s.x + s.width - m.x; if (used < Math.min(0.85 * w, 1450)) bugs.push('only ' + Math.round(used) + ' of ' + w + 'px used');
+        const used = s.x + s.width - m.x; if (used < Math.min(0.9 * w, 1140) || used > 1160) bugs.push('case page uses ' + Math.round(used) + ' of ' + w + ' px (want the 1200 px frame)');
         await p.evaluate(() => scrollTo(0, document.body.scrollHeight));
         await p.waitForTimeout(300);
         const s2 = await box('#investigate');

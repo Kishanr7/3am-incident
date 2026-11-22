@@ -305,9 +305,19 @@ button.pcard{cursor:pointer}
 .tips code{font-family:var(--mono);font-size:.8rem;background:var(--code);border-radius:5px;padding:1px 4px}
 @media (max-width:400px){.entry .fold.hide{position:static;float:right;margin:0 44px 4px 8px}.entry:has(.fold.hide)>.kind{padding-right:0}.entry.folded .fsql{visibility:hidden}}
 /* ---------- wide screens: evidence on the left, checks and your SQL beside it ---------- */
+/* One page frame for every screen from 960 px: a main column and a 360 px side column, at most 1200 px wide.
+   Home: today's case and the week on the left, practice and the pattern deck on the right.
+   Case: evidence on the left, checks and your SQL on the right. */
+:root{--page:1200px;--side:clamp(320px,30vw,360px);--gap:clamp(24px,2.5vw,40px)}
 @media (min-width:960px){
-  .wrap.case,.bar .wrap{max-width:1560px}
-  .wrap.case{display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,30vw,460px);column-gap:clamp(20px,2vw,32px);grid-template-areas:"head head" "main side" "report side";align-items:start}
+  .wrap.home{max-width:var(--page);padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) var(--side);column-gap:var(--gap);grid-template-areas:"top top" "main side" "foot foot";align-items:start}
+  .home>.top{grid-area:top}
+  .home>.hmain{grid-area:main;min-width:0}
+  .home>.hside{grid-area:side;min-width:0}
+  .home>.hside>h2:first-child{margin-top:8px}
+  .home>.hfoot{grid-area:foot}
+  .wrap.case,.bar .wrap{max-width:var(--page);padding-left:24px;padding-right:24px}
+  .wrap.case{display:grid;grid-template-columns:minmax(0,1fr) var(--side);column-gap:var(--gap);grid-template-areas:"head head" "main side" "report side";align-items:start}
   .case .chead{grid-area:head}
   .case .main{grid-area:main;min-width:0}
   .case .report{grid-area:report;min-width:0}
@@ -363,3 +373,4 @@ button.pcard{cursor:pointer}
 .tlist dt code{font-weight:700}
 .tlist dd{margin:0;font-size:.9rem}
 .tlist .cols{font-family:var(--mono);font-size:.75rem;color:var(--mute);overflow-wrap:anywhere}
+.brief .lvlnote{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line);font-size:.88rem}
