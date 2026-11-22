@@ -76,6 +76,12 @@
         { name: 'integrations', cols: [['provider', 'TEXT'], ['live_since', 'TEXT'], ['owner', 'TEXT'], ['notes', 'TEXT']], rows: integrations },
         { name: 'social_mentions', cols: [['day', 'TEXT'], ['mentions', 'INTEGER'], ['note', 'TEXT']], rows: mentions },
         { name: 'site_sessions', cols: [['day', 'TEXT'], ['sessions', 'INTEGER']], rows: sessions },
+        { name: 'pebble_docs', cols: [['field', 'TEXT'], ['type', 'TEXT'], ['description', 'TEXT']], rows: [
+          ['id', 'string', 'Unique payment id.'],
+          ['amount', 'integer', 'Amount in the smallest currency unit: cents for USD. 4599 means $45.99.'],
+          ['currency', 'string', 'Three-letter currency code, lowercase (usd).'],
+          ['status', 'string', 'paid, failed or refunded.'],
+        ] },
       ];
       const Df = fmtDay(D);
       const cards = [
@@ -85,16 +91,17 @@
         { id: 'big', kind: 'Raw data', key: true, title: `Biggest payments on ${Df}`, sql: `SELECT payment_id, provider, amount\nFROM payments\nWHERE DATE(received_at) = '${D}'\nORDER BY amount DESC\nLIMIT 5;` },
         { id: 'hooks', kind: 'Raw data', key: true, title: 'One raw webhook from each provider', sql: `SELECT provider, payload\nFROM raw_webhooks\nORDER BY provider;` },
         { id: 'integrations', kind: 'Logs', key: true, title: 'Payment integrations', sql: `SELECT provider, live_since, notes\nFROM integrations\nORDER BY live_since DESC;`,
-          voice: { who: 'vendor', text: `${NEW} is fully compliant with industry standards. Amounts are in the smallest currency unit, as clearly documented on page 47.` } },
+          voice: { who: 'vendor', text: `${NEW} is fully compliant with industry standards. The unit of every field is clearly documented in our API docs. You have read our API docs?` } },
+        { id: 'docs', kind: 'Docs', key: true, title: `${NEW} API docs: the payment object`, sql: `SELECT field, type, description\nFROM pebble_docs;` },
         { id: 'mentions', kind: 'Context', title: 'Social media mentions', sql: `SELECT day, mentions, note\nFROM social_mentions\nORDER BY day;`,
           voice: { who: 'sam', text: `${creator} posted about us and we went VIRAL bestie. this is the creator economy working 📈` } },
         { id: 'sessions', kind: 'Context', title: 'Website and app sessions per day', sql: `SELECT day, sessions\nFROM site_sessions\nORDER BY day;` },
       ];
       const cause = [
-        opt('units', `The new ${NEW} integration sends amounts in cents, and the pipeline read them as dollars, so those payments counted 100 times over.`, true),
-        opt('viral', `${creator}’s post went viral and brought in a real wave of big-spending customers.`, false, `Order and session counts on ${Df} are normal. Revenue jumped without more customers: something inflated a few payments.`),
-        opt('b2b', 'A handful of very large business orders came in on the same day.', false, `Every giant payment is from ${NEW}, and each looks like a normal basket with the decimal point missing: 4599 instead of 45.99.`),
-        opt('basket', 'The new checkout made people buy more per order, so basket sizes went up.', false, `Average payments for ${PROVIDERS.join(', ')} are unchanged. Only ${NEW}’s payments are huge.`),
+        opt('units', `${NEW} sends amounts in cents, but the payments parser read them as dollars, so each counted 100×.`, true),
+        opt('viral', `${creator}’s post went viral and brought a wave of new customers who spent far more per order than usual.`, false, `Order and session counts on ${Df} are normal. Revenue jumped without more customers: something inflated a few payments.`),
+        opt('b2b', `A handful of business customers placed huge bulk orders on ${Df}, so a few payments lifted revenue.`, false, `Every giant payment is from ${NEW}, and each looks like a normal basket with the decimal point missing: 4599 instead of 45.99.`),
+        opt('basket', 'A new checkout upsell made shoppers add more items, so the average basket rose across every provider.', false, `Average payments for ${PROVIDERS.join(', ')} are unchanged. Only ${NEW}’s payments are huge.`),
       ];
       const wrongN = distractors(trueRev, [
         { v: dashRev, why: 'That’s the dashboard’s number, with the cents still counted as dollars.' },
@@ -109,12 +116,12 @@
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (+${pct(up)} vs 7-day average). Orders: ${num(byDay[D].orders)}, normal. All jobs: SUCCESS.` },
           { who: 'sam', text: v([`REVENUE ${times}?? ${creator} posted about us yesterday. i’m literally shaking rn 🚀`, `${creator} effect is REAL. ${times} revenue. i’m buying a ring light`, `we’re basically a unicorn now right. ${times}. i did the maths twice`]) },
-          { who: 'maya', text: v([`Same number of orders, ${times} the money. Before I say this out loud to anyone: what happened? One number, one sentence.`, `Same orders, ${times} the money. Either we’re geniuses or something is very wrong. I know which one I’d bet on.`, `I’m not telling the board we had a ${times} day until someone shows me where the money came from.`, `Sam is celebrating. I’m suspicious. One of us is right. Go find out which.`]) },
+          { who: 'maya', text: v([`Same number of orders, ${times} the money. Before I say this out loud to anyone: what happened, and what did we really make?`, `Same orders, ${times} the money. Either we’re geniuses or something is very wrong. What happened, and what’s the real revenue?`, `I’m not telling the board we had a ${times} day until someone shows me where the money came from, and what we really made.`, `Sam is celebrating. I’m suspicious. Find out what happened and what the real revenue was.`]) },
         ],
         tables, cards,
         chain: ['aov', 'big', 'hooks', 'integrations'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So a pilot with ${pebbleN} payments nearly became our best quarter. Divide ${NEW} by 100, and nothing goes live without a test payment next time. Thank you.`, `So ${NEW} speaks cents and we heard dollars. Divide by 100, re-run the day, and test every new provider with one known payment. Thanks.`, `Our best day ever was a decimal point. Fix ${NEW}’s amounts, and Sam can return the ring light. Thank you.`]) },
@@ -207,10 +214,10 @@
           voice: { who: 'sam', text: `${rival[0][0]} is doing ${rival[0][3].toLowerCase()}. they’re stealing our customers. i need a counter-campaign by noon` } },
       ];
       const cause = [
-        opt('status', `${P} started reporting payments as “succeeded” instead of “paid”, and the dashboard only counts “paid”, so those orders vanished from it.`, true),
-        opt('rival', `${rival[0][0]}’s sale pulled customers away, so fewer people bought from ${co.name}.`, false, `The orders table holds as many orders on ${Df} as on a normal day. Customers didn’t leave; the dashboard stopped counting some of them.`),
-        opt('incident', `The checkout incident on ${Df} blocked payments for part of the day, so orders were lost.`, false, `It lasted a few minutes, and orders kept arriving all day. The missing orders are spread across the whole day.`),
-        opt('refunds', 'A wave of refunds and cancellations wiped out a chunk of the day’s sales.', false, 'Refunds and cancellations are at their usual few percent. A new status appeared instead.'),
+        opt('status', `${P} now reports paid orders as “succeeded”, and the dashboard SQL counts only “paid”, so they drop out.`, true),
+        opt('rival', `${rival[0][0]}’s “${rival[0][3].toLowerCase()}” offer pulled shoppers away, so ${co.name} really sold less on ${Df}.`, false, `The orders table holds as many orders on ${Df} as on a normal day. Customers didn’t leave; the dashboard stopped counting some of them.`),
+        opt('incident', `The checkout latency incident on ${Df} made card payments time out, so those orders never completed.`, false, `It ran only from ${incidentAt.slice(11, 16)} to ${incidents[0][1].slice(11, 16)}, and orders kept arriving all day. The missing orders are spread across the whole day.`),
+        opt('refunds', `A wave of refunds and cancellations on ${Df} turned many paid orders into refunded ones, cutting revenue.`, false, 'Refunds and cancellations are at their usual few percent. A new status appeared instead.'),
       ];
       const wrongN = distractors(trueRev, [
         { v: dashRev, why: 'That’s the dashboard’s number: it still only counts “paid”.' },
@@ -224,13 +231,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`Revenue down ${pct(drop)} yesterday. Sam wants an emergency discount to fight ${rival[0][0]}. I’m not spending a cent until I know what happened. One number, one sentence.`, `Sam wants a 20% discount by lunchtime to fight ${rival[0][0]}. Before we give away margin: did revenue really drop ${pct(drop)}?`, `I’m calling the bank at 9:30. I’d like to know whether we really lost ${pct(drop)} of yesterday’s revenue before then.`, `Revenue down ${pct(drop)}, a competitor sale, and Sam in full battle mode. Find me the real number first.`]) },
+          { who: 'maya', text: v([`Revenue down ${pct(drop)} yesterday. Sam wants an emergency discount to fight ${rival[0][0]}. I’m not spending a cent until I know what happened and what we really made.`, `Sam wants a 20% discount by lunchtime to fight ${rival[0][0]}. Before we give away margin: did revenue really drop ${pct(drop)}? What happened, and what’s the real number?`, `I’m calling the bank at 9:30. Before then I need to know what happened yesterday and what we really made.`, `Revenue down ${pct(drop)}, a competitor sale, and Sam in full battle mode. Find me what happened and the real number first.`]) },
           { who: 'sam', text: v([`they literally launched ${rival[0][3].toLowerCase()} the day before. it’s giving sabotage`, `${rival[0][0]} is stealing our customers in broad daylight. i have a counter-campaign ready. say the word`, 'i already made the discount banner. it’s very orange. can i ship it']) },
         ],
         tables, cards,
         chain: ['status_days', 'status_prov', 'model', 'changelog'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So no emergency discount. We stopped counting a word, not customers. Count “succeeded” as paid and re-run the day. Thank you.`, `So customers kept paying; the provider just said it differently. No discount. Count “succeeded” as paid and alert on new status values. Thanks.`, `One new word cost us a scary morning. Re-run the day with both statuses, and Sam, delete the orange banner. Thank you.`]) },
@@ -288,7 +295,7 @@
       const nightD1 = night(D1); const nightAvg = mean(prev.map(night));
 
       const deploys = [
-        [deployAt, 'ingest-api', t.pick(AUTHORS), 'Switch to ingest service v2: new event library, timestamps standardised to UTC'],
+        [deployAt, 'ingest-api', t.pick(AUTHORS), 'Switch to ingest service v2: new event library, timestamps standardised to UTC (our local time is UTC−5)'],
         [ts(addDays(D, -2), t.int(10, 16), t.int(0, 59), 0), 'web-shop', t.pick(AUTHORS), 'New product photos on the home page'],
         [ts(addDays(D, -4), t.int(10, 16), t.int(0, 59), 0), 'dbt-models', t.pick(AUTHORS), 'Add descriptions to the orders model'],
       ];
@@ -314,10 +321,10 @@
         { id: 'rival', kind: 'Context', title: 'Competitor promotions', sql: `SELECT competitor, starts, ends, offer\nFROM competitor_promos;` },
       ];
       const cause = [
-        opt('tz', `The new ingest service stamps orders in UTC, five hours ahead, so ${Df}’s evening orders were filed under ${D1f} and dropped out of ${Df}.`, true),
-        opt('rain', `Heavy rain on ${Df} evening kept people from ordering.`, false, `Orders didn’t stop in the evening; they turn up stamped after midnight on ${D1f}. People don’t really order at 3 a.m. in those numbers.`),
-        opt('rival', `${rival[0][0]}’s promotion pulled customers away for the day.`, false, `Count every order placed on ${Df} in local time and it’s a normal day. Nobody left.`),
-        opt('bots', `Bots flooded the site with fake orders after midnight, and the fraud filter threw ${Df}’s real orders out.`, false, 'Those after-midnight orders are real customers ordering in the evening. Their times are five hours off, and nothing was thrown out.'),
+        opt('tz', `The v2 ingest stamps orders in UTC, five hours ahead, so ${Df}’s evening orders landed in ${D1f}.`, true),
+        opt('rain', `Heavy rain and flood warnings from 18:00 on ${Df} kept customers away, so evening orders collapsed.`, false, `Orders didn’t stop in the evening; they turn up stamped after midnight on ${D1f}. People don’t really order at 3 a.m. in those numbers.`),
+        opt('rival', `${rival[0][0]}’s “${rival[0][3].toLowerCase()}” offer pulled customers away, so far fewer orders came in on ${Df}.`, false, `Count every order placed on ${Df} in local time and it’s a normal day. Nobody left.`),
+        opt('bots', `Bots placed fake orders after midnight, and the fraud filter then threw out ${Df}’s real orders too.`, false, 'Those after-midnight orders are real customers ordering in the evening. Their times are five hours off, and nothing was thrown out.'),
       ];
       const wrongN = distractors(trueD, [
         { v: dashD, why: 'That’s the dashboard’s number, missing the evening orders.' },
@@ -331,13 +338,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders for ${Df}: ${num(dashD)} (−${pct(drop)} vs 7-day average). Also: unusual order volume between 00:00 and 05:00. All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`Orders down ${pct(drop)} yesterday, and apparently half the city went shopping at 3 a.m. Those can’t both be real. What happened? One number, one sentence.`, `Our customers apparently shop at 3 a.m. now, and yesterday was down ${pct(drop)}. I don’t believe either. Explain please.`, `I’m reading the dashboard on the train and it makes no sense. Orders down ${pct(drop)}, a 3 a.m. rush. What happened?`, `Either the city has insomnia or our clock is wrong. Find out which, and tell me the real number for yesterday.`]) },
+          { who: 'maya', text: v([`Orders down ${pct(drop)} yesterday, and apparently half the city went shopping at 3 a.m. Those can’t both be real. What happened, and how many orders did we really take?`, `Our customers apparently shop at 3 a.m. now, and yesterday was down ${pct(drop)}. I don’t believe either. What happened, and what’s the real number?`, `I’m reading the dashboard on the train and it makes no sense. Orders down ${pct(drop)}, a 3 a.m. rush. What happened, and how many orders did we really take?`, `Either the city has insomnia or our clock is wrong. Find out which, and tell me the real number for yesterday.`]) },
           { who: 'sam', text: v(['ok the 3am thing is lowkey creepy. are we being hacked', '3am orders?? our customers are night owls. new campaign idea: midnight snacks', 'it was pouring yesterday. everyone stayed in. that explains it. right??']) },
         ],
         tables, cards,
         chain: ['hourly', 'night', 'versions', 'deploys'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many orders did ${co.name} really take on ${Df} (local time)?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v(['So the city slept fine and our clock jumped five hours. Store UTC, report in local time, and re-run the day. Thank you.', 'So the orders were real, just stamped in the wrong time zone. Convert to local time before counting, and re-run the day. Thanks.', 'Nobody shops at 3 a.m. Good. Fix the time zone in the ingest service and let’s add a test for it. Thank you.']) },
@@ -414,10 +421,10 @@
           voice: { who: 'sam', text: 'the dashboard has dark mode now?? ok that’s actually a slay' } },
       ];
       const cause = [
-        opt('backfill', `A backfill yesterday rewrote ${Rf} with a test filter (web orders only) left in, so those days lost their app orders.`, true),
-        opt('dedupe', 'The old numbers were double counted, and a fix brought them down to the truth.', false, `The raw orders table has every app order once. Nothing was double counted; app orders were dropped from three days.`),
-        opt('privacy', 'Privacy deletion requests removed those customers’ orders.', false, `Deletion requests removed ${sum(deletions.map((x) => x[2]))} orders in the last four days. The gap is ${num(missing)}.`),
-        opt('ui', 'The dashboard redesign broke the chart, so it shows the wrong values.', false, 'The table under the chart changed: its updated_at shows those rows were rewritten yesterday.'),
+        opt('backfill', `A backfill yesterday reran ${Rf} with a test filter (channel = 'web') still on, so app orders vanished.`, true),
+        opt('dedupe', `A dedupe fix removed orders that had been counted twice on ${Rf}, so the lower numbers are the true ones.`, false, `The raw orders table has every app order once. Nothing was double counted; app orders were dropped from three days.`),
+        opt('privacy', `Privacy deletion requests processed this week erased those customers’ orders from ${Rf} for good.`, false, `Deletion requests removed ${sum(deletions.map((x) => x[2]))} orders in the last four days. The gap is ${num(missing)}.`),
+        opt('ui', 'The dashboard-ui deploy with new chart colours and dark mode broke the chart, so it shows wrong values.', false, 'The table under the chart changed: its updated_at shows those rows were rewritten yesterday, and the raw orders table still has the missing orders.'),
       ];
       const wrongN = distractors(missing, [
         { v: cnt[mid].ios + cnt[mid].android, why: `That’s only what ${midF} lost. Three days were rewritten.` },
@@ -431,13 +438,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders: 3 past days changed since yesterday (${Rf}), down ${pct(missing / sum(R.map(tot)))}. All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.`, `Last week’s numbers changed overnight. My report already went to the board. Was I wrong, or was the dashboard changed? And by how much?`, `${midF}: my report says ${num(tot(mid))} orders, the dashboard now says ${num(cnt[mid].web)}. Past days don’t change by themselves. Who changed them?`, `I hate it when history changes. Three past days look different this morning. Tell me what happened and how many orders went missing.`]) },
-          { who: 'sam', text: v(['not me this time. i swear 👀', 'i didn’t touch anything. i don’t even know where the backfill button is. is there a button', 'the new dark mode is cute though. unrelated. probably']) },
+          { who: 'maya', text: v([`My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.`, `Last week’s numbers changed overnight. My report already went to the board. Was I wrong, or was the dashboard changed? And by how much?`, `${midF}: my report says ${num(tot(mid))} orders, the dashboard now says ${num(cnt[mid].web)}. Past days don’t change by themselves. What changed them, and how many orders are missing?`, `I hate it when history changes. Three past days look different this morning. Tell me what happened and how many orders went missing.`]) },
+          { who: 'sam', text: v(['not me this time. i swear 👀', 'i didn’t touch anything. i don’t even have edit rights on the dashboard. do i??', 'the new dark mode is cute though. unrelated. probably']) },
         ],
         tables, cards,
         chain: ['raw_vs', 'channels', 'backfill', 'dash'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many orders are missing from the dashboard across ${Rf}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v(['So my report was right and the dashboard was rewritten. Re-run those three days without the filter, and no more backfills without a second pair of eyes. Thank you.', 'So history was rewritten with a test filter still on. Re-run those days properly, and backfills need a review from now on. Thanks.', 'Good: my report stands. Restore the three days, and let’s compare row counts before and after every backfill. Thank you.']) },

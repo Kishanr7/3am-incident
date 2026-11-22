@@ -128,14 +128,14 @@
       ];
 
       const cause = [
-        opt('late', `The ${broken} data for ${Df} arrived after the nightly job had run, so the dashboard never counted it.`, true),
-        opt('camp', `Demand really fell after the ${campName} campaign ended on ${fmtDay(addDays(D, -1))}, so fewer people ordered.`, false,
+        opt('late', `The ${broken} data for ${Df} landed after the 02:00 build_daily_orders run, so the job never counted it.`, true),
+        opt('camp', `Paid social stopped when ${campName} ended on ${fmtDay(addDays(D, -1))}, so far fewer customers ordered on ${Df}.`, false,
           `The campaign did end, but the raw orders table holds ${num(trueD)} orders for ${Df}: a normal day. Demand didn’t fall; the dashboard missed some.`),
-        opt('deploy', `The ${DEP[broken][0]} deploy on ${Df} broke ordering on ${broken}, so those orders never happened.`, false,
+        opt('deploy', `The ${DEP[broken][0]} deploy at ${deployAt.slice(11, 16)} on ${Df} broke ordering on ${broken}, so those orders were never placed.`, false,
           `Raw orders show ${num(cnt[D][broken])} ${broken} orders on ${Df}, about normal. People ordered fine. The orders just weren’t on the dashboard.`),
         herringKind === 'pay'
-          ? opt('pay', `A spike in payment failures on ${Df} blocked checkout, so orders were lost.`, false, `Payment failures were ${(payRate[D] * 100).toFixed(1)}% on ${Df}, the same as any other day.`)
-          : opt('traffic', `Fewer people visited the site and apps on ${Df}, so fewer people ordered.`, false, `Sessions on ${Df} were in the normal range. The visitors came; the orders came too.`),
+          ? opt('pay', `Card payment failures spiked on ${Df}, so checkout rejected many customers and those orders were lost.`, false, `Payment failures were ${(payRate[D] * 100).toFixed(1)}% on ${Df}, in the same range as the other days. And the raw orders table holds ${num(trueD)} orders for ${Df}: a normal day.`)
+          : opt('traffic', `Site and app sessions dropped on ${Df}, so fewer visitors reached checkout and fewer orders were placed.`, false, `Sessions on ${Df} were in the normal range, and the raw orders table holds ${num(trueD)} orders for ${Df}. The visitors came; the orders came too.`),
       ];
       const wrongN = distractors(trueD, [
         { v: dashD, why: 'That’s the dashboard’s number: the one that’s wrong.' },
@@ -150,13 +150,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders for ${Df}: ${num(dashD)} orders (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`Morning. The dashboard says we took ${num(dashD)} orders yesterday. We normally do about ${num(avgPrev)}. Is ${co.name} falling off a cliff, or is the dashboard lying? One number, one sentence, before 9.`, `${num(dashD)} orders yesterday, against a usual ${num(avgPrev)}. I’m on the school run, so keep it short: are we in trouble or is the chart?`, `Before anyone panics: the dashboard says ${num(dashD)} orders. We never do that few. Real drop or broken report? I need to know before the 9:00.`, `I’ve had three coffees and one terrifying chart. ${num(dashD)} orders, normally ${num(avgPrev)}. Find me the truth.`]) },
+          { who: 'maya', text: v([`Morning. The dashboard says we took ${num(dashD)} orders yesterday. We normally do about ${num(avgPrev)}. Is ${co.name} falling off a cliff, or is the dashboard lying? I need what happened and the real number before 9.`, `${num(dashD)} orders yesterday, against a usual ${num(avgPrev)}. I’m on the school run, so keep it short: are we in trouble or is the chart? And what’s the real number?`, `Before anyone panics: the dashboard says ${num(dashD)} orders. We never do that few. Real drop or broken report? And how many orders did we really take? I need both before the 9:00.`, `I’ve had three coffees and one terrifying chart. ${num(dashD)} orders, normally ${num(avgPrev)}. Find me what happened and the real number.`]) },
           { who: 'sam', text: v([`ok but is this because ${campName} ended?? i literally SAID don’t stop it 😭`, `${campName} ended and we immediately flop?? i’m not saying i told you so. i’m just saying it`, `can we restart ${campName} like right now. asking for me`]) },
         ],
         tables, cards,
         chain: ['dash_src', 'raw_src', 'parts', 'runs'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many orders did ${co.name} really take on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So the orders are fine and the dashboard was early. Re-run it for ${fmtShort(D)}, and make that job wait for every source. Thank you.`, `So nobody stopped buying; one source just hadn’t arrived yet. Re-run ${fmtShort(D)} and make the job wait for every source. Thanks.`, `Good. I can stop drafting the bad-news email. Re-run the day, and let’s get an alert for late files.`]) },
@@ -269,10 +269,10 @@
       ];
 
       const cause = [
-        opt('fan', `A CRM re-sync duplicated every ${brokenName} customer, so their orders were counted twice.`, true),
-        opt('promo', `The ${code} promo brought in a real wave of extra orders from new and returning customers.`, false, `${code} was used on about ${num(promoUses[2][2])} orders on ${Df}, much like the two days before. And the raw orders table shows a normal day.`),
-        opt('price', `The ${pricePlan} price rise lifted the value of every ${pricePlan} order, so revenue went up.`, false, `The new ${pricePlan} price only applies from ${fmtDay(addDays(D, 1))}. It can’t explain ${Df}.`),
-        opt('big', 'A few very large orders from business customers pushed revenue up for the day.', false, 'The biggest orders that day are ordinary sizes. Something multiplied many normal orders instead.'),
+        opt('fan', `A full CRM re-sync inserted every ${brokenName} customer a second time, so the join counted their orders twice.`, true),
+        opt('promo', `The ${code} promo drove a real wave of extra orders on ${Df}, so more customers bought and revenue rose.`, false, `${code} was used on about ${num(promoUses[2][2])} orders on ${Df}, much like the two days before. And the raw orders table shows a normal day.`),
+        opt('price', `The ${pricePlan} plan went from $${oldP} to $${priceRows[0][4]}, so every ${pricePlan} order on ${Df} was billed at the new, higher price.`, false, `The new ${pricePlan} price only applies from ${fmtDay(addDays(D, 1))}. It can’t explain ${Df}.`),
+        opt('big', `A handful of business customers placed huge bulk orders on ${Df}, and those few baskets lifted revenue.`, false, 'The biggest orders that day are ordinary sizes, and the raw orders table shows a normal day. Something multiplied many normal orders instead.'),
       ];
       const wrongN = distractors(trueRev, [
         { v: dashRev, why: 'That’s the dashboard’s number, with the double counting still in it.' },
@@ -288,12 +288,12 @@
         intro: [
           { who: 'alert', text: `daily_revenue for ${Df}: ${money(dashRev)} (+${pct(up)} vs 7-day average). All jobs: SUCCESS.` },
           { who: 'sam', text: v([`REVENUE UP ${pct(up)} YESTERDAY 🚀🚀 we are SO back. it’s ${code}, i called it`, `+${pct(up)} revenue!!! ${code} is officially the best code ever written. not SQL. the discount code`, `we’re up ${pct(up)}. i’m printing the chart and framing it`]) },
-          { who: 'maya', text: v(['If it looks too good to be true… Check it before I put it in front of the board. One number, one sentence.', 'I love good news. I love checked good news more. Is this real?', 'Sam is already writing a LinkedIn post. Please tell me the real revenue before he hits publish.', 'Last time a number jumped like this, we had counted something twice. Prove me wrong.']) },
+          { who: 'maya', text: v(['If it looks too good to be true… Before I put it in front of the board: what really happened, and what did we really make?', 'I love good news. I love checked good news more. Is this real? If not, what happened, and what’s the real revenue?', 'Sam is already writing a LinkedIn post. Please tell me what happened and the real revenue before he hits publish.', 'Last time a number jumped like this overnight, it wasn’t real. Find out what happened, and what we really made.']) },
         ],
         tables, cards,
         chain: ['raw_vs', 'distinct', 'dims', 'crm'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `What was ${co.name}’s real revenue on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So not our best day: a normal one, counted twice in ${brokenName}. I’d rather know now than in the board meeting. Thank you.`, `A normal day, with ${brokenName} counted twice. Sam, unframe the chart. Fix the join and re-run. Thank you.`, `I’ll take boring and correct over exciting and wrong. Dedupe the customers and re-run the day. Thanks.`]) },
@@ -420,12 +420,12 @@
       ];
 
       const cause = [
-        opt('drift', `The ${P} app ${vNew} renamed the country field, so those sign-ups have no country and the dashboard drops them.`, true),
-        opt('holiday', `The public holiday in ${H[1]} kept people away, and sign-ups fell as a result.`, false, `The holiday was only in ${H[1]}, but sign-ups fell in every country. And the raw table has ${num(trueD)} sign-up events for ${Df}.`),
+        opt('drift', `The ${P} app ${vNew} sends country_code, not country, so those sign-ups have no country and get dropped.`, true),
+        opt('holiday', `People stayed off the app for the public holiday in ${H[1]}, so far fewer sign-ups came in on ${Df}.`, false, `The holiday was only in ${H[1]}, but sign-ups fell in every country. And the raw table has ${num(trueD)} sign-up events for ${Df}.`),
         herring === 'spend'
-          ? opt('spend', 'Marketing cut paid social spend, so fewer people found the app and signed up.', false, 'Spend dipped a little, but the raw events show people signed up as usual. The drop is on the dashboard, not in the real world.')
-          : opt('deploy', `The signup-api deploy on ${Df} added a rate limit that blocked some sign-ups.`, false, 'That change only touched password resets, and the raw events show sign-ups arriving as usual.'),
-        opt('outage', `The ${P} app crashed after the ${vNew} release, so nobody on ${P} could sign up.`, false, `Raw events show plenty of ${P} sign-ups on ${Df}. They arrived. They just had no country.`),
+          ? opt('spend', `Marketing cut paid social spend on ${Df}, so fewer people saw the ads, installed the app and signed up.`, false, 'Spend dipped a little, but the raw events show people signed up as usual. The drop is on the dashboard, not in the real world.')
+          : opt('deploy', `The signup-api deploy on ${Df} added a rate limit, so many sign-up requests were rejected and never stored.`, false, 'That change only touched password resets, and the raw events show sign-ups arriving as usual.'),
+        opt('outage', `The ${P} ${vNew} release crashes on the sign-up screen, so most ${P} users could not finish signing up.`, false, `Raw events show plenty of ${P} sign-ups on ${Df}. They arrived. They just had no country.`),
       ];
       const wrongN = distractors(trueD, [
         { v: dashD, why: 'That’s the dashboard’s number, missing every sign-up without a country.' },
@@ -440,13 +440,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_signups for ${Df}: ${num(dashD)} (−${pct(drop)} vs 7-day average). All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`Sign-ups fell ${pct(drop)} yesterday. Marketing says it’s the holiday in ${H[1]} and wants to pause spend everywhere. Before anyone does anything: is it real? One number, one sentence.`, `Marketing wants to pause all spend because sign-ups fell ${pct(drop)}. That costs real money either way. Is the drop real?`, `I’m about to approve a budget freeze based on one chart. Convince me the chart is right. Or wrong.`, `${pct(drop)} fewer sign-ups, and everyone has a theory. I’d like a fact instead. Before 9, please.`]) },
+          { who: 'maya', text: v([`Sign-ups fell ${pct(drop)} yesterday. Marketing says it’s the holiday in ${H[1]} and wants to pause spend everywhere. Before anyone does anything: is the drop real, what caused it, and how many people really signed up?`, `Marketing wants to pause all spend because sign-ups fell ${pct(drop)}. That costs real money either way. Is the drop real? What happened, and what’s the real number?`, `I’m about to approve a budget freeze based on one chart. Is it right? If not, why not, and what’s the real number?`, `${pct(drop)} fewer sign-ups, and everyone has a theory. I’d like facts instead: what happened, and how many really signed up. Before 9, please.`]) },
           { who: 'sam', text: v(['drafting an apology to investors rn. jk. unless?? 💀', `it’s the ${H[1]} holiday. has to be. nobody signs up on a holiday right`, 'sign-ups down?? did the button break again. please say the button broke']) },
         ],
         tables, cards,
         chain: ['by_country', 'raw_ver', 'payload', 'releases'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many people really signed up on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So nobody stopped signing up; we stopped counting them. Tell marketing to keep the budget, and get the ${P} team and data team in one room. Thank you.`, `So the users are real; our join dropped them. Keep the budget, fix the join on country, and add a check for NULLs. Thank you.`, `Good, no freeze. The ${P} release and the dashboard need to talk to each other more. Thanks.`]) },

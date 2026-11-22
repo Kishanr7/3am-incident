@@ -160,7 +160,10 @@
     late: { raw_src: (D) => `SELECT source, COUNT(*) AS orders\nFROM orders\nWHERE DATE(created_at) = '${D}'\nGROUP BY source\nORDER BY orders DESC;` },
     fanout: { raw_vs: (D) => `SELECT 'raw orders' AS source, COUNT(*) AS orders\nFROM orders WHERE DATE(ordered_at) = '${D}'\nUNION ALL\nSELECT 'dashboard', orders\nFROM daily_revenue WHERE day = '${D}';` },
   };
-  function applyLevel(c, level) {
+  /* Levels, second version (dailies from LEVEL2_FROM, and every practice case): medium also hides one of the usual
+     checks, hard hides three. Earlier dailies keep the rules they were published with (v1). */
+  TAI.LEVEL2_FROM = '2026-11-23';
+  function applyLevel(c, level, v1) {
     c.level = level;
     if (level === 'easy') {
       const herrings = c.cards.filter((x) => !x.key);
@@ -170,12 +173,16 @@
     c.typed = true;
     const fix = NO_ANSWER_SQL[c.tpl.id] || {};
     c.cards = c.cards.map((x) => (fix[x.id] ? Object.assign({}, x, { sql: fix[x.id](c.D), title: x.title.replace(/^Raw orders vs the dashboard/, 'Raw order count vs the dashboard') }) : x));
-    if (level === 'hard') {
-      const drop = c.chain.slice(0, 2);
+    // Hard hides three checks, but always leaves one key check besides the dashboard.
+    const k = v1 ? (level === 'hard' ? 2 : 0) : (level === 'hard' ? (c.chain[3] === 'dash' ? 2 : 3) : 1);
+    if (k) {
+      const drop = c.chain.slice(0, k);
       c.cards = c.cards.filter((x) => drop.indexOf(x.id) < 0);
-      c.chain = c.chain.slice(2);
-      c.hardNote = 'Hard case: two of the usual checks are missing, and you type the real number. Write your own SQL to find it.';
+      c.chain = c.chain.slice(k);
     }
+    if (level === 'hard') c.hardNote = v1 ? 'Hard case: two of the usual checks are missing, and you type the real number. Write your own SQL to find it.'
+      : 'Hard case: three of the usual checks are missing, and you type the real number. All the tables are there: write your own SQL.';
+    else if (!v1) c.hardNote = 'Medium case: one of the usual checks is missing, and you type the real number.';
     return c;
   }
   function practiceCase(n) {
@@ -189,7 +196,7 @@
   TAI.RAMP_START = '2026-11-17';
   const WEEK_LEVEL = ['medium', 'easy', 'easy', 'medium', 'medium', 'hard', 'hard'];
   function dailyLevel(iso) { return iso < TAI.RAMP_START ? null : WEEK_LEVEL[dow(iso)]; }
-  function dailyCase(iso) { const c = caseFor(iso); const l = dailyLevel(iso); return l ? applyLevel(c, l) : c; }
+  function dailyCase(iso) { const c = caseFor(iso); const l = dailyLevel(iso); return l ? applyLevel(c, l, iso < TAI.LEVEL2_FROM) : c; }
   // Does a typed or queried number match the real one? Counts must be exact; money within a dollar.
   function matchesAnswer(c, x) { if (!c.answerQ || typeof x !== 'number' || !isFinite(x)) return false; return c.answerQ.money ? Math.abs(x - c.answerQ.value) < 1 : Math.abs(x - c.answerQ.value) < 0.5; }
   TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase; TAI.applyLevel = applyLevel;

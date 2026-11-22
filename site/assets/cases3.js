@@ -98,10 +98,10 @@
         { id: 'news', kind: 'Context', title: 'Newsletters sent', sql: 'SELECT sent_at, subject, recipients\nFROM newsletters;' },
       ];
       const cause = [
-        opt('nowhere', `Someone ran an UPDATE by hand to change one product’s price, without a WHERE clause, so all ${nSku} products became ${money(NEWP)}.`, true),
-        opt('deploy', 'The new product page shipped that morning shows the wrong prices.', false, `The prices changed in the database itself (price_audit), at ${X.slice(11, 16)}, by a person, not by the web-shop deploy.`),
-        opt('feed', 'The supplier’s nightly price feed overwrote the prices.', false, 'The feed runs at 02:00 and changed a handful of rows at most. The mass change happened in the late morning, by hand.'),
-        opt('promo', 'The newsletter brought in a rush of discount hunters.', false, `The newsletter went out at 08:00, but orders jumped only after ${X.slice(11, 16)}, the moment every price became ${money(NEWP)}.`),
+        opt('nowhere', `A hand-run UPDATE for one product had no WHERE clause, so all ${nSku} products were changed to ${money(NEWP)}.`, true),
+        opt('deploy', `The new product page deployed that morning showed the clearance price of ${money(NEWP)} on every product.`, false, `The prices changed in the database itself: price_audit shows all ${nSku} products changed at ${X.slice(11, 16)} by ${user}, a person, not by the web-shop deploy.`),
+        opt('feed', `The supplier’s nightly price feed sent a placeholder price of ${money(NEWP)} and overwrote every product.`, false, `The feed runs at 02:00 and updates at most a few rows a night. Every price changed at ${X.slice(11, 16)}, in one statement run by hand.`),
+        opt('promo', `A discount rule added to checkout applied the ${money(NEWP)} clearance price to every item in every cart.`, false, `A checkout rule wouldn’t change the products table, but price_audit shows every product’s stored price changed to ${money(NEWP)} at ${X.slice(11, 16)}.`),
       ];
       const wrongN = distractors(loss, [
         { v: round2(avgPrev - dashRev), why: 'That’s the gap to a normal day. But there were extra bargain orders, and the morning was normal. Compare each item with its real price.' },
@@ -111,17 +111,17 @@
       const numberQ = [opt('n_true', money(loss), true)].concat(wrongN.map((w, i) => opt('n_' + i, money(w.v), false, w.why)));
       return {
         valid: drop > 0.1 && ordersUp > 0.12 && loss > 50,
-        teaser: v([`${co.name} sold more than ever yesterday and made less money than usual.`, `${co.name}: orders up ${pct(ordersUp)}, revenue down ${pct(drop)}. Pick one.`, `From ${X.slice(11, 16)} yesterday, every product at ${co.name} cost ${money(NEWP)}.`]),
+        teaser: v([`${co.name} sold more than usual yesterday and made less money.`, `${co.name}: orders up ${pct(ordersUp)}, revenue down ${pct(drop)}. Pick one.`, `From ${X.slice(11, 16)} yesterday, every product at ${co.name} cost ${money(NEWP)}.`]),
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_sales for ${Df}: revenue ${money(dashRev)} (−${pct(drop)} vs 7-day average). Orders: ${num(byDay[D].orders)} (+${pct(ordersUp)}). All jobs: SUCCESS.` },
-          { who: 'nia', text: (t.int(30, 60), v([`Support here. Since about ${X.slice(11, 13)}:00 customers keep asking if ${money(NEWP)} is a mistake. Some are buying ${maxQty} at a time.`, `My queue is full of “is this price real??” and people asking for a bulk discount on top of ${money(NEWP)}.`])) },
-          { who: 'maya', text: v([`More orders and less money. Those don’t go together. Tell me what happened and what it cost us before 9.`, `I’m at the airport with bad Wi-Fi. Short version please: what happened yesterday, and how much did it cost?`, `If we accidentally ran a closing-down sale, I want to know who, when and how much. The meeting is at 9.`]) },
+          { who: 'nia', text: (t.int(30, 60), v([`Support here. Since about ${pad(Math.round(minOf(X) / 60))}:00 yesterday every product on the site shows ${money(NEWP)}, and customers are buying up to ${maxQty} at a time.`, `My queue is full of “is this price real??”. For hours now every product page has said ${money(NEWP)}, and people are ordering by the armful.`])) },
+          { who: 'maya', text: v([`More orders and less money. Those don’t go together. Tell me what caused it and how much it cost us, before 9.`, `I’m at the airport with bad Wi-Fi. Short version please: what caused this, and how much money did we lose?`, `Revenue down, orders up. Before the 9:00 I need two things: what caused it, and how much money it cost us.`]) },
         ],
         tables, cards,
         chain: ['prices', 'audit', 'qlog', 'ticket'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How much money did the wrong prices lose on ${Df}, compared with the real prices?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So one missing line turned a clearance into a closing-down sale. Restore prices from price_audit, honour the orders, and no more hand-run UPDATEs without a second pair of eyes. Thank you.`, `A ${money(loss)} typo. Restore the old prices from the audit table today, and make production changes go through a reviewed script. Thank you.`]) },
@@ -201,10 +201,10 @@
           voice: { who: 'vendor', text: 'We delivered every message you sent us. Promptly. Twice, where requested.' } },
       ];
       const cause = [
-        opt('retry', `The sender timed out after batch ${k}, and the automatic retry started again from batch 1, so batches 1–${k} were sent twice.`, true),
-        opt('esp', 'The email provider delivered some messages twice.', false, `Our own email_sends table has two rows for each of those customers, one from each run (compare the send times). We sent them twice.`),
-        opt('list', 'The customer list had duplicate entries.', false, 'Each batch has as many distinct customers as the campaign planned; the extra sends are the same customer_id in the same batch, sent again later.'),
-        opt('two', 'Two campaigns were scheduled for the same morning.', false, `There is only one campaign on ${Df}; the other is weeks old.`),
+        opt('retry', `The sender timed out after batch ${k}, and its retry restarted at batch 1, so batches 1–${k} went out twice.`, true),
+        opt('esp', 'The email provider’s API retried its own deliveries after a slow reply, so it delivered some messages twice.', false, `Our own email_sends table has two rows for each of those customers, one from each run (compare the send times). We sent them twice; the provider delivered what we sent.`),
+        opt('list', 'The audience export merged two customer segments, so customers in both segments were on the send list twice.', false, `The campaign audience is ${num(A)}, and exactly ${num(A)} different customers got the email. The extra sends are the same customers in the same batches, sent again by a second run.`),
+        opt('two', `A second campaign was scheduled for the same morning and reused the ${campaign} template and audience.`, false, `There is only one campaign on ${Df}; the other one in the campaigns table is weeks old.`),
       ];
       const wrongN = distractors(dup, [
         { v: total, why: 'That’s every send, including the customers who got it once.' },
@@ -214,17 +214,21 @@
       const numberQ = [opt('n_true', num(dup), true)].concat(wrongN.map((w, i) => opt('n_' + i, num(w.v), false, w.why)));
       return {
         valid: k >= 2 && sizes.every((s) => s > 50 && s * 2 !== dup && s !== dup),
-        teaser: v([`${co.name} emailed thousands of customers twice. Theo wants to know who and why.`, `“Why did I get this twice?” ${co.name}’s inbox is on fire.`, `${co.name}’s ${campaign} email went out. Then it went out again.`]),
+        teaser: v([`${co.name} emailed a lot of its customers twice. Theo wants to know who and why.`, `“Why did I get this twice?” ${co.name}’s inbox is on fire.`, `${co.name}’s ${campaign} email went out. Then it went out again.`]),
         reporter: 'theo',
         intro: [
-          { who: 'alert', text: `daily_email for ${Df}: ${num(total)} ${campaign} emails sent (campaign audience: ${num(A)}). Spam reports: ${feedback[feedback.length - 1][2]}. All jobs: SUCCESS.` },
-          { who: 'theo', text: v([`Morning. Half my replies to the ${campaign} email say “you sent this twice”. How many people got it twice, and how do I stop it happening again?`, `I’m drafting an apology email. Before I send one more email to anyone: how many people got ${campaign} twice?`, `Did we really email the same customers twice? I need the number for the apology and the reason for my boss.`]) },
-          { who: 'nia', text: v([`Support is drowning in “unsubscribe me” replies. Please tell me it stopped.`, `${feedback[feedback.length - 1][1]} unsubscribes yesterday. Normal is about ${Math.round(mean(feedback.slice(0, -1).map((x) => x[1])))}.`]) },
+          { who: 'alert', text: `daily_email for ${Df}: ${num(total)} ${campaign} emails sent (campaign audience: ${num(A)}). Spam reports: ${feedback[feedback.length - 1][2]}. Sender status: SUCCESS.` },
+          ...(() => {
+            // Computed in the old order so the dialogue picks don't shift; shown witness first, then the ask.
+            const boss = { who: 'theo', text: v([`Morning. Half my replies to the ${campaign} email say “you sent this twice”. Why did it go out twice, and how many people got it more than once?`, `I’m drafting an apology. Before I send one more email to anyone: why did ${campaign} go out twice, and how many people got it more than once?`, `Did we really email the same customers twice? I need the reason for my boss and the number of people for the apology.`]) };
+            const witness = { who: 'nia', text: v([`Support is drowning in “why did I get this twice?” replies, and unsubscribes are way up. Please tell me it stopped.`, `${feedback[feedback.length - 1][1]} unsubscribes yesterday, plus a pile of “you sent this twice” replies. Normal is about ${Math.round(mean(feedback.slice(0, -1).map((x) => x[1])))} unsubscribes.`]) };
+            return [witness, boss];
+          })(),
         ],
         tables, cards,
         chain: ['batches', 'jobs', 'one', 'camp'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many customers got the ${campaign} email more than once?`, options: numberQ },
         ],
         closing: { who: 'theo', text: v([`So the job was retried from the start and nobody checked what was already sent. Apology to those ${num(dup)} people only, and the sender skips anyone already in email_sends. Thank you.`, `${num(dup)} people, not everyone. I’ll apologise to them, and we’ll make the sender safe to retry. Thank you.`]) },
@@ -306,10 +310,10 @@
           voice: { who: 'vendor', text: 'Sign-in was briefly degraded for some users. All accounts remain exactly as you left them.' } },
       ];
       const cause = [
-        opt('null', 'A change to the clean-up job turned a missing last_login into 1970, so every app user with no web login looked inactive and was deleted.', true),
-        opt('outage', 'The identity provider outage logged people out and broke their accounts.', false, `The outage ran from ${outage[0][0].slice(11, 16)} to ${outage[0][1].slice(11, 16)} in the afternoon. The accounts were deleted at 02:30, by our own job, and they are in deleted_users.`),
-        opt('fine', 'The job worked as designed: these really were inactive accounts.', false, 'Those accounts have no web login, but app_last_seen shows they used the app in the last week.'),
-        opt('onboarding', 'The new onboarding screens stopped people from signing in.', false, 'Onboarding affects new sign-ups. These accounts no longer exist: they are rows in deleted_users.'),
+        opt('null', 'The clean-up job’s new COALESCE read a missing last_login as 1970, so users who only use the app were deleted.', true),
+        opt('outage', 'The identity provider outage corrupted sign-in sessions, so its security rules removed those accounts.', false, `The outage ran from ${outage[0][0].slice(11, 16)} to ${outage[0][1].slice(11, 16)} in the afternoon. The accounts were deleted at 02:30, by our own job, and they are in deleted_users.`),
+        opt('fine', 'The job worked as designed: these accounts had not logged in for over two years, so deleting them was correct.', false, 'Those accounts have no login date at all (last_login is empty), and app_last_seen shows they used the app in the last week.'),
+        opt('onboarding', 'The new onboarding screens made app users sign up again, so the job removed their old, now unused accounts.', false, 'The onboarding change only touched app/onboarding.ts. The accounts were removed by cleanup_inactive.sql, which was changed later that day, and app_last_seen shows they were still in use.'),
       ];
       const allD = legitN[D] + W;
       const wrongN = distractors(W, [
@@ -324,13 +328,13 @@
         reporter: 'nia',
         intro: [
           { who: 'alert', text: `daily_active for ${Df}: ${num(dashD)} (−${pct(drop)} vs 7-day average). cleanup_inactive deleted ${num(allD)} accounts. All jobs: SUCCESS.` },
-          { who: 'nia', text: v([`Support here. Since 7 a.m. people say their account is gone. They are not inactive, they are furious. How many did we delete by mistake?`, `I have ${tickets[tickets.length - 1][2]} “I can’t log in” tickets. Some of these people used the app yesterday. What did we do?`]) },
-          { who: 'maya', text: v(['Deleting customers is how we end up in the news. I want the real number and the cause before 9.', 'Find out how many accounts we wrongly deleted. Legal will ask me in the meeting, so I want the number before then.']) },
+          { who: 'nia', text: v([`Support here. All morning people have been telling me their account is gone. They are not inactive, they are furious.`, `I have ${tickets[tickets.length - 1][2]} “I can’t log in” tickets. These people say they used the app this week, and now their account doesn’t exist.`]) },
+          { who: 'maya', text: v(['Deleting customers is how we end up in the news. Before 9 I want the cause, and how many accounts we deleted by mistake.', 'Find out why we deleted active accounts, and how many. Legal will ask me in the 9:00, so I want both before then.']) },
         ],
         tables, cards,
         chain: ['jobs', 'channels', 'sample', 'code'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How many accounts were deleted by mistake on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'nia', text: v([`So “no web login” became “inactive since 1970”. Restore those ${num(W)} accounts from deleted_users, and the clean-up job does a dry run with a count before it deletes anything. Thank you.`, `${num(W)} people who did nothing wrong. Let’s restore them today, and from now on the job stops if it’s about to delete far more than usual. Thank you.`]) },
@@ -390,7 +394,7 @@
       const allTiles = tiles.concat([badTile]);
       const tileRows = allTiles.map((x) => [x[0], x[1], x[2], x[3].slice(0, 16), x[4]]);
       const texts = allTiles.map((x) => [x[1], x === badTile ? "SELECT COUNT(*) FROM events\nWHERE DATE(event_time) = CURRENT_DATE" : `SELECT … FROM events\nWHERE event_date = CURRENT_DATE`]);
-      const sizes = [['events', 'event_date', addDays(D, -7), round2(980 + t.r() * 60)], ['events', 'event_date', D, 0]]; sizes[1][3] = round2(sizes[0][3] * (1.01 + t.r() * 0.02));
+      const sizes = [['events', 'event_date', addDays(D, -7), round2(badTile[5] * (0.96 + t.r() * 0.02)) /* so a full scan by the tile reads about the whole table */], ['events', 'event_date', D, 0]]; sizes[1][3] = round2(sizes[0][3] * (1.01 + t.r() * 0.02));
       const pricing = [[addDays(D, -t.int(300, 600)), RATE, 'Price per TB scanned']];
 
       const tables = [
@@ -415,10 +419,10 @@
           voice: { who: 'vendor', text: 'Our prices have not changed. Your enthusiasm for scanning data has.' } },
       ];
       const cause = [
-        opt('scan', 'A new dashboard tile refreshes every 5 minutes, and its filter wraps the date column in a function, so every refresh reads the whole events table.', true),
-        opt('backfill', `${analysts[0]}’s big one-off backfill query on ${Df}.`, false, `That query ran once and cost ${money(cost(hist.find((r) => r[3] === 'q_backfill')[4]))}. The bill went up by far more than that.`),
-        opt('price', 'The warehouse raised its prices.', false, `The price per TB has been ${money(RATE)} for over a year. We scanned more, we didn’t pay more per TB.`),
-        opt('growth', 'The events table grew, so every query got more expensive.', false, `The table grew by about ${pct(sizes[1][3] / sizes[0][3] - 1)} in a week. The bill went up ${times}.`),
+        opt('scan', 'A new tile refreshes every 5 minutes and filters on DATE(event_time), so every refresh scans all events.', true),
+        opt('backfill', `${analysts[0]}’s one-off backfill at ${backfillAt.slice(11, 16)} on ${Df} scanned ${num(hist.find((r) => r[3] === 'q_backfill')[4])} GB in one go and ran up the bill.`, false, `That query ran once and cost ${money(cost(hist.find((r) => r[3] === 'q_backfill')[4]))}. The bill went up by far more than that.`),
+        opt('price', 'The warehouse raised its price per TB scanned, so the same daily queries now cost several times more.', false, `The price per TB has been ${money(RATE)} since ${pricing[0][0]}. We scanned more, we didn’t pay more per TB.`),
+        opt('growth', 'A late load of old events made the events table balloon, so every query scanned far more data than usual.', false, `The table grew by about ${pct(sizes[1][3] / sizes[0][3] - 1)} in a week. The bill went up ${times}.`),
       ];
       const wrongN = distractors(tileCost, [
         { v: round2(dashCost - avgPrev), why: 'That’s how much more the whole day cost than usual. Other queries vary too: add up that one tile’s runs.' },
@@ -432,13 +436,13 @@
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_cost for ${Df}: ${money(dashCost)} (${times} the usual ${money(avgPrev)}). Budget alert: 80% of the monthly budget used.` },
-          { who: 'maya', text: v([`Our warehouse bill was ${times} normal yesterday. If that keeps up, it eats this month’s budget by Friday. What is it, and what did it cost yesterday alone?`, `The cloud bill just emailed me, which it never does. ${money(dashCost)} in one day. Who, what, how much?`, `Before I approve any more “real-time” anything: why did yesterday cost ${times} as much as usual?`]) },
-          { who: 'sam', text: v(['not me. i only made a tiny dashboard tile', `is the cloud just… more expensive on ${['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'][new Date(D + 'T12:00:00').getDay()]}??`]) },
+          { who: 'maya', text: v([`Our warehouse bill was ${times} normal yesterday. If that keeps up, it eats this month’s budget in days. What caused it, and how much of yesterday’s bill was it?`, `The cloud bill just emailed me, which it never does. ${money(dashCost)} in one day. What caused it, and how much of that was it?`, `Before I approve anything else this month: what made yesterday cost ${times} as much as usual, and how much of the bill was that one thing?`]) },
+          { who: 'sam', text: v(['80% of the monthly budget already?? who has the company card', `is the cloud just… more expensive on ${['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'][new Date(D + 'T12:00:00').getDay()]}??`]) },
         ],
         tables, cards,
         chain: ['top', 'tiles', 'sql', 'users'],
         questions: [
-          { id: 'cause', prompt: 'What happened?', options: cause },
+          { id: 'cause', prompt: 'What caused it?', options: cause },
           { id: 'number', prompt: `How much did the new tile cost on ${Df}?`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So a “live” tile read the whole table every five minutes. Filter on event_date, refresh it hourly, and set a cost alert per query. Thank you.`, `${money(tileCost)} a day for one tile. Fix the filter today, and anything that refreshes more than hourly needs a cost estimate first. Thank you.`]) },

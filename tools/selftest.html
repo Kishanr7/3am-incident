@@ -33,7 +33,18 @@
       const keys = c.cards.filter((x) => x.key).length; const herr = c.cards.length - keys;
       if (c.level === 'easy' && herr !== 1) fails.push('practice ' + c.practice + ': easy should have 1 herring, has ' + herr);
       if (c.level === 'hard' && (keys < 2 || !c.hardNote)) fails.push('practice ' + c.practice + ': hard has ' + keys + ' key cards');
-      if (c.cards.length < 4) fails.push('practice ' + c.practice + ': only ' + c.cards.length + ' cards');
+      if (c.cards.length < 3) fails.push('practice ' + c.practice + ': only ' + c.cards.length + ' cards');
+      const v2 = c.practice || iso >= TAI.LEVEL2_FROM;
+      if (v2 && c.level !== 'easy' && !c.hardNote) fails.push((c.practice ? 'practice ' + c.practice : iso) + ': ' + c.level + ' has no level note');
+    }
+    // The wording of the cause options must not give the answer away: the right one is never clearly the longest,
+    // and no option is a short vague line next to long specific ones.
+    for (const q of c.questions) {
+      if (q.id !== 'cause') continue;
+      const L = q.options.map((o) => o.text.length), right = q.options.findIndex((o) => o.correct);
+      const others = L.filter((x, i) => i !== right), mx = Math.max(...L);
+      if (L[right] > Math.max(...others) + 12) fails.push(`${c.practice ? 'practice ' + c.practice : iso} ${c.tpl.id}: right option is ${L[right]} chars, others at most ${Math.max(...others)}`);
+      if (Math.min(...L) < mx * 0.6) fails.push(`${c.practice ? 'practice ' + c.practice : iso} ${c.tpl.id}: options range ${Math.min(...L)}–${mx} chars`);
     }
     const db = TAI.buildDb(SQL, c);
     const tag = (c.practice ? 'practice ' + c.practice + ' ' + c.level : '#' + c.no) + ` ${iso} ${c.tpl.id} ${c.co.name}`;

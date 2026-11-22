@@ -11,7 +11,7 @@
 | Mode | What | Where |
 | --- | --- | --- |
 | **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. Same case for everyone on a given date. Streak kept on the device | Home page |
-| **Practice library** | 136 cases: 52 easy, 47 medium, 37 hard. #1–100 cover the first seven types; #101–136 the four production incidents (3 of each per level). Easy has one red herring; hard removes two checks, so you write some SQL yourself | Home page → Practice library |
+| **Practice library** | 136 cases: 52 easy, 47 medium, 37 hard. #1–100 cover the first seven types; #101–136 the four production incidents (3 of each per level). Easy has one red herring; medium hides one of the usual checks and hard hides three, so you write SQL yourself | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
 Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are eleven patterns: seven where a dashboard number is wrong, and four production incidents.
@@ -36,7 +36,7 @@ Each case picks one of several versions of its opening, reactions and closing, s
 
 **Case notes** (📝 in the bottom bar): a panel, closed by default, for keeping track. The – button minimizes it into the Notes button (it shrinks into it), and the Notes button brings it back where it was. On screens 900 px and wider it can be dragged anywhere by its title bar or the ⠿ handle (arrow keys work too) and resized; the position is remembered. On phones it opens above the bottom bar, so Notes, Byte and Report stay reachable. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
 
-**Difficulty by weekday** (dailies from 17 Nov 2026): Mon–Tue easy (pick from options, no SQL needed), Wed–Thu and Sun medium (type the real number; finish a fill-in-the-blank query), Fri–Sat hard (two checks missing; write your own SQL). After two wrong numbers Byte shows the full query. **Bonus ⭐**: write a query that returns the real number.
+**Difficulty by weekday** (dailies from 17 Nov 2026): Mon–Tue easy (pick from options, no SQL needed), Wed–Thu and Sun medium (type the real number; finish a fill-in-the-blank query), Fri–Sat hard (write your own SQL). From 23 Nov 2026 medium hides one of the usual checks and hard hides three (before that, hard hid two). After two wrong numbers Byte shows the full query. **Bonus ⭐**: write a query that returns the real number.
 
 **Beat my time**: the shared result links to the same case with your finish time; your friend sees it and who won. **Streak protection**: Byte covers one missed day in any 7, automatically; the covered day shows a 🐾 on "This week" and the streak button, with a line saying when the next cover is ready. Solving a missed day later doesn't count for the streak. **Pattern deck**: one card per failure pattern, unlocked by solving that type (★ at 1, 3, 7 solves).
 

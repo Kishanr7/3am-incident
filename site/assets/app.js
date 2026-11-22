@@ -44,9 +44,11 @@
   // home page only after a first solved case. Dismissing it hides it on this device.
   const touchDevice = () => matchMedia('(pointer: coarse)').matches;
   const anySolved = () => Object.values(TAI.store.all()).some((r) => r && r.solved);
+  const solvedCount = () => Object.values(TAI.store.all()).filter((r) => r && r.solved).length;
   function installCard(where) {
     if (standalone() || !touchDevice()) return '';
-    if (where === 'home') { let off = false; try { off = localStorage.getItem('tai.noInstall') === '1'; } catch (e) { /* show */ } if (off || !anySolved()) return ''; }
+    let off = false; try { off = localStorage.getItem('tai.noInstall') === '1'; } catch (e) { /* show */ }
+    if (off || (where === 'home' && !anySolved())) return '';
     const x = where === 'home' ? '<button class="pill" id="installX" type="button" aria-label="Hide this tip">✕</button>' : '';
     if (installEvt) return `<div class="install">📲 <span>Add it to your home screen: one tap a day, works offline.</span><button class="btn" id="installBtn" type="button">Install</button>${x}</div>`;
     if (isIOS()) return `<div class="install">📲 <span>Add it to your home screen: in Safari tap <b>Share</b> <span aria-hidden="true">⬆️</span> then <b>Add to Home Screen</b>.</span>${x}</div>`;
@@ -142,7 +144,7 @@
     if (lvl) for (const n of TAI.levelCases(lvl)) {
       const pm = TAI.practiceMeta(n); const r = TAI.store.get('p' + n);
       const st2 = r && r.solved ? 'solved' : r && r.timeline.length ? 'started' : '';
-      lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}, ${esc(pm.tpl.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
+      lib += `<a class="lcase ${st2}" href="#/practice/${n}" aria-label="Practice ${n}, ${esc(pm.co.name)}${st2 ? ', ' + st2 : ''}"><b>${n}</b><span>${esc(pm.co.name)}</span><span class="st">${st2 === 'solved' ? '✓' : st2 === 'started' ? '•' : ''}</span></a>`;
     }
     const cast = ['maya', 'sam', 'nia', 'theo', 'byte', 'gus', 'vendor'].map((k) => `<div class="card person">${av(k)}<div><b>${CAST[k].name}</b><div class="role">${CAST[k].role}</div></div><p>${esc(CAST[k].blurb)}</p></div>`).join('');
 
@@ -241,7 +243,7 @@
   function clockText(m) { const h = 8 + Math.floor(m / 60), mm = m % 60; return U.pad(h) + ':' + U.pad(mm); }
 
   const LEVEL_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
-  const LEVEL_HINT = { easy: 'Easy · about 5 min · no SQL needed', medium: 'Medium · about 8 min · finish one short query', hard: 'Hard · 15–20 min · write your own SQL (a laptop helps)' };
+  const LEVEL_HINT = { easy: 'Easy · about 5 min · no SQL needed', medium: 'Medium · about 10 min · type the real number, finish one short query', hard: 'Hard · 15–20 min · some checks missing, write your own SQL (a laptop helps)' };
   function openCase(kind, id) {
     const t = today();
     if (kind === 'daily' && (id < TAI.EPOCH || id > t)) { location.hash = '#/'; return; }
@@ -277,10 +279,18 @@
       (r.total > r.values.length ? `<p class="more">Showing ${r.values.length} of ${r.total} rows.</p>` : '');
   }
 
+  // A saved timeline can name a check this level no longer offers (levels got harder on 23 Nov 2026):
+  // find it in the full case so old progress still shows.
+  function cardById(id) {
+    const own = S.c.cards.find((x) => x.id === id); if (own) return own;
+    if (!S.raw) { const m = S.practice && TAI.practiceMeta(S.practice); S.raw = m ? TAI.caseFor(m.iso, { tpl: m.tpl, co: m.co, salt: 'practice-' + S.practice }) : TAI.caseFor(S.iso); }
+    return S.raw.cards.find((x) => x.id === id) || null;
+  }
   function entryHtml(e, i) {
     const c = S.c;
     if (e.t === 'card') {
-      const card = c.cards.find((x) => x.id === e.id);
+      const card = cardById(e.id);
+      if (!card) return '';
       let res; try { res = tableHtml(TAI.query(S.db, card.sql, 30)); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
       const voice = card.voice ? `<div class="voice">${av(card.voice.who)}<p><b>${esc(CAST[card.voice.who].name)}:</b> ${esc(card.voice.text)}</p></div>` : '';
       return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><span class="kind">${esc(card.kind)} · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span><h3>${esc(card.title)}</h3>
@@ -293,7 +303,7 @@
       return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><button type="button" class="pill fold hide" data-fold="${i}" aria-label="Fold this query away">Hide</button><span class="kind">Your query · ${at}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div>${ownTips(e, i, r)}</article>`;
     }
     if (e.t === 'hint') {
-      const card = e.id && c.cards.find((x) => x.id === e.id);
+      const card = e.id && cardById(e.id);
       const text = card ? `*walks across your keyboard and sits on “${card.title}”* Mrrp.` : '*curls up on the report form* Mrrp. (You’ve seen enough. Tell Maya.)';
       return `<div class="msg byte" id="e${i}" tabindex="-1">${av('byte')}<div class="bubble"><span class="name">Byte · ${clockText(START_MIN + STEP_MIN * (i + 1))}</span>${esc(text)}</div></div>`;
     }
@@ -324,7 +334,7 @@
         <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(caseTitle(c))}</h1></div>
         ${c.hardNote ? `<p class="scene small"><b>${esc(c.hardNote)}</b></p>` : ''}
         ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
-        <p class="scene small"><b>Your job:</b> find out why the number is wrong, then tap <b>Report</b>. Each check takes 5 minutes, and the meeting is at 9:00.</p>
+        <div class="brief"><b>Your job before 9:00</b><ol><li>Find out what caused it.</li><li>${esc(numQ().prompt)}</li></ol><p class="small muted">Answer both in the <b>Report</b>. Each check you run costs 5 minutes.</p></div>
         </div>
         <div class="main">
         <div class="chat" aria-label="Incident channel">${intro}</div>
@@ -461,7 +471,7 @@
   function updateNotesBtn() { const b = document.getElementById('notesN'); if (b) { const k = notesCount(); b.textContent = k ? k : ''; b.hidden = !k; } }
   function entryTitle(i) {
     const e = S.rec.timeline[i]; if (!e) return '';
-    if (e.t === 'card') { const card = S.c.cards.find((x) => x.id === e.id); return card ? card.title : 'Check'; }
+    if (e.t === 'card') { const card = cardById(e.id); return card ? card.title : 'Check'; }
     if (e.t === 'sql') return 'Your query: ' + e.sql.replace(/\s+/g, ' ').slice(0, 48) + (e.sql.length > 48 ? '…' : '');
     return '';
   }
@@ -648,7 +658,7 @@
     const grid = rec.timeline.filter((e) => !e.after).map((e) => {
       if (e.t === 'hint') return '🐾';
       if (e.t === 'sql') return '🟪';
-      const card = c.cards.find((x) => x.id === e.id); return card.key ? '🟦' : '⬜';
+      const card = cardById(e.id); return card && card.key ? '🟦' : '⬜';
     }).join('') + (rec.star ? '⭐' : '') || '—';
     const reports = rec.reports.map((x) => (x ? '✅' : '❌')).join('');
     const late = rec.solvedAt > MEETING_MIN;
@@ -669,14 +679,22 @@
     box.innerHTML = `<h2 id="reportTitle" class="sr">Case closed</h2>
       <div class="card win">
         <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>
-        <h2 style="margin:16px 0 4px">Case closed${late ? ', a little late' : ' before 9:00'}.</h2>
-        <p class="small muted" style="margin:0">${rec.queries} ${rec.queries === 1 ? 'query' : 'queries'} · ${rec.reports.length} ${rec.reports.length === 1 ? 'report' : 'reports'}${daily ? ` · 🔥 streak ${st.current}${st.covered.length ? ' (🛡️ Byte covered ' + st.covered.map(U.fmtDay).join(', ') + ')' : ''}` : S.practice ? ' · practice case' : ' · archive case (streaks count on the day)'}</p>
+        <h2 class="closed">${late ? '✓ Case closed, a little late' : '✓ Case closed before 9:00'}</h2>
+        <div class="stats">
+          <div><b>${clockText(rec.solvedAt)}</b><span>closed at</span></div>
+          <div><b>${rec.queries}</b><span>${rec.queries === 1 ? 'query' : 'queries'}</span></div>
+          <div><b>${rec.reports.length}</b><span>${rec.reports.length === 1 ? 'report' : 'reports'}</span></div>
+          ${daily ? `<div><b>🔥 ${st.current}</b><span>day streak${st.covered.length ? ' · 🐾 ' + st.covered.length + ' covered' : ''}</span></div>` : ''}
+        </div>
+        <p class="small muted" style="margin:0">${daily ? '' : S.practice ? 'Practice case: it doesn’t count towards your streak.' : 'Archive case: streaks only count on the day.'}</p>
         ${vsResult()}
-        <div class="share" id="shareText">${esc(shareText())}</div>
         <div class="row">${canShare() ? '<button class="btn primary" id="shareBtn" type="button">Share</button><button class="btn" id="copy" type="button">Copy</button>' : '<button class="btn primary" id="copy" type="button">Copy result</button>'}${next}<a class="btn" href="#/">Home</a></div>
+        <details class="sharebox"><summary>What you’ll share</summary>
+          <div class="share" id="shareText">${esc(shareText())}</div>
+          <p class="small muted" style="margin:6px 0 0">Each square is one step: 🟦 a key check · ⬜ another check · 🟪 your own SQL · 🐾 a hint from Byte${rec.star ? ' · ⭐ proved with SQL' : ''}. Your friend gets a link to beat your time.</p>
+        </details>
         ${nextDailyHtml()}
-        ${installCard('solved')}
-        <p class="small muted">🟦 key evidence · ⬜ other checks · 🟪 your own SQL · 🐾 Byte${rec.star ? ' · ⭐ proved with SQL' : ''}</p>
+        ${solvedCount() <= 2 ? installCard('solved') : ''}
       </div>
       ${starCard()}
       <div class="card lesson" style="margin-top:12px">
@@ -695,7 +713,7 @@
       const text = shareText();
       (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Copied'), () => {
         const r = document.createRange(); r.selectNodeContents(document.getElementById('shareText'));
-        const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Press Ctrl+C to copy.');
+        const bx = document.querySelector('.sharebox'); if (bx) bx.open = true; const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Press Ctrl+C to copy.');
       });
     };
     const sb = document.getElementById('shareBtn');

@@ -109,6 +109,26 @@ const SETUPS = [
       if (!(await h.locator('.scene b').first().textContent()).includes('Hard case')) bugs.push('no hard-case note');
       await ctxH.close();
 
+      // Levels v2 (from Mon 23 Nov): Wed 25 medium hides one check, Fri 27 hard hides three; the job brief lists both questions
+      const ctxV = await b.newContext(opts); await ctxV.addInitScript(() => localStorage.setItem('tai.toured', '1'));
+      const v2 = await ctxV.newPage(); v2.on('pageerror', (e) => errs.push(e.message)); await v2.clock.install({ time: new Date(2026, 10, 27, 9, 0, 0) });
+      for (const [d, lvl, word, hidden] of [['2026-11-25', 'Medium', 'Medium case', 1], ['2026-11-27', 'Hard', 'three of the usual', 3]]) {
+        await v2.goto(BASE + '#/daily/' + d); await v2.waitForFunction((x) => window.__tai.state && window.__tai.state.iso === x && document.getElementById('picks'), d);
+        if (!new RegExp(lvl).test(await v2.textContent('.case-head .kicker'))) bugs.push(d + ' not ' + lvl);
+        if (!(await v2.locator('.scene b').first().textContent()).includes(word)) bugs.push(d + ': no "' + word + '" note');
+        const gone = await v2.evaluate(() => { const S = window.__tai.state; const raw = TAI.caseFor(S.iso); return raw.chain.filter((id) => !S.c.cards.some((x) => x.id === id)).length; });
+        if (gone !== hidden && !(hidden === 3 && gone === 2)) bugs.push(`${d}: ${gone} checks hidden, want ${hidden}`);
+        const li = await v2.locator('.brief li').allTextContents();
+        const q = await v2.evaluate(() => { const c = window.__tai.state.c; return c.questions[c.questions.length - 1].prompt; });
+        if (li.length !== 2 || li[1] !== q) bugs.push(d + ': job brief wrong: ' + JSON.stringify(li));
+      }
+      // Progress saved under the old rules still shows a check this level no longer offers
+      await v2.evaluate(() => { const n = TAI.levelCases('medium')[0]; const m = TAI.practiceMeta(n); const raw = TAI.caseFor(m.iso, { tpl: m.tpl, co: m.co, salt: 'practice-' + n }); const st = JSON.parse(localStorage.getItem('tai.v1') || '{"cases":{}}'); st.cases['p' + n] = { timeline: [{ t: 'card', id: raw.chain[0] }], reports: [], picks: {}, solved: false }; localStorage.setItem('tai.v1', JSON.stringify(st)); window.__oldN = n; });
+      const oldN = await v2.evaluate(() => window.__oldN);
+      await v2.goto(BASE + '#/practice/' + oldN); await v2.reload(); await v2.waitForFunction(() => window.__tai.state && document.getElementById('picks'));
+      if ((await v2.locator('#feed .entry').count()) !== 1) bugs.push('old saved check not shown on practice ' + oldN);
+      await ctxV.close();
+
       // Easy practice: multiple choice, bonus star card with a fill-in start, star via bonus
       await p.goto(BASE + '#/practice/2'); await p.waitForFunction(() => window.__tai.state && window.__tai.state.practice === 2 && document.getElementById('picks'));
       if (await p.locator('input.numin').count()) bugs.push('easy case has a typed number');
