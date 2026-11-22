@@ -10,7 +10,7 @@
 
 | Mode | What | Where |
 | --- | --- | --- |
-| **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. Same case for everyone on a given date. Streak kept on the device | Home page |
+| **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. A "Your job" box lists the two questions to answer, and "What’s in the database" explains every table. Same case for everyone on a given date. Streak kept on the device | Home page |
 | **Practice library** | 136 cases: 52 easy, 47 medium, 37 hard. #1–100 cover the first seven types; #101–136 the four production incidents (3 of each per level). Easy has one red herring; medium hides one of the usual checks and hard hides three, so you write SQL yourself | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
@@ -67,7 +67,7 @@ Each template also ships **self-checks**: SQL that must return the intended answ
 
 | Test | How | Result (2026-11-15) |
 | --- | --- | --- |
-| Case generator: 1000 daily dates + 136 practice cases, all 11 types | Serve the repo root, open `tools/selftest.html?days=1000`. Story integrity: every number in a case's teaser, alert, dialogue, closing and wrong-answer notes must be findable in the data (a value, a column total or average, or a row count), and templates check that alert totals match the raw tables. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, and difficulty rules | **All pass** (1100 cases, about 155 per type) |
+| Case generator: 1000 daily dates + 136 practice cases, all 11 types | Serve the repo root, open `tools/selftest.html?days=1000`. Story integrity: every number in a case's teaser, alert, dialogue, closing and wrong-answer notes must be findable in the data (a value, a column total or average, or a row count), and templates check that alert totals match the raw tables. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, difficulty rules, that the right cause option is never clearly the longest, and that every table has a description | **All pass** (1136 cases) |
 | Published dailies unchanged | Old and new engine compared for Daily #1–#7: same company, story, numbers, answer order | **Identical** |
 | Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 136 practice cases (every type at easy, medium and hard): runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
 | Streak rules | Today's solve counts; archive and practice solves don't; streak code round-trips; junk code rejected | Pass |

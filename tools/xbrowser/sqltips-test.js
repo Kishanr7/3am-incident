@@ -10,6 +10,7 @@ const SETUPS = [
   ['Pixel 7 (Chrome)', chromium, D('Pixel 7')],
   ['Galaxy S9+ (Chrome)', chromium, { ...D('Galaxy S9+'), viewport: { width: 320, height: 658 } }],
   ['Windows Chrome', chromium, { viewport: { width: 1366, height: 768 } }],
+  ['Laptop at 125% (Chrome)', chromium, { viewport: { width: 1093, height: 614 } }],
   ['Windows Edge', chromium, { viewport: { width: 1920, height: 1080 } }, { channel: 'msedge' }],
   ['Mac Safari engine', webkit, { viewport: { width: 1440, height: 900 } }],
   ['iPad Mini (WebKit)', webkit, D('iPad Mini landscape')],
@@ -61,9 +62,10 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if (sx > 1) bugs.push('sideways scroll ' + sx + 'px');
       const box = async (s) => p.locator(s).boundingBox();
       const m = await box('.case .main'), s = await box('#investigate');
-      if (w >= 1100) {
+      if (w >= 960) {
         if (!(s.x > m.x + m.width - 1)) bugs.push('checks panel is not beside the evidence');
-        if (m.width < 650) bugs.push('evidence column too narrow: ' + m.width);
+        if (m.width < 560) bugs.push('evidence column too narrow: ' + m.width);
+        const used = s.x + s.width - m.x; if (used < Math.min(0.85 * w, 1450)) bugs.push('only ' + Math.round(used) + ' of ' + w + 'px used');
         await p.evaluate(() => scrollTo(0, document.body.scrollHeight));
         await p.waitForTimeout(300);
         const s2 = await box('#investigate');

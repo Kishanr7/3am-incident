@@ -305,9 +305,9 @@ button.pcard{cursor:pointer}
 .tips code{font-family:var(--mono);font-size:.8rem;background:var(--code);border-radius:5px;padding:1px 4px}
 @media (max-width:400px){.entry .fold.hide{position:static;float:right;margin:0 44px 4px 8px}.entry:has(.fold.hide)>.kind{padding-right:0}.entry.folded .fsql{visibility:hidden}}
 /* ---------- wide screens: evidence on the left, checks and your SQL beside it ---------- */
-@media (min-width:1100px){
-  .wrap.case,.bar .wrap{max-width:1240px}
-  .wrap.case{display:grid;grid-template-columns:minmax(0,1fr) 400px;column-gap:28px;grid-template-areas:"head head" "main side" "report side";align-items:start}
+@media (min-width:960px){
+  .wrap.case,.bar .wrap{max-width:1560px}
+  .wrap.case{display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,30vw,460px);column-gap:clamp(20px,2vw,32px);grid-template-areas:"head head" "main side" "report side";align-items:start}
   .case .chead{grid-area:head}
   .case .main{grid-area:main;min-width:0}
   .case .report{grid-area:report;min-width:0}
@@ -356,3 +356,10 @@ button.pcard{cursor:pointer}
 .brief ol{margin:4px 0 2px;padding-left:20px}
 .brief li{margin:2px 0}
 .brief p{margin:2px 0 0}
+/* What's in the database: one line per table */
+.tables summary{cursor:pointer;font-weight:700}
+.tlist{margin:8px 0 0}
+.tlist dt{margin:10px 0 2px}
+.tlist dt code{font-weight:700}
+.tlist dd{margin:0;font-size:.9rem}
+.tlist .cols{font-family:var(--mono);font-size:.75rem;color:var(--mute);overflow-wrap:anywhere}

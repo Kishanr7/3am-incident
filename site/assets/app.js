@@ -326,6 +326,8 @@
       const at = m.who === 'alert' ? '03:12' : '08:' + U.pad((chatMin += 2) - 2);
       return `<div class="msg ${m.who === 'alert' ? 'alert' : ''}">${av(m.who)}<div class="bubble"><span class="name">${esc(CAST[m.who].name)} · ${at}</span>${esc(m.text)}</div></div>`;
     }).join('');
+    const info = (TAI.TABLE_INFO || {})[c.tpl.id] || {};
+    const tablesHtml = '<dl class="tlist">' + c.tables.map((tb) => `<dt><code>${tb.name}</code></dt><dd>${esc(info[tb.name] || '')}<br><span class="cols">${tb.cols.map((x) => x[0]).join(', ')}</span></dd>`).join('') + '</dl>';
     const schema = c.tables.map((tb) => `<b>${tb.name}</b>(${tb.cols.map((x) => x[0]).join(', ')})`).join('<br>');
     app.innerHTML = `
       <div class="wrap case">
@@ -344,6 +346,7 @@
         <section id="investigate" class="side">
           <h2>What do you want to check?</h2>
           <div class="picks" id="picks"></div>
+          <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables)</summary>${tablesHtml}</details>
           <details class="card own" style="margin-top:10px" ${c.typed && c.level === 'medium' ? 'open' : ''}>
             <summary>${c.typed && c.level === 'medium' ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
             ${c.typed && c.level === 'medium' ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
