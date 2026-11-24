@@ -170,7 +170,7 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
       window.__tapLog = [];
       const L = (e) => { const t = e.target; const x = e.clientX || (e.changedTouches && e.changedTouches[0] && e.changedTouches[0].clientX) || 0; const y = e.clientY || (e.changedTouches && e.changedTouches[0] && e.changedTouches[0].clientY) || 0; window.__tapLog.push(`${e.type}:${t && t.tagName}${t && typeof t.className === 'string' && t.className ? '.' + t.className.split(' ')[0] : ''}@${Math.round(x)},${Math.round(y)} sy=${Math.round(scrollY)}`); };
       for (const k of ['touchstart', 'touchend', 'pointerdown', 'click']) document.addEventListener(k, L, true);
-      window.addEventListener('click', (e) => window.__tapLog.push('after handlers: defaultPrevented=' + e.defaultPrevented + ' trusted=' + e.isTrusted), false);
+      window.addEventListener('click', (e) => window.__tapLog.push('after handlers: defaultPrevented=' + e.defaultPrevented + ' trusted=' + e.isTrusted + ' button=' + e.button + ' cancelable=' + e.cancelable + ' detail=' + e.detail), false);
       window.addEventListener('hashchange', () => window.__tapLog.push('hash ' + location.hash));
       const r = document.querySelector('.lcase').getBoundingClientRect(); window.__tapLog.push(`tile ${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)} sy=${Math.round(scrollY)} vh=${innerHeight} vvh=${window.visualViewport ? Math.round(visualViewport.height) + '/' + Math.round(visualViewport.offsetTop) : '-'}`);
     });
