@@ -841,6 +841,14 @@
     else renderHome();
   }
   window.addEventListener('hashchange', route);
+  // In-app links (#/...) navigate here instead of relying on the browser's default link action: in WebKit tests a tap
+  // on a practice tile sometimes delivered the click but never changed the address. New-tab clicks keep the default.
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest && e.target.closest('a[href^="#/"]'); if (!a || a.target) return;
+    e.preventDefault();
+    const h = a.getAttribute('href'); if (location.hash !== h) location.hash = h;
+  });
   route();
   if (!tourSeen()) showTour();
   window.__tai = { get state() { return S; } };

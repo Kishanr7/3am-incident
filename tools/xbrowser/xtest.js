@@ -166,8 +166,25 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
     const nHard = await page.evaluate(() => TAI.levelCases('hard').length); if ((await page.locator('.lcase').count()) !== nHard) res.bugs.push('hard level did not show ' + nHard + ' cases');
     // Web fonts arrive late on the live site and can shift the layout under a tap: wait for them, and retry once.
     await page.evaluate(() => document.fonts && document.fonts.ready.then(() => true));
+    await page.evaluate(() => {
+      window.__tapLog = [];
+      const L = (e) => { const t = e.target; const x = e.clientX || (e.changedTouches && e.changedTouches[0] && e.changedTouches[0].clientX) || 0; const y = e.clientY || (e.changedTouches && e.changedTouches[0] && e.changedTouches[0].clientY) || 0; window.__tapLog.push(`${e.type}:${t && t.tagName}${t && typeof t.className === 'string' && t.className ? '.' + t.className.split(' ')[0] : ''}@${Math.round(x)},${Math.round(y)} sy=${Math.round(scrollY)}`); };
+      for (const k of ['touchstart', 'touchend', 'pointerdown', 'click']) document.addEventListener(k, L, true);
+      window.addEventListener('click', (e) => window.__tapLog.push('after handlers: defaultPrevented=' + e.defaultPrevented + ' trusted=' + e.isTrusted), false);
+      window.addEventListener('hashchange', () => window.__tapLog.push('hash ' + location.hash));
+      const r = document.querySelector('.lcase').getBoundingClientRect(); window.__tapLog.push(`tile ${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)} sy=${Math.round(scrollY)} vh=${innerHeight} vvh=${window.visualViewport ? Math.round(visualViewport.height) + '/' + Math.round(visualViewport.offsetTop) : '-'}`);
+    });
     await tap('.lcase >> nth=0');
-    if (!(await page.waitForSelector('#picks', { timeout: 6000 }).catch(() => null))) { res.notes.push('practice tile needed a second tap'); await tap('.lcase >> nth=0'); }
+    if (!(await page.waitForSelector('#picks', { timeout: 6000 }).catch(() => null))) {
+      const diag = await page.evaluate(async () => {
+        const a = document.querySelector('.lcase'); const st = getComputedStyle(a);
+        const d = { href: a.getAttribute('href'), pe: st.pointerEvents, dialog: !!document.querySelector('dialog[open]'), ready: document.readyState, hash: location.hash, sel: String(getSelection()).slice(0, 30), active: document.activeElement && (document.activeElement.id || document.activeElement.className) };
+        a.click(); await new Promise((r) => setTimeout(r, 400)); d.afterJsClick = location.hash;
+        return d;
+      }).catch((e) => 'eval failed ' + e.message);
+      res.notes.push('practice tile needed a second tap. events: ' + (await page.evaluate(() => (window.__tapLog || []).join(' | ')).catch(() => '?')) + ' | state: ' + JSON.stringify(diag));
+      if (!(await page.locator('#picks').count())) await tap('.lcase >> nth=0');
+    }
     await page.waitForSelector('#picks', { timeout: 20000 }).catch(async () => res.bugs.push('practice case did not open: ' + JSON.stringify(await page.evaluate(() => ({ hash: location.hash, tiles: document.querySelectorAll('.lcase').length, text: document.body.innerText.slice(0, 80) })).catch(() => 'page gone'))));
     await page.goto(BASE + '#/'); await page.waitForSelector('#statsBtn');
     await tap('#statsBtn'); await page.waitForSelector('dialog[open]').catch(() => res.bugs.push('stats did not open'));
