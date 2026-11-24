@@ -374,3 +374,12 @@ button.pcard{cursor:pointer}
 .tlist dd{margin:0;font-size:.9rem}
 .tlist .cols{font-family:var(--mono);font-size:.75rem;color:var(--mute);overflow-wrap:anywhere}
 .brief .lvlnote{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line);font-size:.88rem}
+/* Big screens (1440p and 4K at 100%): the frame and the type grow a little, never edge to edge */
+@media (min-width:1800px){:root{--page:1320px;--side:380px}}
+@media (min-width:2300px){:root{--page:1480px;--side:420px}html,body{font-size:18px}}
+/* Touch screens and phones: every fold and tile is at least about 40 px to tap */
+@media (pointer:coarse),(hover:none),(max-width:767px){
+  summary{padding-top:10px;padding-bottom:10px}
+  .entry details>summary{padding-top:9px;padding-bottom:9px}
+}
+@media (max-width:340px){.week{gap:3px}.wrap{padding:0 12px}}

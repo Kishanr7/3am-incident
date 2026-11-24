@@ -25,6 +25,7 @@ node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, Hide/Show, wi
 node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake clock: all 11 case types, new cast, 11-card deck, 8 setups
 node notesmove-test.js http://localhost:8767/site/ # notes: minimize into the Notes button, reopen in place, drag, arrow keys, remembered position, 8 setups
 node streakui-test.js http://localhost:8767/site/  # a missed day covered by Byte is shown on the week, the streak button and in words, 8 setups
+node responsive-test.js http://localhost:8767/site/ [--shots] # every screen at 26 sizes (280 px to 4K, short landscape) in Chrome + 8 in WebKit: no sideways scroll, nothing off screen, 32 px+ tap targets on touch, nothing under the bottom bar
 ```
 
 Limits: WebKit here is Playwright's build of Safari's engine on Windows, not Safari on a real iPhone or Mac. Playwright's own offline switch blocks the service worker in WebKit, so offline is tested by stopping the server instead. Firefox's test build does not start on this PC (missing Windows runtime); Firefox was checked by feature review only.

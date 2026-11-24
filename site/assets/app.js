@@ -184,6 +184,7 @@
         <p class="small muted">Missed a day? You can still play it. Only today’s case adds to your streak.</p>
         ${installCard('home')}
 
+        ${deckHtml()}
         </div>
         <div class="hside">
         <h2 id="practice">Practice</h2>
@@ -191,21 +192,19 @@
         <div class="tabs" aria-label="Difficulty">${['easy', 'medium', 'hard'].map((l) => `<button class="tab" data-l="${l}" aria-expanded="${l === lvl}" aria-controls="lib">${LEVEL_NAME[l]} <span class="muted">${done[l]}/${TAI.levelCases(l).length}</span></button>`).join('')}</div>
         ${lvl ? `<nav class="lib" id="lib" aria-label="${LEVEL_NAME[lvl]} practice cases">${lib}</nav>` : ''}
 
-        ${deckHtml()}
-
         <h2>Big case</h2>
         <a class="card file" href="case-1/">
           <span class="num">#1</span>
           <span><b>The Missing Revenue</b><br><span class="small muted">Write your own SQL. Best on a laptop, about 25 minutes.</span></span>
         </a>
 
+        </div>
+        <div class="hfoot">
         <details class="crew">
           <summary>Meet the crew</summary>
           <div class="cast">${cast}</div>
         </details>
 
-        </div>
-        <div class="hfoot">
         <p class="pilot">The companies and data are made up, and your progress stays on this device.</p>
         <footer>Made by Kishan · no account, no tracking · <a href="https://github.com/Kishanr7/3am-incident" rel="noopener">Code on GitHub</a></footer>
         </div>

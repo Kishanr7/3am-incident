@@ -68,7 +68,7 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if (w >= 960) {
         if (!(s.x > m.x + m.width - 1)) bugs.push('checks panel is not beside the evidence');
         if (m.width < 560) bugs.push('evidence column too narrow: ' + m.width);
-        const used = s.x + s.width - m.x; if (used < Math.min(0.9 * w, 1140) || used > 1160) bugs.push('case page uses ' + Math.round(used) + ' of ' + w + ' px (want the 1200 px frame)');
+        const used = s.x + s.width - m.x; if (used < Math.min(0.9 * w, 1140) || used > Math.min(1440, 0.75 * w + 300)) bugs.push('case page uses ' + Math.round(used) + ' of ' + w + ' px (want the shared frame)');
         await p.evaluate(() => scrollTo(0, document.body.scrollHeight));
         await p.waitForTimeout(300);
         const s2 = await box('#investigate');
