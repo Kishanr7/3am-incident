@@ -99,6 +99,10 @@ The palette was chosen for calm, not drama. Research on colour and emotion finds
 
 All rights reserved until a licence is chosen at public release.
 
+## Changes and contributing
+
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md). How to work on it (branches, commits, tests, releases) is in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Licence
 
 MIT: see [LICENSE](LICENSE). Fonts (Fraunces, Lato) are SIL Open Font License; sql.js is MIT.
