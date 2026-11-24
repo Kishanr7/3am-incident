@@ -164,7 +164,11 @@ async function runProfile([platform, label, engine, ctxOpts, launchOpts]) {
     await tap('#themeBtn');
     await tap('.tab[data-l="hard"]'); await sleep(200);
     const nHard = await page.evaluate(() => TAI.levelCases('hard').length); if ((await page.locator('.lcase').count()) !== nHard) res.bugs.push('hard level did not show ' + nHard + ' cases');
-    await tap('.lcase >> nth=0'); await page.waitForSelector('#picks', { timeout: 20000 }).catch(async () => res.bugs.push('practice case did not open: ' + JSON.stringify(await page.evaluate(() => ({ hash: location.hash, tiles: document.querySelectorAll('.lcase').length, text: document.body.innerText.slice(0, 80) })).catch(() => 'page gone'))));
+    // Web fonts arrive late on the live site and can shift the layout under a tap: wait for them, and retry once.
+    await page.evaluate(() => document.fonts && document.fonts.ready.then(() => true));
+    await tap('.lcase >> nth=0');
+    if (!(await page.waitForSelector('#picks', { timeout: 6000 }).catch(() => null))) { res.notes.push('practice tile needed a second tap'); await tap('.lcase >> nth=0'); }
+    await page.waitForSelector('#picks', { timeout: 20000 }).catch(async () => res.bugs.push('practice case did not open: ' + JSON.stringify(await page.evaluate(() => ({ hash: location.hash, tiles: document.querySelectorAll('.lcase').length, text: document.body.innerText.slice(0, 80) })).catch(() => 'page gone'))));
     await page.goto(BASE + '#/'); await page.waitForSelector('#statsBtn');
     await tap('#statsBtn'); await page.waitForSelector('dialog[open]').catch(() => res.bugs.push('stats did not open'));
     const codeIn = page.locator('#imp');
