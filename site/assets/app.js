@@ -70,7 +70,7 @@
   let deckInfo = null;
   function patternInfo() {
     if (deckInfo) return deckInfo;
-    deckInfo = TAI.TEMPLATES.map((tpl) => { const c = TAI.caseFor(TAI.EPOCH, { tpl, salt: 'deck' }); return { id: tpl.id, name: c.lesson.name, what: c.lesson.what, spot: c.lesson.spot }; });
+    deckInfo = TAI.TEMPLATES.filter((tpl) => TAI.RETIRED.indexOf(tpl.id) < 0).map((tpl) => { const c = TAI.caseFor(TAI.EPOCH, { tpl, salt: 'deck' }); return { id: tpl.id, name: c.lesson.name, what: c.lesson.what, spot: c.lesson.spot }; });
     return deckInfo;
   }
   const PATTERN_ICON = { late: '⏰', fanout: '🪞', drift: '🧬', units: '💯', status: '🏷️', tz: '🌍', backfill: '♻️', nowhere: '✂️', email: '📨', purge: '🗑️', bill: '💸' };
@@ -139,7 +139,7 @@
     }).join('');
     const lvl = TAI.LEVELS[openLevel] ? openLevel : ''; // folded on every visit until a level is tapped
     const done = { easy: 0, medium: 0, hard: 0 };
-    for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) { const r = TAI.store.get('p' + n); if (r && r.solved) done[TAI.practiceMeta(n).level]++; }
+    for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) { const r = TAI.store.get('p' + n); if (r && r.solved && TAI.listed(n)) done[TAI.practiceMeta(n).level]++; }
     let lib = '';
     if (lvl) for (const n of TAI.levelCases(lvl)) {
       const pm = TAI.practiceMeta(n); const r = TAI.store.get('p' + n);
@@ -322,6 +322,11 @@
     if (t.startsWith(n + '’s ')) return n + ': ' + t.slice(n.length + 3).replace(/^./, (x) => x.toUpperCase());
     return t.includes(n) ? t : n + ': ' + t;
   }
+  // One line in the job box: which tables feed the number in the alert (tables only, never the cause).
+  function flowHtml(c) {
+    const f = (TAI.LINEAGE || {})[c.tpl.id]; if (!f) return '';
+    return `<p class="flow small"><b>Where the number comes from:</b> ${esc(f).replace(/`([^`]+)`/g, '<code>$1</code>')}</p>`;
+  }
   function renderCase() {
     const { c, rec } = S;
     document.title = `${S.label} · 3 a.m. Incident`;
@@ -340,7 +345,7 @@
         <div class="top"><a class="back" href="#/" aria-label="Home">←</a><a class="logo" href="#/">${MOON}<span>3 a.m. Incident</span></a><button class="pill theme" id="themeBtn" aria-label="Switch light or dark mode">${themeIcon()}</button></div>
         <div class="case-head"><span class="kicker">${esc(S.label)}${S.daily ? ' · ' + U.fmtDay(c.date) : ''}</span><h1>${esc(caseTitle(c))}</h1></div>
         ${S.vs ? `<p class="scene small vs">🏁 A friend closed this case by <b>${clockText(S.vs.at)}</b> with ${S.vs.n} ${S.vs.n === 1 ? 'query' : 'queries'}. Can you beat that?</p>` : ''}
-        <div class="brief"><b>Your job before 9:00</b><ol><li>Find out what caused it.</li><li>${esc(numQ().prompt)}</li></ol><p class="small muted">Answer both in the <b>Report</b>. Each check you run costs 5 minutes.</p>${c.hardNote ? `<p class="lvlnote"><b>${esc(c.hardNote)}</b></p>` : ''}</div>
+        <div class="brief"><b>Your job before 9:00</b><ol><li>Find out what caused it.</li><li>${esc(numQ().prompt)}</li></ol>${flowHtml(c)}<p class="small muted">Answer both in the <b>Report</b>. Each check you run costs 5 minutes.</p>${c.hardNote ? `<p class="lvlnote"><b>${esc(c.hardNote)}</b></p>` : ''}</div>
         </div>
         <div class="main">
         <div class="chat" aria-label="Incident channel">${intro}</div>
@@ -630,7 +635,7 @@
     const tries = S.rec.numWrong || 0;
     let text = near ? near.why : 'That’s not the number I get. Count it straight from the raw data, not the dashboard.';
     if (isNaN(x)) text = 'I need a number, like 1234 or $1,234.56.';
-    const worked = tries >= 2 ? `<div class="worked"><b>🐾 Byte dragged this query onto your screen:</b><pre class="sql">${esc(S.c.answerQ.sql)}</pre><span class="small muted">Run it under “Write your own SQL”, then type what it returns.</span></div>` : '';
+    const worked = tries >= 2 ? `<div class="worked"><b>🐾 Byte dragged this query onto your screen:</b><pre class="sql">${esc(S.c.answerQ.sql)}</pre><span class="small muted">Run it in the SQL box under the checks, then type what it returns.</span></div>` : '';
     return `<div class="why">${av('maya')}${esc(text)}</div>${worked}`;
   }
 
@@ -709,7 +714,8 @@
     const L = c.lesson; const late = rec.solvedAt > MEETING_MIN;
     const daily = S.daily && rec.solvedOn === S.iso;
     const st = TAI.streaks(today());
-    const next = S.practice && S.practice < TAI.PRACTICE_COUNT ? `<a class="btn" href="#/practice/${S.practice + 1}">Next case →</a>` : '';
+    let nx = S.practice ? S.practice + 1 : 0; while (nx && nx <= TAI.PRACTICE_COUNT && !TAI.listed(nx)) nx++;
+    const next = nx && nx <= TAI.PRACTICE_COUNT ? `<a class="btn" href="#/practice/${nx}">Next case →</a>` : '';
     box.innerHTML = `<h2 id="reportTitle" class="sr">Case closed</h2>
       <div class="card win">
         <div class="msg">${av(c.closing.who)}<div class="bubble"><span class="name">${CAST[c.closing.who].name} · ${clockText(rec.solvedAt)}</span>${esc(c.closing.text)}</div></div>

@@ -122,7 +122,7 @@
         chain: ['prices', 'audit', 'qlog', 'ticket'],
         questions: [
           { id: 'cause', prompt: 'What caused it?', options: cause },
-          { id: 'number', prompt: `How much money did the wrong prices lose on ${Df}, compared with the real prices?`, options: numberQ },
+          { id: 'number', prompt: `How much money did the wrong prices lose on ${Df}? (What those items cost at their old prices, minus what customers paid.)`, options: numberQ },
         ],
         closing: { who: 'maya', text: v([`So one missing line turned a clearance into a closing-down sale. Restore prices from price_audit, honour the orders, and no more hand-run UPDATEs without a second pair of eyes. Thank you.`, `A ${money(loss)} typo. Restore the old prices from the audit table today, and make production changes go through a reviewed script. Thank you.`]) },
         lesson: {
