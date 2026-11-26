@@ -7,7 +7,19 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-11-26: Run a query without losing your place
+
+### Fixed
+- Pressing Run on your own query (the fill-in "Finish the query" box, or "Write your own SQL") no longer jumps the page
+  up to the evidence feed. The result shows right under the Run button, and the page stays where it was. On easy and
+  medium, the fill-in query says pass or fail: "✅ That returns the real number" or "❌ not the real number yet". On hard
+  it shows the result only, because finding the number is the job there. The query is still saved in your evidence,
+  counts as one query and costs 5 minutes, as before.
+- The ⭐ bonus query after a solved case keeps the page still too, also when the star is earned.
+
 ### Added
+- `tools/xbrowser/runinplace-test.js`: runs the fill-in, a SQL error, a hard case's own query and the bonus query on
+  10 setups (iPhone, Android, Windows, Mac, iPad) and fails if the Run button moves by more than 3 px.
 - This changelog, a contributing guide ([CONTRIBUTING.md](CONTRIBUTING.md)) and the release process: a branch and pull
   request per change, merge commits, and a tag and GitHub release per version.
 
