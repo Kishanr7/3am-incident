@@ -8,9 +8,9 @@ for (const engine of [pw.chromium, pw.webkit, pw.firefox]) {
   engine.launch = async (...args) => {
     const browser = await launch(...args);
     const newContext = browser.newContext.bind(browser);
-    browser.newContext = async (...a) => { const ctx = await newContext(...a); await ctx.route('**/.netlify/scripts/**', EMPTY); return ctx; };
+    browser.newContext = async (...a) => { const ctx = await newContext(...a); await ctx.route('**/.netlify/scripts/**', EMPTY); await ctx.route('https://app.netlify.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '' })); return ctx; };
     const newPage = browser.newPage.bind(browser);
-    browser.newPage = async (...a) => { const p = await newPage(...a); await p.route('**/.netlify/scripts/**', EMPTY); return p; };
+    browser.newPage = async (...a) => { const p = await newPage(...a); await p.route('**/.netlify/scripts/**', EMPTY); await p.route('https://app.netlify.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '' })); return p; };
     return browser;
   };
 }
