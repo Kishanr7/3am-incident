@@ -358,6 +358,7 @@
             <label class="sr" for="ownSql">Your SQL</label>
             <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.fillIn ? esc(fillInSql()) : ''}</textarea>
             <div class="row" style="margin-top:8px"><button class="btn" id="runOwn">Run (Ctrl+Enter)</button><span class="small muted">SQLite. Counts as one query.</span></div>
+            <div class="ownout" id="ownOut" role="status" aria-live="polite"></div>
           </details>
         </section>
 
@@ -434,14 +435,27 @@
     document.querySelectorAll('.qc').forEach((b) => { b.onclick = () => runCard(b.dataset.id); });
   }
 
-  function push(e) {
+  // Adds an entry to the evidence feed. Checks and hints scroll to it. Queries run from a box (stay = an element
+  // in that box) keep the page where it is: the result shows beside the Run button, and the feed only grows.
+  function push(e, stay) {
     if (S.rec.solved) e.after = true;
     S.rec.timeline.push(e); save();
     const i = S.rec.timeline.length - 1;
+    const y0 = stay && stay.getBoundingClientRect().top;
     document.getElementById('feed').insertAdjacentHTML('beforeend', entryHtml(e, i));
     const el = document.getElementById('e' + i);
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true });
+    if (stay) keepAt(stay, y0);
+    else { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); }
     updateBar();
+    return i;
+  }
+  // Scroll so that el is back at viewport position y0 (browsers without scroll anchoring move it when the feed grows).
+  // On wide screens the checks panel is sticky and scrolls by itself, so whatever the page can't correct, the panel does.
+  function keepAt(el, y0) {
+    const off = () => el.getBoundingClientRect().top - y0;
+    const box = el.closest('.side');
+    if (box && box.scrollHeight > box.clientHeight && Math.abs(off()) > 0.5) box.scrollTop += off();
+    if (Math.abs(off()) > 0.5) window.scrollTo({ top: window.scrollY + off(), behavior: 'instant' });
   }
   function runCard(id) {
     if (ran(id)) { const idx = S.rec.timeline.findIndex((e) => e.t === 'card' && e.id === id); document.getElementById('e' + idx).scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
@@ -451,8 +465,21 @@
     const ta = document.getElementById('ownSql'); const sql = ta.value.trim();
     if (!sql) { ta.focus(); return; }
     if (/____/.test(sql)) { toast('Fill in the ____ first'); ta.focus(); return; }
-    push({ t: 'sql', sql });
-    if (checkStar(sql) && S.rec.solved) renderReport();
+    const out = document.getElementById('ownOut'), btn = document.getElementById('runOwn'), y0 = btn.getBoundingClientRect().top;
+    const i = push({ t: 'sql', sql }, btn);
+    let r = null, err = null; try { r = TAI.query(S.db, sql, 50); } catch (x) { err = x.message; }
+    // Pass or fail for this attempt, right under the Run button. Only the fill-in query (easy and medium) says
+    // whether the real number is in the result; on hard, finding it is the job, so the result is shown as it is.
+    const hit = r && r.values.some((row) => row.some((v) => TAI.matchesAnswer(S.c, v)));
+    const at = clockText(START_MIN + STEP_MIN * (i + 1));
+    const verdict = err ? `<p class="verdict bad">❌ SQL error: ${esc(err)}</p>`
+      : !S.c.fillIn ? `<p class="verdict">Ran at ${at}.</p>`
+      : hit ? `<p class="verdict ok">✅ That returns the real number. Put it in the Report.</p>`
+      : `<p class="verdict bad">❌ ${r.values.length ? 'It ran, but that is not the real number yet.' : 'It ran, but returned no rows.'} Check what goes in the blank against the checks.</p>`;
+    out.style.minHeight = out.offsetHeight + 'px'; // never shrinks between runs, so a panel scrolled to its end can't jump
+    out.innerHTML = verdict + (r ? tableHtml(r) : '') + ownTips(S.rec.timeline[i], i, r) + `<p class="small muted">Saved in your evidence at ${at}.</p>`;
+    keepAt(btn, y0);
+    if (checkStar(sql) && S.rec.solved) { const rp = document.getElementById('report'), y1 = rp.getBoundingClientRect().top; rp.style.minHeight = rp.offsetHeight + 'px'; renderReport(); keepAt(document.getElementById('report'), y1); }
   }
   function hint() {
     const next = S.c.chain.find((id) => !ran(id));
@@ -743,8 +770,9 @@
     const ta = document.getElementById('starSql'); const sql = ta.value.trim();
     if (!sql || /____/.test(sql)) { document.getElementById('starNote').textContent = 'Fill in the ____ first.'; ta.focus(); return; }
     let r; try { r = TAI.query(S.db, sql, 20); } catch (err) { document.getElementById('starNote').textContent = 'SQL error: ' + err.message; return; }
-    push({ t: 'sql', sql });
-    if (checkStar(sql)) { renderReport(); toast('⭐ Proved it'); }
+    const rp = document.getElementById('report');
+    push({ t: 'sql', sql }, rp); const y1 = rp.getBoundingClientRect().top;
+    if (checkStar(sql)) { rp.style.minHeight = rp.offsetHeight + 'px'; renderReport(); keepAt(document.getElementById('report'), y1); toast('⭐ Proved it'); } // the shorter ⭐ card must not shorten the page under you
     else document.getElementById('starNote').textContent = r.values.length ? 'It ran, but none of its numbers is the real one. Try again.' : 'It ran, but returned no rows.';
   });
   function vsResult() {

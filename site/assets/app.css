@@ -300,6 +300,13 @@ button.pcard{cursor:pointer}
 .entry.folded .fsql{flex:1;min-width:0;font:12px/1.4 var(--mono);color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .entry.folded .fold{cursor:pointer;font-size:.8rem}
 .entry.still{animation:none}
+/* The case page keeps itself in place when the feed grows (app.js keepAt); browser scroll anchoring would pick the sticky side panel and jump. */
+.case{overflow-anchor:none}
+.ownout:empty{display:none}
+.ownout{margin-top:10px;display:flow-root}
+.ownout .verdict{margin:0 0 8px;font-weight:700}
+.ownout .verdict.ok{color:var(--accent)}
+.ownout .verdict.bad{color:var(--bad)}
 .tips{margin-top:10px;border-left:3px solid var(--paw);background:var(--surface-2);border-radius:0 10px 10px 0;padding:6px 12px}
 .tips p{margin:4px 0;font-size:.86rem;line-height:1.4}
 .tips code{font-family:var(--mono);font-size:.8rem;background:var(--code);border-radius:5px;padding:1px 4px}
