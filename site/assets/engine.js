@@ -99,12 +99,23 @@
       const k = n - 1 - TAI.LEGACY_DAILIES;
       return { no: n, date: iso, tpl: T[mod(k, 7)], co: C[mod(k + Math.floor(k / 7) * 3, C.length)] };
     }
+    // From #28 (6 Dec 2026): the same order without the cents type (retired), starting where #28 would have been.
+    if (n >= TAI.ROTATION3_FROM) {
+      const k = n - TAI.ROTATION3_FROM; const order = TAI.ROTATION3.map((id) => T.find((x) => x.id === id)).filter(Boolean);
+      return { no: n, date: iso, tpl: order[mod(k, order.length)], co: C[mod(k + Math.floor(k / order.length) * 3, C.length)] };
+    }
     // From #12 (20 Nov 2026): every template, production incidents mixed in between the dashboard ones.
     const k = n - TAI.ROTATION2_FROM; const order = TAI.ROTATION2.map((id) => T.find((x) => x.id === id)).filter(Boolean);
     return { no: n, date: iso, tpl: order[mod(k, order.length)], co: C[mod(k + Math.floor(k / order.length) * 3 + 2, C.length)] };
   }
   TAI.ROTATION2_FROM = 12;
   TAI.ROTATION2 = ['nowhere', 'late', 'email', 'fanout', 'purge', 'units', 'bill', 'drift', 'status', 'tz', 'backfill'];
+  /* Retired types stay playable where they were published (Daily #11 and #17 are cents cases, and old practice links
+     still open), but are no longer dealt: not in new dailies, not listed in the practice library, not in the deck.
+     ROTATION3 starts on #28, the first future day the cents type would have had, so #19–#27 are unchanged. */
+  TAI.RETIRED = ['units'];
+  TAI.ROTATION3_FROM = 28;
+  TAI.ROTATION3 = ['bill', 'drift', 'status', 'tz', 'backfill', 'nowhere', 'late', 'email', 'fanout', 'purge'];
   /* Build the full case for a calendar date. Deterministic: same date, same case, for everyone. */
   function caseFor(iso, opts) {
     const m = meta(iso);
@@ -141,7 +152,9 @@
   const LEVEL_NAMES = ['easy', 'medium', 'hard'];
   function level(n) { if (n > 100) return LEVEL_NAMES[Math.floor((n - 101) / 12)]; return n <= LEVELS.easy[1] ? 'easy' : n <= LEVELS.medium[1] ? 'medium' : 'hard'; }
   // Every practice case number at a level, in order.
-  TAI.levelCases = (l) => { const out = []; for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) if (level(n) === l) out.push(n); return out; };
+  // Retired types are left out (their numbers are kept, so saved progress p<n> still points at the same case).
+  TAI.listed = (n) => TAI.RETIRED.indexOf(practiceMeta(n).tpl.id) < 0;
+  TAI.levelCases = (l) => { const out = []; for (let n = 1; n <= TAI.PRACTICE_COUNT; n++) if (level(n) === l && TAI.listed(n)) out.push(n); return out; };
   function practiceMeta(n) {
     if (n > 100) {
       const j = n - 101; const NEW = TAI.TEMPLATES.slice(7);
@@ -176,7 +189,7 @@
     if (level === 'easy') {
       const herrings = c.cards.filter((x) => !x.key).slice(0, gen >= 3 ? 2 : 1);
       c.cards = c.cards.filter((x) => x.key || herrings.indexOf(x) >= 0);
-      if (gen >= 3) { fixCards(c); c.fillIn = true; c.hardNote = 'Easy case: pick the answers from the options. No check shows the real number by itself: finish the query on the right to find it.'; }
+      if (gen >= 3) { fixCards(c); c.fillIn = true; c.hardNote = 'Easy case: pick the answers from the options. No check shows the real number by itself: finish the 🧩 query under the checks to find it.'; }
       return c;
     }
     c.typed = true;

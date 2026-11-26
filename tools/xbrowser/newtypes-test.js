@@ -1,6 +1,6 @@
 // Plays Daily #12–#22 (20–30 Nov 2026), which covers all 11 case types including the 4 production
 // incidents, with a fake clock. Opens every check, sends a wrong report then the right one, checks the
-// new cast portraits, the 11-card pattern deck, and sideways overflow. Usage: node newtypes-test.js [baseUrl]
+// new cast portraits, the 10-card pattern deck (the cents type is retired), and sideways overflow. Usage: node newtypes-test.js [baseUrl]
 const { chromium, webkit, devices } = require('playwright');
 const BASE = process.argv[2] || 'http://localhost:8767/site/';
 const D = (n) => { const d = { ...devices[n] }; delete d.defaultBrowserType; return d; };
@@ -64,8 +64,8 @@ async function play(page) {
       if (r.types.length !== 11) bugs.push('expected 11 case types in #12–#22, got ' + r.types.join(','));
       for (const who of ['nia', 'theo']) if (!r.people.includes(who)) bugs.push(who + ' never speaks');
       await p.goto(BASE + '#/'); await p.waitForSelector('.deck');
-      const cards = await p.locator('.pcard').count(); if (cards !== 11) bugs.push('pattern deck has ' + cards + ' cards');
-      const unlocked = await p.locator('button.pcard').count(); if (unlocked !== 11) bugs.push('after solving every type, ' + unlocked + ' patterns unlocked');
+      const cards = await p.locator('.pcard').count(); if (cards !== 10) bugs.push('pattern deck has ' + cards + ' cards');
+      const unlocked = await p.locator('button.pcard').count(); if (unlocked !== 10) bugs.push('after solving every type, ' + unlocked + ' patterns unlocked');
       if (await p.evaluate(() => document.documentElement.scrollWidth - innerWidth > 1)) bugs.push('home sideways scroll');
       await p.screenshot({ path: `shots/newtypes-${label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: true });
       await p.evaluate(() => TAI.store.reset());
