@@ -25,6 +25,7 @@ node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, Hide/Show, wi
 node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake clock: all 11 case types, new cast, 11-card deck, 8 setups
 node notesmove-test.js http://localhost:8767/site/ # notes: minimize into the Notes button, reopen in place, drag, arrow keys, remembered position, 8 setups
 node streakui-test.js http://localhost:8767/site/  # a missed day covered by Byte is shown on the week, the streak button and in words, 8 setups
+node runinplace-test.js http://localhost:8767/site/ # Run on your own query or the bonus query keeps the page still; pass/fail shows under Run, 10 setups
 node responsive-test.js http://localhost:8767/site/ [--shots] # every screen at 26 sizes (280 px to 4K, short landscape) in Chrome + 8 in WebKit: no sideways scroll, nothing off screen, 32 px+ tap targets on touch, nothing under the bottom bar
 ```
 
