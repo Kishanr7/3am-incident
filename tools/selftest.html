@@ -50,6 +50,10 @@
     const db = TAI.buildDb(SQL, c);
     const tag = (c.practice ? 'practice ' + c.practice + ' ' + c.level : '#' + c.no) + ` ${iso} ${c.tpl.id} ${c.co.name}`;
     const fail = (m) => fails.push(tag + ': ' + m);
+    // Retired types are never dealt again: no daily from ROTATION3_FROM, no listed practice case.
+    if (TAI.RETIRED.indexOf(c.tpl.id) >= 0 && (c.practice ? TAI.listed(c.practice) : c.no >= TAI.ROTATION3_FROM)) fail('retired type ' + c.tpl.id + ' is still dealt');
+    // The data-flow line names only tables that exist in the case.
+    { const f = (TAI.LINEAGE || {})[c.tpl.id]; if (!f) fail('no data-flow line'); else for (const m of f.matchAll(/`([^`]+)`/g)) if (!c.tables.some((tb) => tb.name === m[1])) fail('data-flow line names a missing table ' + m[1]); }
     // Every table has a plain description in the table guide (row counts are not shown: one of them can be the answer).
     for (const tb of c.tables) {
       if (!((TAI.TABLE_INFO[c.tpl.id] || {})[tb.name])) fail('no description for table ' + tb.name);

@@ -380,6 +380,8 @@ button.pcard{cursor:pointer}
 .tlist dt code{font-weight:700}
 .tlist dd{margin:0;font-size:.9rem}
 .tlist .cols{font-family:var(--mono);font-size:.75rem;color:var(--mute);overflow-wrap:anywhere}
+.brief .flow{margin:4px 0 0;line-height:1.5}
+.brief .flow code{font-family:var(--mono);font-size:.8rem;background:var(--code);border-radius:5px;padding:0 4px;white-space:nowrap}
 .brief .lvlnote{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line);font-size:.88rem}
 /* Big screens (1440p and 4K at 100%): the frame and the type grow a little, never edge to edge */
 @media (min-width:1800px){:root{--page:1320px;--side:380px}}

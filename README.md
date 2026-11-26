@@ -11,17 +11,16 @@
 | Mode | What | Where |
 | --- | --- | --- |
 | **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. A "Your job" box lists the two questions to answer, and "What’s in the database" explains every table. Same case for everyone on a given date. Streak kept on the device | Home page |
-| **Practice library** | 136 cases: 52 easy, 47 medium, 37 hard. #1–100 cover the first seven types; #101–136 the four production incidents (3 of each per level). Easy: options plus a fill-in query, two red herrings; medium: type the number, one of the usual checks hidden; hard: three hidden, write your own SQL | Home page → Practice library |
+| **Practice library** | 122 cases: 46 easy, 42 medium, 34 hard. #1–100 cover six of the first seven types (the retired cents type is hidden); #101–136 the four production incidents (3 of each per level). Easy: options plus a fill-in query, two red herrings; medium: type the number, one of the usual checks hidden; hard: three hidden, write your own SQL | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
-Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are eleven patterns: seven where a dashboard number is wrong, and four production incidents.
+Every case is a real failure pattern, with a short lesson at the end: what happened, how to spot it, how to prevent it, and where it shows up at real jobs. There are ten patterns: six where a dashboard number is wrong, and four production incidents. The job box names the tables behind the wrong number (for example `orders` → `daily_orders` (dashboard)), so you know where to look.
 
 | Case type | The failure |
 | --- | --- |
 | The Late Partition | One source's data landed after the nightly job ran |
 | The Best Day Ever | A dimension got duplicate rows; a join double counted |
 | The Vanishing Sign-ups | An app release renamed a field; rows lost their country |
-| The Hundredfold Day | A new payment provider sends cents; the pipeline reads dollars |
 | The Quiet Rename | A provider says "succeeded" instead of "paid"; the model only counts "paid" |
 | Who Orders at 3 a.m.? | A new ingest service stamps UTC; evening orders move to the next day |
 | The Rewritten Week | A backfill with a test filter left in overwrote three past days |
@@ -30,7 +29,7 @@ Every case is a real failure pattern, with a short lesson at the end: what happe
 | The Wrong Goodbye | A clean-up job turned a missing login into 1970 and deleted active app users |
 | The Expensive Refresh | A new 5-minute dashboard tile filters on `DATE(event_time)`, so every refresh scans the whole table |
 
-Daily #1–#7 used the first three types and are kept exactly as published, dialogue included. Daily #8–#11 cycled through the first seven. From Daily #12 (20 Nov 2026), days cycle through all eleven, with the production incidents mixed in. Practice #1–100 stay on the first seven types, so saved progress keeps pointing at the same cases; #101–136 add the four production incidents.
+Daily #1–#7 used the first three types and are kept exactly as published, dialogue included. Daily #8–#11 cycled through the first seven. From Daily #12 (20 Nov 2026), days cycled through all eleven, with the production incidents mixed in. From Daily #28 (6 Dec 2026) the cents type (The Hundredfold Day) is retired: days cycle through the other ten, and Daily #1–#27 stay exactly as they were. Practice #1–100 stay on the first seven types, so saved progress keeps pointing at the same cases, but the cents cases are no longer listed (their links still open); #101–136 add the four production incidents.
 
 Each case picks one of several versions of its opening, reactions and closing, so a type reads differently each time it comes round. Cast: Maya (CFO), Sam (growth), Nia (support lead), Theo (CRM and email), Byte, Old Gus and The Vendor.
 
@@ -67,7 +66,7 @@ Each template also ships **self-checks**: SQL that must return the intended answ
 
 | Test | How | Result (2026-11-15) |
 | --- | --- | --- |
-| Case generator: 1000 daily dates + 136 practice cases, all 11 types | Serve the repo root, open `tools/selftest.html?days=1000`. Story integrity: every number in a case's teaser, alert, dialogue, closing and wrong-answer notes must be findable in the data (a value, a column total or average, or a row count), and templates check that alert totals match the raw tables. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, difficulty rules, that the right cause option is never clearly the longest, and that every table has a description | **All pass** (1136 cases) |
+| Case generator: 1000 daily dates + 136 practice cases, all 11 types (including the retired one, and a check that it is never dealt again) | Serve the repo root, open `tools/selftest.html?days=1000`. Story integrity: every number in a case's teaser, alert, dialogue, closing and wrong-answer notes must be findable in the data (a value, a column total or average, or a row count), and templates check that alert totals match the raw tables. It runs every self-check and every query card, checks there's exactly one right answer per question, distinct options, determinism, difficulty rules, that the right cause option is never clearly the longest, and that every table has a description | **All pass** (1136 cases) |
 | Published dailies unchanged | Old and new engine compared for Daily #1–#7: same company, story, numbers, answer order | **Identical** |
 | Full play-through in the UI at phone width (375 px) | Script plays all 7 daily + 136 practice cases (every type at easy, medium and hard): runs every card, asks Byte, runs own SQL, sends a wrong report (checks feedback), then the right one (checks solved, share text, next link, no sideways scroll) | **All pass, no console errors** |
 | Streak rules | Today's solve counts; archive and practice solves don't; streak code round-trips; junk code rejected | Pass |

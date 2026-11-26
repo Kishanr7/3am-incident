@@ -4,6 +4,20 @@
   const DASH = 'What the dashboard shows. Built by the nightly job from the raw data.';
   const DEPLOYS = 'Code changes shipped to production: when, which service, by whom, and what changed.';
   const PROMOS = 'Sales and offers run by competitors, with their dates.';
+  /* The data flow behind the number in the alert, shown in the "Your job" box. Names the tables, never the cause. */
+  window.TAI.LINEAGE = {
+    late: '`orders` (raw, one row per order) → nightly job (`job_runs`) → `daily_orders` (dashboard)',
+    fanout: '`orders` + `dim_customers` → `fct_orders` → `daily_revenue` (dashboard)',
+    drift: '`raw_signups` + `countries` → `daily_signups` (dashboard)',
+    status: '`orders` → the dashboard SQL (`model_sql`) → `daily_revenue` (dashboard)',
+    tz: '`orders` (written by the ingest service) → `daily_orders` (dashboard)',
+    backfill: '`orders` → nightly job or a backfill run → `daily_orders` (dashboard)',
+    nowhere: 'price changes (`price_audit`) → `products` → what each sale charged (`order_items`) → `daily_sales` (dashboard)',
+    email: '`campaigns` → sender job (`job_runs`) → one row per email (`email_sends`) → `daily_email` (dashboard)',
+    purge: 'clean-up job (`job_runs`) → accounts it deleted (`deleted_users`); `daily_active` (dashboard) counts who is left',
+    bill: 'every warehouse query, with its cost (`query_history`) → `daily_cost` (the bill); dashboard tiles run queries too',
+    units: '`raw_webhooks` (as each provider sent them) → `payments` → `daily_revenue` (dashboard)',
+  };
   window.TAI.TABLE_INFO = {
     late: {
       orders: 'Raw orders: one row per order, with the source it came from (web, ios, android, partner_api).',
