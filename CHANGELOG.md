@@ -7,6 +7,29 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-26: Ten patterns, and where the number comes from
+
+### Removed
+- The cents case type (*The Hundredfold Day*) is retired: players found it confusing. From Daily #28 (Sun 6 Dec) the
+  days cycle through the other ten types, starting where #28 would have been, so Daily #1–#27 stay exactly as they
+  were. The two published cents dailies (#11 and #17) still open from the week and archive.
+- Its 14 practice cases are no longer listed in the library (now 122 cases: 46 easy, 42 medium, 34 hard). Numbers
+  were not changed, so saved progress still points at the same cases, and old links to them still open.
+- The pattern deck has ten cards.
+
+### Added
+- "Where the number comes from" in the *Your job* box: the tables behind the wrong number, from the raw data to the
+  dashboard, for example `orders` + `dim_customers` → `fct_orders` → `daily_revenue` (dashboard). It names tables
+  only, never the cause. The self-test checks that every table it names exists in the case.
+
+### Changed
+- The Missing WHERE: the money question says how it is counted (what the items cost at their old prices, minus what
+  customers paid).
+- The easy note points to the 🧩 query "under the checks" instead of "on the right" (it is below on phones), and
+  Byte's worked query says to run it in the SQL box under the checks.
+- Tests: `tools/xbrowser/no-netlify-toolbar.js` lets the browser tests run on a Netlify deploy preview, whose
+  review toolbar covers the bottom bar on phones.
+
 ## [1.4.2] - 2026-11-26: Run a query without losing your place
 
 ### Fixed
