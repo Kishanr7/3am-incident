@@ -33,4 +33,6 @@ node responsive-test.js http://localhost:8767/site/ [--shots] # every screen at 
 
 On a Netlify deploy preview, preload `no-netlify-toolbar.js` (`node -r ./no-netlify-toolbar.js xtest.js https://deploy-preview-N--3am-incident-kish.netlify.app/`): previews add a "Collaborate" toolbar that covers the bottom bar on phones, so taps time out. The live site has no toolbar.
 
+On the live site, preload `no-goatcounter.js` (`node -r ./no-goatcounter.js xtest.js https://3am-incident-kish.netlify.app/`) so test runs never send visit counts. Without it, GoatCounter's script loads and its requests show up as console errors and cancelled requests. `stats-test.js` stubs the counter itself.
+
 Limits: WebKit here is Playwright's build of Safari's engine on Windows, not Safari on a real iPhone or Mac. Playwright's own offline switch blocks the service worker in WebKit, so offline is tested by stopping the server instead. Firefox's test build does not start on this PC (missing Windows runtime); Firefox was checked by feature review only.
