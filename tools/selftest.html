@@ -54,6 +54,11 @@
     if (TAI.RETIRED.indexOf(c.tpl.id) >= 0 && (c.practice ? TAI.listed(c.practice) : c.no >= TAI.ROTATION3_FROM)) fail('retired type ' + c.tpl.id + ' is still dealt');
     // The data-flow line names only tables that exist in the case.
     { const f = (TAI.LINEAGE || {})[c.tpl.id]; if (!f) fail('no data-flow line'); else for (const m of f.matchAll(/`([^`]+)`/g)) if (!c.tables.some((tb) => tb.name === m[1])) fail('data-flow line names a missing table ' + m[1]); }
+    // The cause starts on the incident day: nothing before it is affected (published dailies before SAME_DAY_FROM excepted).
+    if (c.practice || iso >= TAI.SAME_DAY_FROM) {
+      if (c.tpl.id === 'drift') { const n = c.tables.find((x) => x.name === 'raw_signups').rows.filter((x) => x[4] == null && x[1].slice(0, 10) < c.D).length; if (n) fail(n + ' sign-ups without a country before the incident day'); }
+      if (c.tpl.id === 'bill') { const bad = c.tables.find((x) => x.name === 'dashboard_tiles').rows.find((x) => x[2] === 5); const n = c.tables.find((x) => x.name === 'query_history').rows.filter((x) => x[3] === bad[1] && x[1].slice(0, 10) < c.D).length; if (n) fail(n + ' runs of the new tile before the incident day'); }
+    }
     // Every table has a plain description in the table guide (row counts are not shown: one of them can be the answer).
     for (const tb of c.tables) {
       if (!((TAI.TABLE_INFO[c.tpl.id] || {})[tb.name])) fail('no description for table ' + tb.name);

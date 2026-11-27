@@ -323,7 +323,7 @@
     id: 'drift',
     name: 'The Vanishing Sign-ups',
     pattern: 'Schema drift',
-    build(t, { D, days, co, v }) {
+    build(t, { D, days, co, v, sameDay }) {
       const prev = days.slice(0, -1);
       const platforms = ['ios', 'android', 'web'];
       const P = t.pick(['ios', 'android']);
@@ -333,9 +333,9 @@
       const H = t.pick(cs); // the holiday country (a red herring)
       const major = t.int(5, 7), minor = t.int(10, 30);
       const vOld = `${major}.${minor}.${t.int(1, 4)}`; const vNew = `${major}.${minor + 1}.0`;
-      const releaseAt = ts(addDays(D, -1), 21, t.int(0, 9), t.int(0, 59));
+      const releaseAt = sameDay ? ts(D, 0, t.int(0, 9), t.int(0, 59)) : ts(addDays(D, -1), 21, t.int(0, 9), t.int(0, 59)); // see TAI.SAME_DAY_FROM
       const otherP = platforms.find((p) => p !== P && p !== 'web');
-      const otherV = `${t.int(5, 7)}.${t.int(10, 30)}.${t.int(0, 3)}`;
+      const otherV = `${t.int(5, 7)}.${t.int(10, 30)}.${t.int(0, 3) + (sameDay ? 1 : 0)}`; // never x.y.0, so it can never equal vNew (same draws as before)
       const webV = 'web-' + D.slice(0, 7).replace('-', '.');
 
       const base = t.int(co.scale[0], co.scale[1]);

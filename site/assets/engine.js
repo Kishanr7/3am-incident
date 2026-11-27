@@ -115,6 +115,11 @@
      ROTATION3 starts on #28, the first future day the cents type would have had, so #19–#27 are unchanged. */
   TAI.RETIRED = ['units'];
   TAI.ROTATION3_FROM = 28;
+  /* The incident happens on the incident day only. Before this date two types started their cause the evening before
+     (drift: the app release at 21:xx; bill: the new tile at 16–19:xx), so the day before was partly wrong too, which
+     confused players about which day the case is about. From this date (Daily #28) and in practice the cause starts on
+     the incident day itself. Published dailies keep their data. */
+  TAI.SAME_DAY_FROM = '2026-12-06';
   TAI.ROTATION3 = ['bill', 'drift', 'status', 'tz', 'backfill', 'nowhere', 'late', 'email', 'fanout', 'purge'];
   /* Build the full case for a calendar date. Deterministic: same date, same case, for everyone. */
   function caseFor(iso, opts) {
@@ -133,7 +138,7 @@
       const vr = mulberry32(hash('voice|' + iso + '|' + tpl.id + '|' + co.name + '|' + ((opts && opts.salt) || '')));
       const plain = !(opts && opts.salt) && !(opts && opts.tpl) && m.no <= TAI.LEGACY_DAILIES;
       const v = (list) => (plain ? list[0] : list[Math.floor(vr() * list.length)]);
-      c = tpl.build(t, { D, days, co, caseDate: iso, no: m.no, v });
+      c = tpl.build(t, { D, days, co, caseDate: iso, no: m.no, v, sameDay: iso >= TAI.SAME_DAY_FROM || !!(opts && opts.salt) });
       attempt++;
     } while (c.valid === false && attempt < 20);
     c.attempts = attempt;
