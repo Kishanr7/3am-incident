@@ -7,6 +7,33 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-27: Visit counts, search engines and launch polish
+
+### Added
+- Cookie-free visit counts with [GoatCounter](https://www.goatcounter.com) (`site/assets/stats.js`): one count per
+  screen (home, `/daily/<date>`, `/practice/<n>`, `/case-1/`, `/privacy/`) and a few events (case solved by type
+  and level, Copy or Share pressed, a "beat my time" link opened). No cookies, nothing stored on the device, no
+  personal data, so no consent banner. Counts only on the live site (not localhost or deploy previews), skips
+  Do Not Track and Global Privacy Control, never cached by the service worker, and fails silently when blocked or
+  offline.
+- A privacy page (`/privacy/`) saying what is counted and what stays on the device, linked from the home footer and
+  case file #1.
+- A 404 page, `favicon.ico` and `favicon.svg` (search results need a real favicon file).
+- Search engines: JSON-LD (`WebSite` + `VideoGame`) on the home page and case file #1; canonical URL, Open Graph and
+  Twitter tags on case file #1; a short static intro on the home page that the game replaces when it starts, so
+  crawlers that don't run JavaScript still read what the game is; a better `<noscript>` text; `lastmod` and the
+  privacy page in `sitemap.xml`; `lang` in the manifest; a marked spot for Search Console / Bing verification tags.
+- Security headers: a Content-Security-Policy that lists every outside host (cdnjs, jsDelivr, GoatCounter), plus
+  X-Frame-Options, Permissions-Policy and Cross-Origin-Opener-Policy.
+- Test: `tools/xbrowser/stats-test.js` (8 setups) checks every count and event with a stub counter, no count under
+  Global Privacy Control, no CSP violations, the SQL engine starting under the CSP, the 404 page and the SEO files.
+
+### Changed
+- "No tracking" is now "no cookies" on the home footer, and case file #1 says "nothing you *type* leaves your
+  browser", since page views are now counted.
+- Case file #1's script moved from the page into `case-1/case.js`, so the CSP needs no `unsafe-inline` for scripts.
+- Its title names the case: *Case #1: The Missing Revenue · 3 a.m. Incident*.
+
 ## [1.6.0] - 2026-11-27: One query result at a time
 
 ### Changed
