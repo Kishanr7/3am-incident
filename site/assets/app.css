@@ -407,3 +407,9 @@ button.pcard{cursor:pointer}
 .qtbl.all .tbl{max-height:60vh;overflow:auto}
 .qtbl .showall{margin-top:6px;min-height:36px;cursor:pointer;font-size:.82rem}
 @media (max-width:540px){.qtbl table.res.stack tr.xrow{display:none}.qtbl.all table.res.stack tr.xrow{display:block}}
+/* SQLite tag and the dialect fold in the own-SQL box */
+.dbtag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);font:600 .72rem/1.6 var(--sans);color:var(--mute);vertical-align:middle}
+details.dialect{margin:8px 0}
+details.dialect>summary{cursor:pointer;font-size:.86rem;min-height:36px;display:flex;align-items:center}
+table.dlt td{white-space:normal;font-size:.8rem;vertical-align:top}
+table.dlt code{font-family:var(--mono);font-size:.76rem;overflow-wrap:anywhere}
