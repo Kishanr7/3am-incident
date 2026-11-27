@@ -7,6 +7,11 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+### Changed
+- Tests: `tools/xbrowser/no-goatcounter.js`, preloaded for runs against the live site, so test runs never send
+  visit counts (an empty counter script plus GoatCounter's own `skipgc` opt-out, which also covers WebKit pages
+  controlled by the service worker).
+
 ## [1.7.0] - 2026-11-27: Visit counts, search engines and launch polish
 
 ### Added
