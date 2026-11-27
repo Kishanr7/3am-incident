@@ -52,7 +52,7 @@ Putting it in the App Store or Google Play would need developer accounts (Apple 
 
 ## No backend, no accounts
 
-Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere.
+Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere. The query box helps players who know another dialect: a fold with the usual PostgreSQL, MySQL and Spark differences, and a tip when a query fails on another dialect's syntax.
 
 Progress and streaks live in the browser's local storage. To move a streak to another device, use **Stats → Copy streak code** and paste it on the other device. Accounts are deliberately postponed (see `VISION.md`).
 

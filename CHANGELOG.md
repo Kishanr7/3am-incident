@@ -7,6 +7,20 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [VERSION] - 2026-11-27: Speaks your SQL dialect
+
+### Added
+- The query box says it is SQLite, and a "Coming from PostgreSQL, MySQL or Spark?" fold shows the usual differences
+  (the day or hour of a timestamp, date maths, days between dates, case-insensitive matching, JSON fields, row limits,
+  division).
+- When a query fails because of another dialect's syntax (`x::date`, `DATE_TRUNC`, `EXTRACT`, `INTERVAL`, `ILIKE`,
+  `TOP 10`, `DATEDIFF`, `TO_CHAR` …), Byte shows the SQLite way under Run. Two that run but give a wrong answer are
+  always flagged: `CAST(x AS DATE)` (a number like 2026 in SQLite) and `CURRENT_DATE` / `NOW()` (today's real date,
+  not the case's).
+
+### Fixed
+- The "text matches are case-sensitive" tip no longer appears for `LIKE`, which ignores case in SQLite.
+
 ## [1.6.0] - 2026-11-27: One query result at a time
 
 ### Changed
