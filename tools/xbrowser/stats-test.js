@@ -14,6 +14,7 @@ const LIVE = 'https://3am-incident-kish.netlify.app/';
 const arg = process.argv[2];
 const BASE = arg ? arg.replace(/\/?$/, '/') : LIVE;
 const LOCAL = !arg;
+const COUNTS = LOCAL || BASE === LIVE; // stats.js counts only on the live host: on a deploy preview, expect no counts at all
 const SITE = path.resolve(__dirname, '../../site');
 const D = (name) => { const d = { ...devices[name] }; delete d.defaultBrowserType; return d; };
 const PROFILES = [
@@ -100,9 +101,10 @@ function serveLocal(route) {
       if (r404.status() !== 404) bugs.push('missing page returns ' + r404.status());
       if (!(await p.locator('h1', { hasText: '404' }).count())) bugs.push('404 page not shown');
       const want = ['/', '/practice/7', 'solved-practice-' + level + ' (event)', 'copy-result-clicked (event)', '/daily/' + todayIso, 'beat-my-time-link-opened (event)', '/case-1/', '/privacy/'];
-      for (const w of want) if (!hits.includes(w)) bugs.push('not counted: ' + w);
+      if (!COUNTS) { if (hits.length) bugs.push('counted on a non-live host: ' + hits.join(', ')); }
+      else for (const w of want) if (!hits.includes(w)) bugs.push('not counted: ' + w);
       if (hits.includes('AUTO-ONLOAD')) bugs.push('GoatCounter counted on load by itself (double count)');
-      if (hits.filter((x) => x === '/practice/7').length !== 1) bugs.push('practice view counted ' + hits.filter((x) => x === '/practice/7').length + ' times');
+      if (COUNTS && hits.filter((x) => x === '/practice/7').length !== 1) bugs.push('practice view counted ' + hits.filter((x) => x === '/practice/7').length + ' times');
       if (hits.some((x) => /no-such-page/.test(x))) bugs.push('404 page was counted');
       for (const e of errors) bugs.push('console: ' + e);
       notes.push(hits.length + ' counts');
