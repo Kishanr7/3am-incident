@@ -362,11 +362,12 @@
         <section id="investigate" class="side">
           <h2>What do you want to check?</h2>
           <div class="picks" id="picks"></div>
-          <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables)</summary>${tablesHtml}</details>
+          <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables, SQLite)</summary>${tablesHtml}</details>
           <details class="card own" style="margin-top:10px" ${c.fillIn ? 'open' : ''}>
-            <summary>${c.fillIn ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'}</summary>
+            <summary>${c.fillIn ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'} <span class="dbtag">SQLite</span></summary>
             ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
             <div class="schema">${schema}</div>
+            ${dialectHtml()}
             <label class="sr" for="ownSql">Your SQL</label>
             <textarea id="ownSql" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="SELECT * FROM ${c.tables[0].name} LIMIT 5;">${c.fillIn ? esc(fillInSql()) : ''}</textarea>
             <div class="row" style="margin-top:8px"><button class="btn" id="runOwn">Run (Ctrl+Enter)</button><span class="small muted">SQLite. Counts as one query.</span></div>
@@ -398,6 +399,42 @@
   }
 
   // ---------------- tips under the player's own SQL ----------------
+  // ---------------- other SQL dialects ----------------
+  // The game runs SQLite. Players often write PostgreSQL, MySQL or Spark SQL: show the SQLite way when a query fails
+  // on another dialect's syntax, and always for the two that run but quietly give a wrong answer.
+  const DIALECT = [
+    // [pattern, only when the query failed?, tip]
+    [/::\s*[a-z]/i, true, '<code>x::date</code> is PostgreSQL. In SQLite write <code>DATE(x)</code> (and <code>CAST(x AS REAL)</code> for numbers).'],
+    [/\bILIKE\b/i, true, 'SQLite has no <code>ILIKE</code>. Its <code>LIKE</code> already ignores upper and lower case: <code>x LIKE \'%abc%\'</code>.'],
+    [/\bDATE_TRUNC\s*\(/i, true, '<code>DATE_TRUNC</code> → <code>DATE(x)</code> for the day, <code>DATE(x, \'start of month\')</code> for the month, <code>strftime(\'%Y-%m-%d %H:00\', x)</code> for the hour.'],
+    [/\bEXTRACT\s*\(|\b(HOUR|MINUTE|DAY|DAYOFWEEK|MONTH|YEAR)\s*\(/i, true, 'Parts of a date: <code>strftime(\'%H\', x)</code> is the hour (<code>%Y</code> year, <code>%m</code> month, <code>%d</code> day, <code>%w</code> weekday, 0 = Sunday). Wrap it in <code>CAST(… AS INTEGER)</code> to compare with numbers.'],
+    [/\bINTERVAL\b|\bDATE_?(SUB|ADD)\s*\(/i, true, 'Date maths: <code>DATE(x, \'-1 day\')</code>, <code>DATETIME(x, \'+5 hours\')</code>.'],
+    [/\bDATEDIFF\s*\(/i, true, 'Days between two dates: <code>julianday(b) - julianday(a)</code>.'],
+    [/\b(TO_CHAR|DATE_FORMAT|FORMAT_DATE)\s*\(/i, true, 'Formatting dates: <code>strftime(\'%Y-%m-%d\', x)</code>.'],
+    [/\b(TO_DATE|STR_TO_DATE|TO_TIMESTAMP)\s*\(/i, true, 'Dates here are text like <code>\'2026-01-10 14:05:00\'</code>, so they compare and sort as they are. <code>DATE(x)</code> gives the day.'],
+    [/\bSELECT\s+TOP\s+\d+/i, true, 'SQLite puts the row limit at the end: <code>… LIMIT 10</code>.'],
+    [/\bCAST\s*\([^)]*\bAS\s+(DATE|TIMESTAMP|DATETIME)\b/i, false, '<code>CAST(x AS DATE)</code> doesn’t make a date in SQLite: it gives a number like 2026. Use <code>DATE(x)</code>.'],
+    [/\bCURRENT_(DATE|TIMESTAMP)\b|\b(NOW|GETDATE|SYSDATE|CURDATE)\s*\(/i, false, '<code>CURRENT_DATE</code> and <code>NOW()</code> are today’s real date, not the day in this case. Type the date instead, like <code>\'{DAY}\'</code>.'],
+  ];
+  function dialectTips(sql, run) {
+    const failed = !run || !!run.err; const code = sql.replace(/'(?:[^']|'')*'/g, "''"); // ignore text inside quotes
+    return DIALECT.filter(([re, onlyErr]) => (failed || !onlyErr) && re.test(code)).map(([, , tip]) => '🐾 ' + tip.replace('{DAY}', S.c.D)); // the incident day
+  }
+  const DIALECT_ROWS = [
+    ['The day of a timestamp', '<code>x::date</code>, <code>DATE_TRUNC(\'day\', x)</code>, <code>to_date(x)</code>', '<code>DATE(x)</code>'],
+    ['The hour', '<code>EXTRACT(HOUR FROM x)</code>, <code>HOUR(x)</code>', '<code>strftime(\'%H\', x)</code>'],
+    ['One day earlier', '<code>x - INTERVAL \'1 day\'</code>, <code>DATE_SUB(x, INTERVAL 1 DAY)</code>', '<code>DATE(x, \'-1 day\')</code>'],
+    ['Days between', '<code>DATEDIFF(b, a)</code>', '<code>julianday(b) - julianday(a)</code>'],
+    ['Case-insensitive match', '<code>ILIKE</code>', '<code>LIKE</code> (already ignores case)'],
+    ['A field from JSON', '<code>payload->>\'country\'</code>, <code>get_json_object(…)</code>', '<code>payload ->> \'$.country\'</code> or <code>json_extract(payload, \'$.country\')</code>'],
+    ['First 10 rows', '<code>SELECT TOP 10 …</code>', '<code>… LIMIT 10</code>'],
+    ['Division with decimals', '<code>5 / 2</code> is 2.5 in MySQL', '<code>5 * 1.0 / 2</code> (<code>5 / 2</code> is 2)'],
+  ];
+  function dialectHtml() {
+    return `<details class="dialect"><summary>Coming from PostgreSQL, MySQL or Spark?</summary><p class="small" style="margin:6px 0">This is SQLite. Most SQL works as you know it; these are the usual differences. Dates are text like <code>'2026-01-10 14:05:00'</code>.</p>
+      <div class="tbl"><table class="res dlt"><thead><tr><th scope="col">To get</th><th scope="col">Elsewhere</th><th scope="col">SQLite</th></tr></thead><tbody>${DIALECT_ROWS.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div></details>`;
+  }
+
   // SQLite compares text exactly, so 'pebble pay' never matches 'Pebble Pay'. Point that out, and say when a
   // query returns exactly what an earlier one did (the edit made no difference).
   let valueIndex = null;
@@ -415,7 +452,7 @@
     const re = /'((?:[^']|'')*)'/g; let m;
     while ((m = re.exec(sql))) {
       const lit = m[1].replace(/''/g, "'");
-      if (!lit || seen.has(lit) || exact.has(lit) || /[%_]/.test(lit)) continue;
+      if (!lit || seen.has(lit) || exact.has(lit) || /[%_]/.test(lit) || /\bLIKE\s*$/i.test(sql.slice(0, m.index))) continue; // LIKE ignores case
       seen.add(lit); const real = lower.get(lit.toLowerCase());
       if (real) out.push([lit, real]);
     }
@@ -440,7 +477,7 @@
       (run.list.more ? `<p class="more">${run.list.more} more ${run.list.more === 1 ? 'statement' : 'statements'} ran but ${run.list.more === 1 ? 'is' : 'are'} not shown. Run them on their own to see them.</p>` : '');
   }
   function ownTips(e, i, run) {
-    const tips = caseTraps(e.sql).map(([lit, real]) => `🐾 No row says <code>'${esc(lit)}'</code> exactly. The data says <code>'${esc(real)}'</code>. Text matches are case-sensitive, so that part of your query matched nothing.`);
+    const tips = dialectTips(e.sql, run).concat(caseTraps(e.sql).map(([lit, real]) => `🐾 No row says <code>'${esc(lit)}'</code> exactly. The data says <code>'${esc(real)}'</code>. With <code>=</code>, text matches are case-sensitive, so that part of your query matched nothing.`));
     const key = resultKey(run);
     if (key) {
       for (let j = i - 1; j >= 0; j--) {
@@ -860,7 +897,7 @@
       { art: `<div class="tmock"><div class="msg alert">${av('alert')}<div class="bubble"><span class="name">#data-alerts · 03:12</span>Orders: −35% vs normal. All jobs: SUCCESS.</div></div><div class="msg">${av('maya')}<div class="bubble"><span class="name">Maya · 08:10</span>Is this real, or is the dashboard lying?</div></div></div>`,
         title: 'Something looks wrong', text: 'Each morning a number on the dashboard looks off, and your boss Maya wants to know why before the 9:00 meeting.' },
       { art: `<div class="tmock"><div class="tpick"><span>Logs</span>When did each source’s data arrive?</div><div class="tpick"><span>Raw data</span>Orders for yesterday, by source</div><div class="tclock">🕗 Each check: +5 min · 📝 Notes keep track · 🐾 Byte hints</div></div>`,
-        title: 'Tap to check the data', text: 'Pick what to look at. Each check runs a real SQL query on a small, made-up database. No typing needed.' },
+        title: 'Tap to check the data', text: 'Pick what to look at. Each check runs a real SQL query on a small, made-up SQLite database. No typing needed.' },
       { art: `<div class="tmock"><div class="topt">The iOS data arrived late, after the nightly job ran</div><div class="topt on">✓ Real orders: 674</div><div class="tclock">🔥 New case every day · keep your streak</div></div>`,
         title: 'Tell Maya what happened', text: 'Choose the cause and the real number. Get it right before 9:00. A new case comes every day, plus ' + TAI.PRACTICE_COUNT + ' practice cases.' },
     ];

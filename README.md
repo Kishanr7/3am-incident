@@ -54,7 +54,7 @@ Putting it in the App Store or Google Play would need developer accounts (Apple 
 
 ## No backend, no accounts, no cookies
 
-Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere.
+Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere. The query box helps players who know another dialect: a fold with the usual PostgreSQL, MySQL and Spark differences, and a tip when a query fails on another dialect's syntax.
 
 **Visit counts.** The live site counts page views with [GoatCounter](https://www.goatcounter.com) (`site/assets/stats.js`): no cookies, nothing stored on the device, no personal data, so no consent banner. It counts one path per screen (`/`, `/daily/2026-11-30`, `/practice/12`, `/case-1/`, `/privacy/`) and a few events (`solved-daily-easy`, `share-clicked`, `copy-result-clicked`, `beat-my-time-link-opened`, `solved-case-1`). It only runs on the live host, never on localhost or deploy previews, skips browsers that send Do Not Track or Global Privacy Control, and isn't cached by the service worker, so offline play is untouched. What players are told: [site/privacy/](site/privacy/index.html). Dashboard: https://3am-incident.goatcounter.com (owner login).
 
