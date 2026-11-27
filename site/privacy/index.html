@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>try{var t=localStorage.getItem("tai.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/app.css">
+<style>.page{padding:32px 16px 10px}.page h1{font:650 1.6rem/1.2 var(--display);margin:0 0 14px}.page h2{font:650 1.1rem/1.3 var(--display);margin:22px 0 6px}.page li{margin:4px 0}</style>
+<title>Privacy · 3 a.m. Incident</title>
+<meta name="description" content="What 3 a.m. Incident counts (page views, no cookies, no personal data) and what stays on your device.">
+<link rel="canonical" href="https://3am-incident-kish.netlify.app/privacy/">
+</head>
+<body>
+<main class="wrap page">
+<p><a href="/">← 3 a.m. Incident</a></p>
+<h1>Privacy</h1>
+<p>Short version: no account, no cookies, no ads, no personal data. The site counts visits, and that's all.</p>
+
+<h2>What is counted</h2>
+<p>To see how many people play, the site uses <a href="https://www.goatcounter.com" rel="noopener">GoatCounter</a>, an open-source, privacy-friendly counter. For each page you open it records:</p>
+<ul>
+<li>the page (home, a daily case, a practice case, case file #1, this page)</li>
+<li>the site that linked you here, if any (for example reddit.com)</li>
+<li>browser, operating system and screen size, as broad groups</li>
+<li>a country, worked out from your IP address, which is <b>not</b> stored</li>
+<li>a few game events: a case solved, the Share or Copy button pressed, a “beat my time” link opened</li>
+</ul>
+<p>It sets no cookies and stores nothing on your device. Your IP address and browser are used once to tell repeat visits apart for the day; GoatCounter then throws them away (<a href="https://www.goatcounter.com/help/sessions" rel="noopener">how GoatCounter counts visits</a>). The numbers can't be linked back to you and are never sold or shared.</p>
+<p>Nothing is counted if your browser sends Do Not Track or Global Privacy Control, if an ad blocker blocks the counter, or while you play offline.</p>
+
+<h2>What stays on your device</h2>
+<p>Everything you type: your SQL, your answers, your notes. Your progress and streak are kept in your browser's local storage and are never sent anywhere. Clearing the site's data in your browser deletes them.</p>
+
+<h2>Other services the page loads</h2>
+<p>The SQL engine (<a href="https://sql.js.org" rel="noopener">sql.js</a>) comes from cdnjs and the fonts from jsDelivr. Like any website, those servers see a normal request from your browser when they're downloaded. The site is hosted on Netlify, whose servers keep standard access logs.</p>
+
+<h2>Questions</h2>
+<p>Open an issue on <a href="https://github.com/Kishanr7/3am-incident/issues" rel="noopener">GitHub</a>. The code, this counter included, is public.</p>
+</main>
+<footer><a href="/">Play today's case</a></footer>
+<script src="/assets/stats.js"></script>
+</body>
+</html>

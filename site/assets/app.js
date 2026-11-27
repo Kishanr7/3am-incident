@@ -206,7 +206,7 @@
         </details>
 
         <p class="pilot">The companies and data are made up, and your progress stays on this device.</p>
-        <footer>Made by Kishan · no account, no tracking · <a href="https://github.com/Kishanr7/3am-incident" rel="noopener">Code on GitHub</a></footer>
+        <footer>Made by Kishan · no account, no cookies · <a href="privacy/">Privacy</a> · <a href="https://github.com/Kishanr7/3am-incident" rel="noopener">Code on GitHub</a></footer>
         </div>
       </div>`;
     document.getElementById('statsBtn').onclick = () => showStats();
@@ -685,6 +685,7 @@
     if (ok) {
       rec.solved = true; rec.solvedOn = today(); rec.solvedAt = clockMin();
       rec.queries = rec.timeline.filter((e) => e.t !== 'hint').length;
+      if (window.taiCount) taiCount('solved-' + (S.daily ? 'daily' : 'practice') + '-' + (c.level || 'classic'));
     }
     save(); renderReport();
     const box = document.getElementById('report');
