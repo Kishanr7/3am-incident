@@ -1,5 +1,7 @@
 # 3 a.m. Incident
 
+[![Play](https://img.shields.io/badge/play-3am--incident--kish.netlify.app-2f6f6a)](https://3am-incident-kish.netlify.app) [![Release](https://img.shields.io/github/v/release/Kishanr7/3am-incident)](https://github.com/Kishanr7/3am-incident/releases) [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+
 **A daily data mystery.** The dashboard says something terrible happened overnight. Every job says SUCCESS. Find out what really happened before the 9:00 meeting.
 
 **Play it:** https://3am-incident-kish.netlify.app (free, no sign-up, works offline once loaded; install it on your phone from the browser menu).
@@ -50,9 +52,13 @@ The site is a Progressive Web App (PWA): it installs to the home screen, opens f
 
 Putting it in the App Store or Google Play would need developer accounts (Apple $99/year, Google $25 once) and a wrapper such as Capacitor or a Trusted Web Activity. It's not needed to play.
 
-## No backend, no accounts
+## No backend, no accounts, no cookies
 
 Everything runs in the player's browser: a real SQLite engine ([sql.js](https://github.com/sql-js/sql.js), from cdnjs) runs against a small fictional database generated from a fixed seed. Nothing typed is sent anywhere. The query box helps players who know another dialect: a fold with the usual PostgreSQL, MySQL and Spark differences, and a tip when a query fails on another dialect's syntax.
+
+**Visit counts.** The live site counts page views with [GoatCounter](https://www.goatcounter.com) (`site/assets/stats.js`): no cookies, nothing stored on the device, no personal data, so no consent banner. It counts one path per screen (`/`, `/daily/2026-11-30`, `/practice/12`, `/case-1/`, `/privacy/`) and a few events (`solved-daily-easy`, `share-clicked`, `copy-result-clicked`, `beat-my-time-link-opened`, `solved-case-1`). It only runs on the live host, never on localhost or deploy previews, skips browsers that send Do Not Track or Global Privacy Control, and isn't cached by the service worker, so offline play is untouched. What players are told: [site/privacy/](site/privacy/index.html). Dashboard: https://3am-incident.goatcounter.com (owner login).
+
+**Search engines.** `site/index.html` and `site/case-1/` carry a description, canonical URL, Open Graph and Twitter tags and JSON-LD (`WebSite` + `VideoGame`); the home page has a short static intro that the app replaces on load, so crawlers that don't run JavaScript still read what the game is. `site/sitemap.xml` lists the three public pages; update `lastmod` when their text changes. To verify ownership in Google Search Console or Bing Webmaster Tools, paste their `<meta>` tag where `site/index.html` says so.
 
 Progress and streaks live in the browser's local storage. To move a streak to another device, use **Stats → Copy streak code** and paste it on the other device. Accounts are deliberately postponed (see `VISION.md`).
 
@@ -86,7 +92,9 @@ The palette was chosen for calm, not drama. Research on colour and emotion finds
 | `site/index.html`, `site/assets/*` | Home, daily player, practice library, engine, templates, cast |
 | `site/case-1/` | Case file #1 (full SQL console) |
 | `site/manifest.webmanifest`, `site/sw.js`, `site/icons/` | Install-as-app and offline support |
-| `site/_headers`, `netlify.toml` | No-index and security headers; Netlify publishes `site/` only |
+| `site/_headers`, `netlify.toml` | Security headers (Content-Security-Policy lists every outside host); Netlify publishes `site/` only |
+| `site/assets/stats.js`, `site/privacy/` | Cookie-free visit counts and the privacy note |
+| `site/404.html`, `site/robots.txt`, `site/sitemap.xml`, `site/favicon.*` | Not-found page, crawler files, favicons |
 | `tools/selftest.html` | Generator self-test (not published) |
 | `PILOT.md`, `VISION.md` | Pilot plan and thresholds; where this could go |
 

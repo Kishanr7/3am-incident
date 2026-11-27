@@ -1,6 +1,6 @@
 /* 3 a.m. Incident: daily case engine.
    Pure functions: seeded randomness, dates, building a case's SQLite database,
-   streaks kept in this browser. No network, no tracking. */
+   streaks kept in this browser. No network here (visit counts are in stats.js). */
 (function () {
   'use strict';
   const TAI = (window.TAI = window.TAI || {});

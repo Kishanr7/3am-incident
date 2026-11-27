@@ -1,6 +1,16 @@
+# Security headers for every page. The Content-Security-Policy lists every outside host the game uses:
+#   cdnjs.cloudflare.com  the SQL engine (sql.js); 'wasm-unsafe-eval' lets it start WebAssembly
+#   cdn.jsdelivr.net      fonts (Fraunces, Lato)
+#   gc.zgo.at + 3am-incident.goatcounter.com  visit counts (see site/privacy/)
+# The one inline script (the theme switch at the top of each page) is allowed by its hash. If you change that line,
+# update the hash: tools/xbrowser/csp-test.js prints the right one. Netlify adds HSTS itself.
 /*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-SmN8XwliBCsMqoWMoqqGS1KGeRiG3LY/yDvNbokQu3w=' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://gc.zgo.at; style-src 'self' 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https://3am-incident.goatcounter.com; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://3am-incident.goatcounter.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+  Cross-Origin-Opener-Policy: same-origin
 
 /sw.js
   Cache-Control: no-cache

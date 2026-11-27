@@ -26,6 +26,8 @@ node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake c
 node notesmove-test.js http://localhost:8767/site/ # notes: minimize into the Notes button, reopen in place, drag, arrow keys, remembered position, 8 setups
 node streakui-test.js http://localhost:8767/site/  # a missed day covered by Byte is shown on the week, the streak button and in words, 8 setups
 node runinplace-test.js http://localhost:8767/site/ # Run on your own query or the bonus query keeps the page still; pass/fail shows under Run, 10 setups
+node stats-test.js                                 # visit counts (GoatCounter stubbed, never real), privacy page, 404, CSP from site/_headers, SEO files; 8 setups. Pass a deploy-preview or live URL to test there
+node perf-test.js https://3am-incident-kish.netlify.app/  # page speed like Lighthouse mobile (Pixel 7, 4x CPU, slow 4G): FCP, LCP, CLS, KB; first and repeat visit
 node responsive-test.js http://localhost:8767/site/ [--shots] # every screen at 26 sizes (280 px to 4K, short landscape) in Chrome + 8 in WebKit: no sideways scroll, nothing off screen, 32 px+ tap targets on touch, nothing under the bottom bar
 ```
 
