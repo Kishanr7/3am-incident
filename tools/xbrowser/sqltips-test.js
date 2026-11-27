@@ -1,4 +1,5 @@
-// Own-SQL tips (case-sensitive text, same result as before), Hide/Show for own queries, and the wide-screen layout.
+// Own-SQL tips (case-sensitive text, same result as before), several statements, the 10-row cap, one-line queries in
+// the feed (one open at a time), and the wide-screen layout.
 // Usage: node sqltips-test.js [baseUrl]
 const { chromium, webkit, devices } = require('playwright');
 const BASE = process.argv[2] || 'http://localhost:8767/site/';
@@ -41,24 +42,37 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if (!(await own.evaluate((d) => d.open))) await tap('details.own > summary');
       const run = async (sql) => { await p.fill('#ownSql', sql); await tap('#runOwn'); await p.waitForTimeout(400); };
       await run(LOWER);
-      const last = () => p.locator('#feed .entry').last();
-      const t1 = (await last().locator('.tips').textContent().catch(() => '')) || '';
+      // Tips show under Run, with the latest result.
+      const tipsNow = async () => (await p.locator('#ownOut .tips').textContent().catch(() => '')) || '';
+      const t1 = await tipsNow();
       if (!/'pebble pay'/.test(t1) || !/'Pebble Pay'/.test(t1)) bugs.push('no case-sensitivity tip for lowercase literal: ' + t1);
       await run(SAME);
-      const t2 = (await last().locator('.tips').textContent().catch(() => '')) || '';
+      const t2 = await tipsNow();
       if (!/Same result as your query at/.test(t2)) bugs.push('no same-result tip: ' + t2);
       await run(RIGHT);
-      if (await last().locator('.tips').count()) bugs.push('tip shown on a correct query: ' + (await last().locator('.tips').textContent()));
-      // Hide the first own query, check it folds, survives reload, and comes back.
-      const first = p.locator('#feed .entry').first();
-      await first.locator('[data-fold]').click();
-      if (!(await p.locator('#feed .entry').first().evaluate((e) => e.classList.contains('folded')))) bugs.push('Hide did not fold the query');
+      if (await p.locator('#ownOut .tips').count()) bugs.push('tip shown on a correct query: ' + (await tipsNow()));
+      // Two statements in the box: two results. More than 10 rows: the rest behind "Show all".
+      await run('SELECT COUNT(*) AS n FROM payments;\nSELECT * FROM payments LIMIT 14;');
+      if ((await p.locator('#ownOut .qres').count()) !== 2) bugs.push('two statements did not give two results: ' + (await p.locator('#ownOut .qres').count()));
+      const shown = () => p.locator('#ownOut .qres').nth(1).locator('tbody tr').evaluateAll((rs) => rs.filter((r) => getComputedStyle(r).display !== 'none').length);
+      if ((await shown()) !== 10) bugs.push('long result should show 10 rows first, shows ' + (await shown()));
+      await p.locator('#ownOut [data-more]').click();
+      if ((await shown()) !== 14) bugs.push('Show all did not show 14 rows: ' + (await shown()));
+      // Your queries in the feed are one line each, closed; open one, then another: only one stays open.
+      const lines = p.locator('#feed .entry.qline');
+      if ((await lines.count()) !== 4) bugs.push('expected 4 one-line queries in the feed, got ' + (await lines.count()));
+      if (await p.locator('#feed .qline table').count()) bugs.push('a closed query line shows a table');
+      await lines.nth(0).locator('[data-open]').click();
+      if ((await p.locator('#feed .qline.open').count()) !== 1 || !(await p.locator('#feed .qline.open table').count())) bugs.push('opening a query line did not show its result');
+      await lines.nth(3).locator('[data-open]').click();
+      if ((await p.locator('#feed .qline.open').count()) !== 1 || !(await lines.nth(3).evaluate((e) => e.classList.contains('open')))) bugs.push('opening a second query did not close the first');
+      if ((await lines.nth(3).locator('.qres').count()) !== 2) bugs.push('reopened two-statement query does not show both results');
+      await lines.nth(3).locator('[data-open]').click();
+      if (await p.locator('#feed .qline.open').count()) bugs.push('tapping an open query did not close it');
       const clock1 = await p.textContent('#clock');
       await p.reload(); await p.waitForSelector('#feed .entry');
-      if (!(await p.locator('#feed .entry').first().evaluate((e) => e.classList.contains('folded')))) bugs.push('fold not kept after reload');
-      if ((await p.textContent('#clock')) !== clock1) bugs.push('hiding changed the clock');
-      await p.locator('#feed .entry').first().locator('[data-fold]').click();
-      if (await p.locator('#feed .entry').first().evaluate((e) => e.classList.contains('folded'))) bugs.push('Show did not unfold');
+      if (await p.locator('#feed .qline.open').count()) bugs.push('a query line is open after reload');
+      if ((await p.textContent('#clock')) !== clock1) bugs.push('opening queries changed the clock');
       // Layout
       const w = await p.evaluate(() => innerWidth);
       const sx = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);

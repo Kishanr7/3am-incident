@@ -34,6 +34,20 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 - Case file #1's script moved from the page into `case-1/case.js`, so the CSP needs no `unsafe-inline` for scripts.
 - Its title names the case: *Case #1: The Missing Revenue · 3 a.m. Incident*.
 
+## [1.6.0] - 2026-11-27: One query result at a time
+
+### Changed
+- Your own queries no longer pile up full results in the evidence feed. Each one is a single line there (the query
+  and its row count, for example "1 row, 25 rows"); tap it to see its result, and only one is open at a time. The
+  latest result is always under the Run button. The Hide/Show buttons are gone: nothing needs hiding any more.
+- Long results show the first 10 rows, with a "Show all N rows" button; then the table scrolls inside its own box.
+- Ready-made checks are unchanged.
+
+### Fixed
+- Several statements in the box (for example two `SELECT`s) ran, but only the last result was shown. Each statement
+  now gets its own result, headed by the statement (up to 5). One Run is still one query. The ⭐ and the fill-in
+  pass/fail look at every result.
+
 ## [1.5.1] - 2026-11-27: The incident happens on the incident day
 
 ### Fixed

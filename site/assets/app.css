@@ -392,6 +392,21 @@ button.pcard{cursor:pointer}
   .entry details>summary{padding-top:9px;padding-bottom:9px}
 }
 @media (max-width:340px){.week{gap:3px}.wrap{padding:0 12px}}
+/* Your own queries in the evidence feed: one line each, tap to open (one at a time). The latest result is under Run. */
+.entry.qline{padding-bottom:10px}
+.entry.qline .qsum{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;margin-top:6px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.entry.qline .qsum .fsql{flex:1;min-width:0;font:12px/1.4 var(--mono);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry.qline .qsum .qmeta{flex:none;font-size:.78rem;color:var(--mute)}
+.entry.qline.open .qsum{border-color:var(--accent)}
+.entry.qline .qbody{margin-top:8px}
+.qres+.qres{margin-top:10px}
+.qres .stmt{margin:0 0 4px;font-size:.8rem}
+.qres .stmt code{font-family:var(--mono);font-size:.78rem;background:var(--code);border-radius:5px;padding:1px 4px}
+.qtbl tr.xrow{display:none}
+.qtbl.all tr.xrow{display:table-row}
+.qtbl.all .tbl{max-height:60vh;overflow:auto}
+.qtbl .showall{margin-top:6px;min-height:36px;cursor:pointer;font-size:.82rem}
+@media (max-width:540px){.qtbl table.res.stack tr.xrow{display:none}.qtbl.all table.res.stack tr.xrow{display:block}}
 /* The text search engines and link previews read before the game starts; the app replaces it on boot. */
 .static-intro{max-width:640px;margin:0 auto;padding:0 4px 40px;color:var(--mute)}
 .static-intro h1{font:650 1.4rem/1.2 var(--display);color:var(--ink);margin:0 0 10px}

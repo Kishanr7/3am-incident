@@ -268,20 +268,23 @@
     });
   }
 
-  function tableHtml(r) {
+  function tableHtml(r, cap) {
     if (!r.columns.length) return '<p class="small muted">No rows.</p>';
+    if (cap && !r.values.length) return `<p class="small muted">No rows. (Columns: ${r.columns.map(esc).join(', ')})</p>`;
     const isNum = r.columns.map((_, j) => r.values.length > 0 && r.values.every((row) => row[j] === null || typeof row[j] === 'number'));
     const long = r.values.some((row) => row.some((v) => typeof v === 'string' && v.length > 26));
     const stack = r.columns.length >= 4 || long; // on phones, wide results become one card per row
     const head = r.columns.map((c, j) => `<th scope="col"${isNum[j] ? ' class="n"' : ''}>${esc(c)}</th>`).join('');
-    const body = r.values.map((row) => '<tr>' + row.map((v, j) => {
+    const body = r.values.map((row, k) => `<tr${cap && k >= cap ? ' class="xrow"' : ''}>` + row.map((v, j) => {
       const lab = ` data-label="${esc(r.columns[j])}"`;
       if (v === null) return `<td class="null"${lab}>NULL</td>`;
       if (typeof v === 'number') return `<td class="n"${lab}>${Number.isInteger(v) ? v : (Math.round(v * 100) / 100).toFixed(2)}</td>`;
       return `<td${String(v).length > 26 ? ' class="long"' : ''}${lab}>${esc(v)}</td>`;
     }).join('') + '</tr>').join('');
-    return `<div class="tbl" tabindex="0" role="region" aria-label="Query result"><table class="res${stack ? ' stack' : ''}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>` +
-      (r.total > r.values.length ? `<p class="more">Showing ${r.values.length} of ${r.total} rows.</p>` : '');
+    const hidden = cap && r.values.length > cap;
+    return `<div class="${cap ? 'qtbl' : ''}"><div class="tbl" tabindex="0" role="region" aria-label="Query result"><table class="res${stack ? ' stack' : ''}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>` +
+      (hidden ? `<button type="button" class="pill showall" data-more>Show all ${r.values.length} rows</button>` : '') +
+      (r.total > r.values.length ? `<p class="more">Showing ${r.values.length} of ${r.total} rows.</p>` : '') + (cap ? '</div>' : '');
   }
 
   // A saved timeline can name a check this level no longer offers (levels got harder on 23 Nov 2026):
@@ -303,9 +306,12 @@
     }
     if (e.t === 'sql') {
       const at = clockText(START_MIN + STEP_MIN * (i + 1));
-      if (e.fold) return `<article class="entry folded" id="e${i}" tabindex="-1"><span class="kind">Your query · ${at}</span><code class="fsql">${esc(e.sql.replace(/\s+/g, ' ').slice(0, 70))}${e.sql.length > 70 ? '…' : ''}</code><button type="button" class="pill fold" data-fold="${i}" aria-label="Show this query again">Show</button></article>`;
-      let res, r = null; try { r = TAI.query(S.db, e.sql, 50); res = tableHtml(r); } catch (err) { res = `<p class="err">${esc(err.message)}</p>`; }
-      return `<article class="entry" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><button type="button" class="pill fold hide" data-fold="${i}" aria-label="Fold this query away">Hide</button><span class="kind">Your query · ${at}</span><pre class="sql">${esc(e.sql)}</pre><div style="margin-top:8px">${res}</div>${ownTips(e, i, r)}</article>`;
+      // One line per query; tap it to see the result. Only one is open at a time (the latest result is under Run).
+      const run = ownRun(e.sql), open = openQ === i;
+      const meta = run.err ? 'error' : run.list.map((r) => r.total + (r.total === 1 ? ' row' : ' rows')).join(', ') || 'no result';
+      return `<article class="entry qline${open ? ' open' : ''}" id="e${i}" tabindex="-1"><button class="pin" type="button" data-pin="${i}" aria-pressed="${pinned(i)}" aria-label="Pin to case notes">📌</button><span class="kind">Your query · ${at}</span>
+        <button type="button" class="qsum" data-open="${i}" aria-expanded="${open}" aria-controls="q${i}"><code class="fsql">${esc(oneLine(e.sql, 90))}</code><span class="qmeta">${esc(meta)} · ${open ? 'Hide' : 'Show'}</span></button>
+        ${open ? `<div class="qbody" id="q${i}"><pre class="sql">${esc(e.sql)}</pre>${resultsHtml(run)}${ownTips(e, i, run)}</div>` : ''}</article>`;
     }
     if (e.t === 'hint') {
       const card = e.id && cardById(e.id);
@@ -328,6 +334,7 @@
     return `<p class="flow small"><b>Where the number comes from:</b> ${esc(f).replace(/`([^`]+)`/g, '<code>$1</code>')}</p>`;
   }
   function renderCase() {
+    openQ = null;
     const { c, rec } = S;
     document.title = `${S.label} · 3 a.m. Incident`;
     // Alerts fire at 03:12; people start messaging at 08:10, two minutes apart, in the order shown.
@@ -414,15 +421,31 @@
     }
     return out;
   }
-  function resultKey(r) { return r ? JSON.stringify([r.columns, r.values, r.total]) : null; }
-  function ownTips(e, i, r) {
+  function resultKey(run) { return run && !run.err ? JSON.stringify(run.list.map((r) => [r.columns, r.values, r.total])) : null; }
+  // A player's query, every statement in it. Cached: the feed asks again on every render.
+  const runCache = new Map();
+  function ownRun(sql) {
+    const k = S.c.no + '|' + (S.c.practice || '') + '|' + sql; if (runCache.has(k)) return runCache.get(k);
+    let run; try { run = { list: TAI.queryAll(S.db, sql, 50) }; } catch (x) { run = { err: x.message, list: [] }; }
+    if (runCache.size > 200) runCache.clear(); runCache.set(k, run); return run;
+  }
+  const oneLine = (sql, n) => { const t = sql.replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+  const runHit = (run) => run.list.some((r) => r.values.some((row) => row.some((v) => TAI.matchesAnswer(S.c, v))));
+  // Results of a query: one table per statement (headed by the statement when there are several), first 10 rows shown.
+  function resultsHtml(run) {
+    if (run.err) return `<p class="err">${esc(run.err)}</p>`;
+    if (!run.list.length) return '<p class="small muted">It ran. Nothing to show: no statement returned a table.</p>';
+    const many = run.list.length > 1;
+    return run.list.map((r) => `<div class="qres">${many ? `<p class="stmt"><code>${esc(oneLine(r.sql, 80))}</code></p>` : ''}${tableHtml(r, 10)}</div>`).join('') +
+      (run.list.more ? `<p class="more">${run.list.more} more ${run.list.more === 1 ? 'statement' : 'statements'} ran but ${run.list.more === 1 ? 'is' : 'are'} not shown. Run them on their own to see them.</p>` : '');
+  }
+  function ownTips(e, i, run) {
     const tips = caseTraps(e.sql).map(([lit, real]) => `🐾 No row says <code>'${esc(lit)}'</code> exactly. The data says <code>'${esc(real)}'</code>. Text matches are case-sensitive, so that part of your query matched nothing.`);
-    const key = resultKey(r);
+    const key = resultKey(run);
     if (key) {
       for (let j = i - 1; j >= 0; j--) {
         const p = S.rec.timeline[j]; if (!p || p.t !== 'sql' || p.sql.trim() === e.sql.trim()) continue;
-        let k2 = null; try { k2 = resultKey(TAI.query(S.db, p.sql, 50)); } catch (err) { /* that earlier query failed */ }
-        if (k2 === key) { tips.push(`Same result as your query at ${clockText(START_MIN + STEP_MIN * (j + 1))}, so this change made no difference.`); break; }
+        if (resultKey(ownRun(p.sql)) === key) { tips.push(`Same result as your query at ${clockText(START_MIN + STEP_MIN * (j + 1))}, so this change made no difference.`); break; }
       }
     }
     return tips.length ? `<div class="tips">${tips.map((t) => `<p>${t}</p>`).join('')}</div>` : '';
@@ -440,6 +463,12 @@
     document.querySelectorAll('.qc').forEach((b) => { b.onclick = () => runCard(b.dataset.id); });
   }
 
+  // Which of your own queries is open in the evidence feed (one at a time; not saved).
+  let openQ = null;
+  function openQuery(i) {
+    const prev = openQ; openQ = i;
+    for (const k of [prev, i]) { if (k == null) continue; const el = document.getElementById('e' + k), e = S.rec.timeline[k]; if (el && e) el.outerHTML = entryHtml(e, k); }
+  }
   // Adds an entry to the evidence feed. Checks and hints scroll to it. Queries run from a box (stay = an element
   // in that box) keep the page where it is: the result shows beside the Run button, and the feed only grows.
   function push(e, stay) {
@@ -472,17 +501,17 @@
     if (/____/.test(sql)) { toast('Fill in the ____ first'); ta.focus(); return; }
     const out = document.getElementById('ownOut'), btn = document.getElementById('runOwn'), y0 = btn.getBoundingClientRect().top;
     const i = push({ t: 'sql', sql }, btn);
-    let r = null, err = null; try { r = TAI.query(S.db, sql, 50); } catch (x) { err = x.message; }
+    const run = ownRun(sql);
     // Pass or fail for this attempt, right under the Run button. Only the fill-in query (easy and medium) says
     // whether the real number is in the result; on hard, finding it is the job, so the result is shown as it is.
-    const hit = r && r.values.some((row) => row.some((v) => TAI.matchesAnswer(S.c, v)));
     const at = clockText(START_MIN + STEP_MIN * (i + 1));
-    const verdict = err ? `<p class="verdict bad">❌ SQL error: ${esc(err)}</p>`
+    const rows = run.list.some((r) => r.values.length);
+    const verdict = run.err ? `<p class="verdict bad">❌ SQL error: ${esc(run.err)}</p>`
       : !S.c.fillIn ? `<p class="verdict">Ran at ${at}.</p>`
-      : hit ? `<p class="verdict ok">✅ That returns the real number. Put it in the Report.</p>`
-      : `<p class="verdict bad">❌ ${r.values.length ? 'It ran, but that is not the real number yet.' : 'It ran, but returned no rows.'} Check what goes in the blank against the checks.</p>`;
+      : runHit(run) ? `<p class="verdict ok">✅ That returns the real number. Put it in the Report.</p>`
+      : `<p class="verdict bad">❌ ${rows ? 'It ran, but that is not the real number yet.' : 'It ran, but returned no rows.'} Check what goes in the blank against the checks.</p>`;
     out.style.minHeight = out.offsetHeight + 'px'; // never shrinks between runs, so a panel scrolled to its end can't jump
-    out.innerHTML = verdict + (r ? tableHtml(r) : '') + ownTips(S.rec.timeline[i], i, r) + `<p class="small muted">Saved in your evidence at ${at}.</p>`;
+    out.innerHTML = verdict + (run.err ? '' : resultsHtml(run)) + ownTips(S.rec.timeline[i], i, run) + `<p class="small muted">Saved in your evidence at ${at} (tap it there to see this again).</p>`;
     keepAt(btn, y0);
     if (checkStar(sql) && S.rec.solved) { const rp = document.getElementById('report'), y1 = rp.getBoundingClientRect().top; rp.style.minHeight = rp.offsetHeight + 'px'; renderReport(); keepAt(document.getElementById('report'), y1); }
   }
@@ -605,9 +634,12 @@
     if (pin) { const n = notes(); const i = Number(pin.dataset.pin); const k = n.pins.indexOf(i); if (k < 0) n.pins.push(i); else n.pins.splice(k, 1); save(); pin.setAttribute('aria-pressed', String(k < 0)); updateNotesBtn(); if (!document.getElementById('notes').hidden) renderNotes(); toast(k < 0 ? 'Pinned to notes' : 'Unpinned'); return; }
     const un = t.closest('[data-unpin]');
     if (un) { const n = notes(); const i = Number(un.dataset.unpin); n.pins = n.pins.filter((x) => x !== i); save(); const pb = document.querySelector(`[data-pin="${i}"]`); if (pb) pb.setAttribute('aria-pressed', 'false'); renderNotes(); return; }
-    const fold = t.closest('[data-fold]');
-    if (fold) { const i = Number(fold.dataset.fold); const e = S.rec.timeline[i]; if (!e) return; e.fold = !e.fold; save(); document.getElementById('e' + i).outerHTML = entryHtml(e, i); const again = document.getElementById('e' + i); again.classList.add('still'); again.focus({ preventScroll: true }); return; }
+    const op = t.closest('[data-open]');
+    if (op) { const i = Number(op.dataset.open); const y0 = op.getBoundingClientRect().top; openQuery(openQ === i ? null : i); const b = document.querySelector(`[data-open="${i}"]`); if (b) { keepAt(b, y0); b.focus({ preventScroll: true }); } return; }
+    const more = t.closest('[data-more]');
+    if (more) { const box = more.closest('.qtbl'); if (box) { box.classList.add('all'); more.remove(); } return; }
     const go = t.closest('[data-goto]');
+    if (go && S.rec.timeline[go.dataset.goto] && S.rec.timeline[go.dataset.goto].t === 'sql') openQuery(Number(go.dataset.goto));
     if (go) { const el = document.getElementById('e' + go.dataset.goto); if (!floating()) setNotesOpen(false); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } }
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S && !document.querySelector('dialog[open]')) { const p = document.getElementById('notes'); if (p && !p.hidden) setNotesOpen(false); } });
@@ -626,7 +658,7 @@
   // Any number in a query result that matches the real one earns the star.
   function checkStar(sql) {
     if (S.rec.star || !S.c.answerQ) return false;
-    try { const r = TAI.query(S.db, sql, 50); if (r.values.some((row) => row.some((v) => TAI.matchesAnswer(S.c, v)))) { S.rec.star = true; save(); return true; } } catch (e) { /* not a valid query */ }
+    const run = ownRun(sql); if (!run.err && runHit(run)) { S.rec.star = true; save(); return true; }
     return false;
   }
   function typedWhy(q) {
@@ -776,11 +808,11 @@
     if (!S || !(e.target.closest && e.target.closest('#starRun'))) return;
     const ta = document.getElementById('starSql'); const sql = ta.value.trim();
     if (!sql || /____/.test(sql)) { document.getElementById('starNote').textContent = 'Fill in the ____ first.'; ta.focus(); return; }
-    let r; try { r = TAI.query(S.db, sql, 20); } catch (err) { document.getElementById('starNote').textContent = 'SQL error: ' + err.message; return; }
+    const run = ownRun(sql); if (run.err) { document.getElementById('starNote').textContent = 'SQL error: ' + run.err; return; }
     const rp = document.getElementById('report');
     push({ t: 'sql', sql }, rp); const y1 = rp.getBoundingClientRect().top;
     if (checkStar(sql)) { rp.style.minHeight = rp.offsetHeight + 'px'; renderReport(); keepAt(document.getElementById('report'), y1); toast('⭐ Proved it'); } // the shorter ⭐ card must not shorten the page under you
-    else document.getElementById('starNote').textContent = r.values.length ? 'It ran, but none of its numbers is the real one. Try again.' : 'It ran, but returned no rows.';
+    else document.getElementById('starNote').textContent = run.list.some((r) => r.values.length) ? 'It ran, but none of its numbers is the real one. Try again.' : 'It ran, but returned no rows.';
   });
   function vsResult() {
     const v = S.vs, rec = S.rec; if (!v) return '';

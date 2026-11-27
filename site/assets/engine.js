@@ -250,7 +250,21 @@
     const values = maxRows ? last.values.slice(0, maxRows) : last.values;
     return { columns: last.columns, values, total: last.values.length };
   }
-  TAI.buildDb = buildDb; TAI.query = query;
+  /* Every statement in a player's query, each with its own result (also the ones that return no rows), so two
+     SELECTs in one box show two results. At most `maxStatements` results; any further statements still run. */
+  function queryAll(db, sql, maxRows, maxStatements) {
+    const out = []; maxStatements = maxStatements || 5;
+    for (const st of db.iterateStatements(sql)) {
+      try {
+        const columns = st.getColumnNames(); const values = []; let total = 0;
+        while (st.step()) { total++; if (!maxRows || values.length < maxRows) values.push(st.get()); }
+        if (columns.length && out.length < maxStatements) out.push({ sql: st.getSQL().trim(), columns, values, total });
+        else if (columns.length) out.more = (out.more || 0) + 1;
+      } finally { st.free(); }
+    }
+    return out;
+  }
+  TAI.buildDb = buildDb; TAI.query = query; TAI.queryAll = queryAll;
 
   // ---------- this browser's saved progress ----------
   const KEY = 'tai.v1';

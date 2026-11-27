@@ -21,7 +21,7 @@ python -m http.server 8767 --directory ../..      # in another terminal
 node xtest.js http://localhost:8767/site/          # about 10 minutes; screenshots in shots/
 node offline-test.js                               # loads the site, switches the server off, plays a case
 node notes-test.js http://localhost:8767/site/     # case notes drawer on 6 setups
-node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, Hide/Show, wide-screen layout on 8 setups
+node sqltips-test.js http://localhost:8767/site/   # own-SQL tips, several statements, 10-row cap, one-line queries in the feed, wide-screen layout on 9 setups
 node newtypes-test.js http://localhost:8767/site/  # Daily #12–#22 on a fake clock: all 11 case types, new cast, 10-card deck, 8 setups
 node notesmove-test.js http://localhost:8767/site/ # notes: minimize into the Notes button, reopen in place, drag, arrow keys, remembered position, 8 setups
 node streakui-test.js http://localhost:8767/site/  # a missed day covered by Byte is shown on the week, the streak button and in words, 8 setups
