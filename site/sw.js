@@ -2,7 +2,7 @@
    Own files: network first (so updates arrive), cache as the offline fallback.
    The SQL engine from cdnjs: cache first (its URL is versioned and never changes).
    Anything else from another host (the GoatCounter visit counter) is left alone: never cached, so it fails quietly offline. */
-const VERSION = 'tai-v32';
+const VERSION = 'tai-v33';
 const CORE = ['./', 'index.html', 'assets/app.css', 'assets/engine.js', 'assets/cases.js', 'assets/cases2.js', 'assets/cases3.js', 'assets/tables.js', 'assets/cast.js', 'assets/app.js', 'assets/stats.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'case-1/', 'case-1/case.js', 'favicon.ico', 'favicon.svg'];
 const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';

@@ -7,6 +7,12 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-11-27: Google Search Console ownership
+
+### Added
+- `site/google5911b0789f211ac9.html`, the file Google Search Console checks to confirm who owns the site, so the
+  sitemap can be submitted and pages indexed. Keep it: removing it un-verifies the site.
+
 ## [1.8.0] - 2026-11-27: Speaks your SQL dialect
 
 ### Added
