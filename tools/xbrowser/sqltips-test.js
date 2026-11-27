@@ -51,6 +51,14 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if (!/Same result as your query at/.test(t2)) bugs.push('no same-result tip: ' + t2);
       await run(RIGHT);
       if (await p.locator('#ownOut .tips').count()) bugs.push('tip shown on a correct query: ' + (await tipsNow()));
+      // Other dialects: a PostgreSQL cast fails with the SQLite way shown; CAST AS DATE runs but is flagged; LIKE ignores case.
+      await run('SELECT created_at::date FROM payments LIMIT 1;');
+      if (!/DATE\(x\)/.test(await tipsNow())) bugs.push('no SQLite tip for ::date: ' + (await tipsNow()));
+      await run('SELECT CAST(received_at AS DATE) AS d FROM payments LIMIT 1;');
+      if (!/gives a number/.test(await tipsNow())) bugs.push('no tip for CAST AS DATE: ' + (await tipsNow()));
+      await run("SELECT COUNT(*) FROM payments WHERE provider LIKE 'pebble pay';");
+      if (/case-sensitive/.test(await tipsNow())) bugs.push('case tip shown for LIKE, which ignores case');
+      if (!(await p.locator('details.dialect').count()) || !/SQLite/.test(await p.textContent('details.own > summary'))) bugs.push('no SQLite label or dialect fold');
       // Two statements in the box: two results. More than 10 rows: the rest behind "Show all".
       await run('SELECT COUNT(*) AS n FROM payments;\nSELECT * FROM payments LIMIT 14;');
       if ((await p.locator('#ownOut .qres').count()) !== 2) bugs.push('two statements did not give two results: ' + (await p.locator('#ownOut .qres').count()));
@@ -60,14 +68,14 @@ const RIGHT = "SELECT ROUND(SUM(CASE WHEN provider = 'Pebble Pay' THEN amount / 
       if ((await shown()) !== 14) bugs.push('Show all did not show 14 rows: ' + (await shown()));
       // Your queries in the feed are one line each, closed; open one, then another: only one stays open.
       const lines = p.locator('#feed .entry.qline');
-      if ((await lines.count()) !== 4) bugs.push('expected 4 one-line queries in the feed, got ' + (await lines.count()));
+      if ((await lines.count()) !== 7) bugs.push('expected 7 one-line queries in the feed, got ' + (await lines.count()));
       if (await p.locator('#feed .qline table').count()) bugs.push('a closed query line shows a table');
       await lines.nth(0).locator('[data-open]').click();
       if ((await p.locator('#feed .qline.open').count()) !== 1 || !(await p.locator('#feed .qline.open table').count())) bugs.push('opening a query line did not show its result');
-      await lines.nth(3).locator('[data-open]').click();
-      if ((await p.locator('#feed .qline.open').count()) !== 1 || !(await lines.nth(3).evaluate((e) => e.classList.contains('open')))) bugs.push('opening a second query did not close the first');
-      if ((await lines.nth(3).locator('.qres').count()) !== 2) bugs.push('reopened two-statement query does not show both results');
-      await lines.nth(3).locator('[data-open]').click();
+      await lines.nth(6).locator('[data-open]').click();
+      if ((await p.locator('#feed .qline.open').count()) !== 1 || !(await lines.nth(6).evaluate((e) => e.classList.contains('open')))) bugs.push('opening a second query did not close the first');
+      if ((await lines.nth(6).locator('.qres').count()) !== 2) bugs.push('reopened two-statement query does not show both results');
+      await lines.nth(6).locator('[data-open]').click();
       if (await p.locator('#feed .qline.open').count()) bugs.push('tapping an open query did not close it');
       const clock1 = await p.textContent('#clock');
       await p.reload(); await p.waitForSelector('#feed .entry');
