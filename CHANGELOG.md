@@ -7,6 +7,12 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-11-27: Shorter search description
+
+### Fixed
+- The home page's search description is 138 characters instead of 181, so Bing (limit 160) and Google show it whole.
+  The longer text stays for link previews (Open Graph, Twitter).
+
 ## [1.8.1] - 2026-11-27: Google Search Console ownership
 
 ### Added
