@@ -7,6 +7,21 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-27: The incident happens on the incident day
+
+### Fixed
+- In two case types the cause started the evening before the incident day, so the day before was partly wrong too
+  and it was unclear which day the case is about (found by Kishan in Daily #19: the raw sign-ups for the day before
+  didn't match the dashboard). *The Vanishing Sign-ups*: the broken app release now goes out just after midnight on
+  the incident day (was 21:xx the evening before). *The Expensive Refresh*: the new tile is created that morning (was
+  16–19:xx the evening before), and the usual cost is the average of the six days before. From Daily #28 (6 Dec,
+  `TAI.SAME_DAY_FROM`) and in practice; Daily #1–#27 stay exactly as published.
+- *The Vanishing Sign-ups* could, rarely, give the other app the same version number as the broken release, so its
+  sign-ups were dropped all week. No published or practice case had it; new cases can't.
+
+### Added
+- Self-test: in those two types, nothing before the incident day is affected.
+
 ## [1.5.0] - 2026-11-26: Ten patterns, and where the number comes from
 
 ### Removed

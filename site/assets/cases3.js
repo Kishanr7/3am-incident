@@ -362,14 +362,14 @@
     id: 'bill',
     name: 'The Expensive Refresh',
     pattern: 'Full table scan (no partition filter)',
-    build(t, { D, days, co, v }) {
+    build(t, { D, days, co, v, sameDay }) {
       const RATE = 6.25; // dollars per TB scanned
       const cost = (gb) => round2(gb / 1000 * RATE);
       const hashes = () => 'q_' + Math.floor(t.r() * 0xffffff).toString(16).padStart(6, '0');
       const rows = [];
       const author = t.pick(AUTHORS);
       const tiles = ['Orders today', 'Revenue by region', 'Top products', 'Refund rate', 'Active users', 'Stock alerts'].map((n) => [n, hashes(), 60, addDays(D, -t.int(60, 400)) + ' 10:00:00', t.pick(AUTHORS), t.int(4, 30)]);
-      const badTile = ['Live events today', hashes(), 5, ts(addDays(D, -1), t.int(16, 19), t.int(0, 59), 0), author, t.int(380, 520)];
+      const badTile = ['Live events today', hashes(), 5, sameDay ? ts(D, t.int(7, 9), t.int(0, 59), 0) : ts(addDays(D, -1), t.int(16, 19), t.int(0, 59), 0), author, t.int(380, 520)]; // see TAI.SAME_DAY_FROM
       const analysts = AUTHORS.filter((a) => a !== author).slice(0, 4);
       const backfillAt = ts(D, t.int(10, 15), t.int(0, 59), 0);
       for (const d of days) {
@@ -389,7 +389,7 @@
       const tileCost = round2(sum(hist.filter((r) => r[3] === badTile[1] && r[1].slice(0, 10) === D).map((r) => r[5])));
       const tileAll = round2(sum(hist.filter((r) => r[3] === badTile[1]).map((r) => r[5])));
       const svcD = round2(sum(hist.filter((r) => r[2] === 'svc_dashboards' && r[1].slice(0, 10) === D).map((r) => r[5])));
-      const prev = days.slice(0, -2); const avgPrev = round2(mean(prev.map(dayCost)));
+      const prev = sameDay ? days.slice(0, -1) : days.slice(0, -2); const avgPrev = round2(mean(prev.map(dayCost)));
       const dashCost = dayCost(D); const times = (dashCost / avgPrev).toFixed(1) + '×';
       const allTiles = tiles.concat([badTile]);
       const tileRows = allTiles.map((x) => [x[0], x[1], x[2], x[3].slice(0, 16), x[4]]);
@@ -427,7 +427,7 @@
       const wrongN = distractors(tileCost, [
         { v: round2(dashCost - avgPrev), why: 'That’s how much more the whole day cost than usual. Other queries vary too: add up that one tile’s runs.' },
         { v: svcD, why: 'That’s every dashboard tile together. The old tiles cost the same as always.' },
-        { v: tileAll, why: `That includes the tile’s runs on the evening before. The question is about ${Df}.` },
+        sameDay ? null : { v: tileAll, why: `That includes the tile’s runs on the evening before. The question is about ${Df}.` }, // no runs before D any more
       ], 3);
       const numberQ = [opt('n_true', money(tileCost), true)].concat(wrongN.map((w, i) => opt('n_' + i, money(w.v), false, w.why)));
       return {
@@ -457,7 +457,7 @@
         answerQ: { value: tileCost, money: true, blank: badTile[1], what: `the tile’s cost on ${Df}`, sql: `SELECT ROUND(SUM(cost_usd), 2) AS tile_cost\nFROM query_history\nWHERE query_hash = '${badTile[1]}'\n  AND DATE(started_at) = '${D}';` },
         checks: [
           { label: 'tile cost on D', sql: `SELECT ROUND(SUM(cost_usd), 2) FROM query_history WHERE query_hash = '${badTile[1]}' AND DATE(started_at) = '${D}'`, test: (r) => Math.abs(r[0][0] - tileCost) < 0.011 },
-          { label: 'tile runs every 5 minutes on D', sql: `SELECT COUNT(*) FROM query_history WHERE query_hash = '${badTile[1]}' AND DATE(started_at) = '${D}'`, test: (r) => r[0][0] === 288 },
+          { label: sameDay ? 'tile runs every 5 minutes from its creation on D' : 'tile runs every 5 minutes on D', sql: `SELECT COUNT(*) FROM query_history WHERE query_hash = '${badTile[1]}' AND DATE(started_at) = '${D}'`, test: (r) => r[0][0] === (sameDay ? Math.ceil((endMin - startMin - 5) / 5) : 288) }, // from creation to midnight
           { label: 'daily cost matches history', sql: `SELECT cost_usd, (SELECT ROUND(SUM(cost_usd), 2) FROM query_history WHERE DATE(started_at) = '${D}') FROM daily_cost WHERE day = '${D}'`, test: (r) => Math.abs(r[0][0] - r[0][1]) < 0.011 },
           { label: 'the bad tile is the biggest query on D', sql: `SELECT query_hash FROM query_history WHERE DATE(started_at) = '${D}' GROUP BY query_hash ORDER BY SUM(gb_scanned) DESC LIMIT 1`, test: (r) => r[0][0] === badTile[1] },
         ],
