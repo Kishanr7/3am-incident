@@ -18,11 +18,20 @@
 <meta name="twitter:title" content="3 a.m. Incident: a daily data mystery">
 <meta name="twitter:description" content="A 5-minute daily puzzle for people who work with data. A number on the dashboard looks wrong: check the data with real SQL, find out why, and tell your boss before the 9:00 meeting.">
 <meta name="twitter:image" content="https://3am-incident-kish.netlify.app/og.png">
+<meta name="twitter:image:alt" content="3 a.m. Incident: every job says SUCCESS, the number is still wrong.">
+<!-- Search Console / Bing ownership: paste the verification meta tags here (see README, "Search engines"). -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://3am-incident-kish.netlify.app/#site","url":"https://3am-incident-kish.netlify.app/","name":"3 a.m. Incident","inLanguage":"en"},
+ {"@type":"VideoGame","@id":"https://3am-incident-kish.netlify.app/#game","name":"3 a.m. Incident","url":"https://3am-incident-kish.netlify.app/","description":"A 5-minute daily puzzle for people who work with data. A number on the dashboard looks wrong: check the data with real SQL, find out why, and tell your boss before the 9:00 meeting.","image":"https://3am-incident-kish.netlify.app/og.png","genre":["Puzzle","Mystery","Educational"],"gamePlatform":"Web browser","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","playMode":"SinglePlayer","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"inLanguage":"en","keywords":"SQL puzzle, daily game, data engineering, root cause analysis, data quality, SQLite","author":{"@type":"Person","name":"Kishan","url":"https://github.com/Kishanr7"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/Kishanr7/3am-incident","isPartOf":{"@id":"https://3am-incident-kish.netlify.app/#site"}}
+]}
+</script>
 <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141a1c" media="(prefers-color-scheme: dark)">
 <script>try{var t=localStorage.getItem("tai.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
 <title>3 a.m. Incident: a daily data mystery</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%232f6f6a'/%3E%3Cpath d='M19.5 7.5a9 9 0 1 0 5 15.6A10 10 0 0 1 19.5 7.5z' fill='%23fcfbf8'/%3E%3C/svg%3E">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,8 +44,13 @@
 <link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
-<main id="app"><div class="wrap"><div class="loading" role="status">Loading…</div></div></main>
-<noscript><div class="wrap"><p>This game needs JavaScript. Everything runs in your browser; nothing is sent anywhere.</p></div></noscript>
+<main id="app"><div class="wrap"><div class="loading" role="status">Loading…</div>
+<div class="static-intro">
+<h1>3 a.m. Incident: a daily data mystery</h1>
+<p>A short daily puzzle for people who work with data. Every pipeline job says SUCCESS, but a number on the dashboard is wrong. Check the logs and the raw data with real SQL, find the root cause (late data, a fan-out join, timezone drift, a backfill gone wrong and more), and report the real number before the 9:00 meeting.</p>
+<p>A new case every day, easy on Monday and harder by the weekend, plus a practice library and <a href="case-1/">Case file #1: The Missing Revenue</a>, a longer case with a full SQL console. Free, no sign-up, works offline once loaded. <a href="privacy/">Privacy</a> · <a href="https://github.com/Kishanr7/3am-incident">Code on GitHub</a></p>
+</div></div></main>
+<noscript><div class="wrap"><p><b>This game needs JavaScript.</b> It runs a real SQLite database in your browser. Turn JavaScript on to play, or read about it on <a href="https://github.com/Kishanr7/3am-incident">GitHub</a>.</p></div></noscript>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
 <script src="assets/engine.js"></script>
 <script src="assets/cases.js"></script>
@@ -45,5 +59,6 @@
 <script src="assets/tables.js"></script>
 <script src="assets/cast.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/stats.js"></script>
 </body>
 </html>
