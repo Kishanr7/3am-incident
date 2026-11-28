@@ -365,7 +365,7 @@
           <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables, SQLite)</summary>${tablesHtml}</details>
           <details class="card own" style="margin-top:10px" ${c.fillIn ? 'open' : ''}>
             <summary>${c.fillIn ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'} <span class="dbtag">SQLite</span></summary>
-            ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
+            ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace ' + (fillInSql().split('____').length > 2 ? 'both <b>____</b> with the same right value' : '<b>____</b> with the right value') + ', then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
             <div class="schema">${schema}</div>
             ${dialectHtml()}
             <label class="sr" for="ownSql">Your SQL</label>
@@ -691,7 +691,7 @@
   const numQ = () => S.c.questions[S.c.questions.length - 1];
   const isTyped = (q) => S.c.typed && q === numQ();
   const parseNum = (s) => { const x = Number(String(s || '').replace(/[$,\s]/g, '')); return String(s || '').trim() && isFinite(x) ? x : NaN; };
-  function fillInSql() { const a = S.c.answerQ; return a ? a.sql.replace(a.blank, '____') : ''; }
+  function fillInSql() { const a = S.c.answerQ; return a ? a.sql.split(a.blank).join('____') : ''; } // every copy: a piece used twice must not show in the second spot
   // Any number in a query result that matches the real one earns the star.
   function checkStar(sql) {
     if (S.rec.star || !S.c.answerQ) return false;
