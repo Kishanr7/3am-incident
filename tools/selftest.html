@@ -115,6 +115,13 @@
       }
       // easy (v3) and medium get the fill-in query, which is how they find the number
       if ((v3easy || (c.typed && c.level === 'medium')) && !c.fillIn) fail('no fill-in query for ' + c.level);
+      // A wrong cause's explanation must not state the real number: a player who picks it would be handed the answer.
+      {
+        const v = c.answerQ.value, U2 = TAI.util; const forms = [String(v), U2.num(v)].concat(c.answerQ.money ? [U2.money(v)] : []);
+        const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('(^|[^0-9.,$])(' + forms.map(esc).join('|') + ')(?![0-9])');
+        for (const q of c.questions) if (q.id === 'cause') for (const o of q.options) if (!o.correct && o.why && re.test(o.why)) fail(`explanation for "${o.id}" states the real number: ${o.why}`);
+      }
     }
     // story integrity: every number the story states (teaser, alert, dialogue, closing, wrong-answer notes)
     // must be something a player can find in the data: a value in a table or check, or a total or average

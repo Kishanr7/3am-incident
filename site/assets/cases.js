@@ -130,12 +130,12 @@
       const cause = [
         opt('late', `The ${broken} data for ${Df} landed after the 02:00 build_daily_orders run, so the job never counted it.`, true),
         opt('camp', `Paid social stopped when ${campName} ended on ${fmtDay(addDays(D, -1))}, so far fewer customers ordered on ${Df}.`, false,
-          `The campaign did end, but the raw orders table holds ${num(trueD)} orders for ${Df}: a normal day. Demand didn’t fall; the dashboard missed some.`),
+          `The campaign did end, but the raw orders table holds about a normal day’s orders for ${Df}. Demand didn’t fall; the dashboard missed some.`),
         opt('deploy', `The ${DEP[broken][0]} deploy at ${deployAt.slice(11, 16)} on ${Df} broke ordering on ${broken}, so those orders were never placed.`, false,
           `Raw orders show ${num(cnt[D][broken])} ${broken} orders on ${Df}, about normal. People ordered fine. The orders just weren’t on the dashboard.`),
         herringKind === 'pay'
-          ? opt('pay', `Card payment failures spiked on ${Df}, so checkout rejected many customers and those orders were lost.`, false, `Payment failures were ${(payRate[D] * 100).toFixed(1)}% on ${Df}, in the same range as the other days. And the raw orders table holds ${num(trueD)} orders for ${Df}: a normal day.`)
-          : opt('traffic', `Site and app sessions dropped on ${Df}, so fewer visitors reached checkout and fewer orders were placed.`, false, `Sessions on ${Df} were in the normal range, and the raw orders table holds ${num(trueD)} orders for ${Df}. The visitors came; the orders came too.`),
+          ? opt('pay', `Card payment failures spiked on ${Df}, so checkout rejected many customers and those orders were lost.`, false, `Payment failures were ${(payRate[D] * 100).toFixed(1)}% on ${Df}, in the same range as the other days. And the raw orders table holds about a normal day’s orders for ${Df}.`)
+          : opt('traffic', `Site and app sessions dropped on ${Df}, so fewer visitors reached checkout and fewer orders were placed.`, false, `Sessions on ${Df} were in the normal range, and the raw orders table holds about a normal day’s orders for ${Df}. The visitors came; the orders came too.`),
       ];
       const wrongN = distractors(trueD, [
         { v: dashD, why: 'That’s the dashboard’s number: the one that’s wrong.' },
@@ -421,7 +421,7 @@
 
       const cause = [
         opt('drift', `The ${P} app ${vNew} sends country_code, not country, so those sign-ups have no country and get dropped.`, true),
-        opt('holiday', `People stayed off the app for the public holiday in ${H[1]}, so far fewer sign-ups came in on ${Df}.`, false, `The holiday was only in ${H[1]}, but sign-ups fell in every country. And the raw table has ${num(trueD)} sign-up events for ${Df}.`),
+        opt('holiday', `People stayed off the app for the public holiday in ${H[1]}, so far fewer sign-ups came in on ${Df}.`, false, `The holiday was only in ${H[1]}, but sign-ups fell in every country. And the raw events show people signing up as usual on ${Df}.`),
         herring === 'spend'
           ? opt('spend', `Marketing cut paid social spend on ${Df}, so fewer people saw the ads, installed the app and signed up.`, false, 'Spend dipped a little, but the raw events show people signed up as usual. The drop is on the dashboard, not in the real world.')
           : opt('deploy', `The signup-api deploy on ${Df} added a rate limit, so many sign-up requests were rejected and never stored.`, false, 'That change only touched password resets, and the raw events show sign-ups arriving as usual.'),
