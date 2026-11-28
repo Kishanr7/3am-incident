@@ -1,7 +1,7 @@
 // Byte's hints after wrong numbers: one more per wrong try, never the full answer query. Usage: node hints-test.js [baseUrl]
 // Plays a medium and a hard practice case on all 11 setups: four wrong numbers, then the right one.
-// Medium (which already has the fill-in query) gets 2 hints: where to look, what goes in the ____.
-// Hard gets 3: where to look, the query with its key piece as ____, what goes in the ____.
+// Both levels get 2 hints: where to look, then what the key piece is (medium: what goes in the ____ of its fill-in
+// query; hard, which has no fill-in query, never sees a ____). No query or query shape is ever shown.
 const { chromium, webkit, devices } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -43,7 +43,7 @@ const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
         await p.waitForFunction((x) => window.__tai && window.__tai.state && String(window.__tai.state.practice) === String(x) && document.getElementById('picks'), n);
         const info = await p.evaluate(() => { const c = window.__tai.state.c; return { tpl: c.tpl.id, sql: c.answerQ.sql, blank: c.answerQ.blank, value: c.answerQ.value, money: c.answerQ.money, num: c.questions[c.questions.length - 1].id, fillIn: !!c.fillIn }; });
         seen.push(`${level} #${n} ${info.tpl}`);
-        const want = level === 'hard' ? 3 : 2;
+        const want = 2;
         if (info.fillIn !== (level === 'medium')) bugs.push(`${level} #${n}: fill-in is ${info.fillIn}`);
         await p.evaluate(() => { const c = window.__tai.state.c; const q = c.questions[0]; const o = q.options.find((x) => x.correct); document.querySelector(`input[name="${q.id}"][value="${o.id}"]`).click(); });
         const bq = new RegExp('(^|[^\\w-])' + info.blank.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\w-])');
@@ -57,9 +57,8 @@ const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
           if (/dragged this query/i.test(all)) bugs.push(`${level} #${n}: old "dragged this query" text`);
           if (norm(all).includes(norm(info.sql))) bugs.push(`${level} #${n} ${info.tpl}: the full answer query is on screen after ${i} wrong`);
           if (w && bq.test(w.text)) bugs.push(`${level} #${n} ${info.tpl}: hints give away the blank ${info.blank}`);
-          if (w) for (const pre of w.pres) if (!/____/.test(pre)) bugs.push(`${level} #${n}: a query in the hints has no ____`);
-          if (level === 'hard' && i >= 3 && !(w && w.pres.length)) bugs.push(`hard #${n}: no query shape after ${i} wrong`);
-          if (level === 'medium' && w && w.pres.length) bugs.push(`medium #${n}: query shape shown (medium already has it in the SQL box)`);
+          if (w && w.pres.length) bugs.push(`${level} #${n}: the hints show a query`);
+          if (level === 'hard' && w && /____/.test(w.text)) bugs.push(`hard #${n}: hints talk about a ____ hard does not have`);
           if (w && i >= want + 1 && !/That’s all Byte has/.test(w.text)) bugs.push(`${level} #${n}: no "that’s all" line after the last hint`);
         }
         const wide = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);

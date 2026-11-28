@@ -709,12 +709,11 @@
       + `<span class="small muted">${shown.length < all.length ? 'Still stuck after your next try? Byte has one more hint.' : `That’s all Byte has. ${S.c.fillIn ? 'Fill in the ____ in the SQL box under the checks and run it' : 'Write the query in the SQL box under the checks'}, then type what it returns.`}</span></div>` : '';
     return `<div class="why">${av('maya')}${esc(text)}</div>${worked}`;
   }
-  // From the second wrong number, Byte helps one step per wrong try: where to look, then (on hard, which has no
-  // fill-in query) the query with its key piece left as ____, then what goes in the ____. Never a query that runs.
+  // From the second wrong number, Byte helps one step per wrong try: where to look, then what the key piece is.
+  // Never a query, not even its shape. Hard has no fill-in query, so there is no ____ to talk about.
   function byteHints() {
     const a = S.c.answerQ;
-    const skeleton = S.c.fillIn ? null : { lead: 'The shape of the query. You fill in the ____:', sql: fillInSql() };
-    return [a.look, skeleton, a.nudge].filter(Boolean);
+    return [a.look, S.c.fillIn ? a.nudge : TAI.hardNudge(a.nudge)];
   }
   const codeText = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>'); // `name` in hint text is a table or column
 
