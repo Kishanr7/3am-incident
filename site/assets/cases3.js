@@ -133,7 +133,7 @@
           seen: 'Every customer given the same email address. All stock set to zero. Every user made an admin. Usually by a senior engineer, on a Friday, in a hurry.',
         },
         truth: { answer: money(loss), loss, nSku, X, drop },
-        answerQ: { value: loss, money: true, blank: X, what: `the money lost on ${Df}`, sql: `SELECT ROUND(SUM(i.qty * (a.old_price - i.unit_price)), 2) AS lost\nFROM order_items i\nJOIN price_audit a ON a.sku = i.sku\nWHERE a.changed_at = '${X}'\n  AND i.sold_at >= '${X}';` },
+        answerQ: { value: loss, money: true, blank: X, what: `the money lost on ${Df}`, look: `You need two tables: \`order_items\` (what was sold, and at what price) and \`price_audit\` (each product’s old price). Match them on \`sku\`, and only count items sold after the bad change.`, nudge: `Both ____ are the same timestamp: the moment the bad change ran. Copy it exactly from \`changed_at\` in \`price_audit\`.`, sql: `SELECT ROUND(SUM(i.qty * (a.old_price - i.unit_price)), 2) AS lost\nFROM order_items i\nJOIN price_audit a ON a.sku = i.sku\nWHERE a.changed_at = '${X}'\n  AND i.sold_at >= '${X}';` },
         checks: [
           { label: 'answer query returns the loss', sql: `SELECT ROUND(SUM(i.qty * (a.old_price - i.unit_price)), 2) FROM order_items i JOIN price_audit a ON a.sku = i.sku WHERE a.changed_at = '${X}' AND i.sold_at >= '${X}'`, test: (r) => Math.abs(r[0][0] - loss) < 0.011 },
           { label: 'the bad UPDATE touched every product', sql: `SELECT COUNT(*) FROM price_audit WHERE changed_at = '${X}'`, test: (r) => r[0][0] === nSku },
@@ -240,7 +240,7 @@
           seen: 'Customers charged twice after a payment retry. Duplicate rows after a re-run ETL load. The same push notification three times. Double payouts to suppliers.',
         },
         truth: { answer: num(dup), dup, k, total },
-        answerQ: { value: dup, money: false, blank: 'HAVING', what: `the customers who got ${campaign} more than once`, sql: `SELECT COUNT(*) AS customers\nFROM (\n  SELECT customer_id\n  FROM email_sends\n  GROUP BY customer_id\n  HAVING COUNT(*) > 1\n);` },
+        answerQ: { value: dup, money: false, blank: 'HAVING', what: `the customers who got ${campaign} more than once`, look: `The answer is a number of customers, not of emails. In \`email_sends\`, group the sends by \`customer_id\` and keep the customers who got more than one, then count them.`, nudge: `The ____ is a SQL keyword: the one that filters groups after GROUP BY. WHERE can’t see COUNT(*).`, sql: `SELECT COUNT(*) AS customers\nFROM (\n  SELECT customer_id\n  FROM email_sends\n  GROUP BY customer_id\n  HAVING COUNT(*) > 1\n);` },
         checks: [
           { label: 'customers with 2+ sends = batches before the timeout', sql: 'SELECT COUNT(*) FROM (SELECT customer_id FROM email_sends GROUP BY customer_id HAVING COUNT(*) > 1)', test: (r) => r[0][0] === dup },
           { label: 'nobody got it three times', sql: 'SELECT MAX(n) FROM (SELECT COUNT(*) AS n FROM email_sends GROUP BY customer_id)', test: (r) => r[0][0] === 2 },
@@ -346,7 +346,7 @@
           seen: 'Customers billed because a NULL end date read as “still active”. Users excluded from a report because NOT IN met a NULL. Averages skewed because NULL became 0.',
         },
         truth: { answer: num(W), W, allD, drop },
-        answerQ: { value: W, money: false, blank: 'IS NULL', what: `the accounts wrongly deleted on ${Df}`, sql: `SELECT COUNT(*) AS wrongly_deleted\nFROM deleted_users\nWHERE DATE(deleted_at) = '${D}'\n  AND last_login IS NULL;` },
+        answerQ: { value: W, money: false, blank: 'IS NULL', what: `the accounts wrongly deleted on ${Df}`, look: `Count the rows of \`deleted_users\` from the clean-up on ${Df} (\`deleted_at\`), but only the accounts the job got wrong. Look closely at \`last_login\` for those accounts.`, nudge: `The ____ is how SQL tests for an empty value. (= NULL never matches anything.)`, sql: `SELECT COUNT(*) AS wrongly_deleted\nFROM deleted_users\nWHERE DATE(deleted_at) = '${D}'\n  AND last_login IS NULL;` },
         checks: [
           { label: 'NULL logins on D = wrongly deleted', sql: `SELECT COUNT(*) FROM deleted_users WHERE DATE(deleted_at) = '${D}' AND last_login IS NULL`, test: (r) => r[0][0] === W },
           { label: 'no NULL deletions on other days', sql: `SELECT COUNT(*) FROM deleted_users WHERE DATE(deleted_at) <> '${D}' AND last_login IS NULL`, test: (r) => r[0][0] === 0 },
@@ -454,7 +454,7 @@
           seen: 'A “SELECT *” in a scheduled job that cost thousands a month. A test query left on a schedule. A BI tool refreshing every minute against raw data.',
         },
         truth: { answer: money(tileCost), tileCost, dashCost, times },
-        answerQ: { value: tileCost, money: true, blank: badTile[1], what: `the tile’s cost on ${Df}`, sql: `SELECT ROUND(SUM(cost_usd), 2) AS tile_cost\nFROM query_history\nWHERE query_hash = '${badTile[1]}'\n  AND DATE(started_at) = '${D}';` },
+        answerQ: { value: tileCost, money: true, blank: badTile[1], what: `the tile’s cost on ${Df}`, look: `Add up \`cost_usd\` in \`query_history\` for ${Df} (\`started_at\`), but only for the one tile’s query. \`dashboard_tiles\` shows which \`query_hash\` belongs to which tile.`, nudge: `The ____ is a \`query_hash\`: the tile that refreshes far more often than the rest (\`refresh_minutes\` in \`dashboard_tiles\`).`, sql: `SELECT ROUND(SUM(cost_usd), 2) AS tile_cost\nFROM query_history\nWHERE query_hash = '${badTile[1]}'\n  AND DATE(started_at) = '${D}';` },
         checks: [
           { label: 'tile cost on D', sql: `SELECT ROUND(SUM(cost_usd), 2) FROM query_history WHERE query_hash = '${badTile[1]}' AND DATE(started_at) = '${D}'`, test: (r) => Math.abs(r[0][0] - tileCost) < 0.011 },
           { label: sameDay ? 'tile runs every 5 minutes from its creation on D' : 'tile runs every 5 minutes on D', sql: `SELECT COUNT(*) FROM query_history WHERE query_hash = '${badTile[1]}' AND DATE(started_at) = '${D}'`, test: (r) => r[0][0] === (sameDay ? Math.ceil((endMin - startMin - 5) / 5) : 288) }, // from creation to midnight
