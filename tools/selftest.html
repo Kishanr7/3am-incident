@@ -102,6 +102,7 @@
           for (const m of h.matchAll(/`([^`]+)`/g)) if (!names.has(m[1])) fail(k + ' hint names ' + m[1] + ', not a table or column');
         }
         if (!/____/.test(a.nudge)) fail('nudge hint does not say what the ____ is');
+        { const h = TAI.hardNudge(a.nudge); if (/____/.test(h) || !/^The key piece is/.test(h) || bq.test(h)) fail('hard nudge hint reads wrong: ' + h); }
         if (bq.test(a.sql.split(a.blank).join('____'))) fail('the fill-in query still shows the blank ' + a.blank);
       }
       // medium/hard, and easy from level rules v3: no ready-made check may show the real number for the incident day
