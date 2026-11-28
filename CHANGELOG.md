@@ -7,6 +7,9 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+### Changed
+- README: the preview image at the top; Byte's hints described as they work since v1.9.0 (it used to say Byte shows the full query); case time by level; the cast listed once.
+
 ## [1.9.2] - 2026-11-28: No answer in the explanations
 
 ### Fixed
