@@ -7,6 +7,13 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.9.4] - 2026-11-29: Real screenshots
+
+### Changed
+- The link preview image (`og.png`, shown when the link is shared and at the top of the README) is now a real
+  screenshot of a case (Daily #18), not a drawn mock-up. Its alt text describes the screenshot.
+- README: a second real screenshot (`docs/investigating.png`) shows a check's result and the report.
+
 ## [1.9.3] - 2026-11-28: Feedback for everyone
 
 ### Fixed
@@ -293,7 +300,8 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 - Daily cases from seven generated case types, a practice library of 100 cases, streaks, the cast, and an installable
   app that works offline.
 
-[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.9.3...HEAD
+[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.9.4...HEAD
+[1.9.4]: https://github.com/Kishanr7/3am-incident/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/Kishanr7/3am-incident/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/Kishanr7/3am-incident/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/Kishanr7/3am-incident/compare/v1.9.0...v1.9.1
