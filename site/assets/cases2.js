@@ -133,7 +133,7 @@
           seen: 'Prices stored in cents in one service and dollars in another. Durations in seconds vs milliseconds. Weights in grams vs kilograms. Currencies with no decimal places (like yen) treated like dollars.',
         },
         truth: { answer: money(trueRev), trueRev, dashRev, pebbleN, up },
-        answerQ: { value: trueRev, money: true, blank: NEW, what: `the real revenue on ${Df}`, sql: `SELECT ROUND(SUM(CASE WHEN provider = '${NEW}'\n  THEN amount / 100.0 ELSE amount END), 2) AS real_revenue\nFROM payments\nWHERE DATE(received_at) = '${D}';` },
+        answerQ: { value: trueRev, money: true, blank: NEW, what: `the real revenue on ${Df}`, look: `Add up \`amount\` in \`payments\` for ${Df} (\`received_at\`). Before you do, check that every provider sends \`amount\` in the same unit: compare their raw webhooks.`, nudge: `The ____ is a provider name: the one whose amounts are in a different unit. \`integrations\` and \`raw_webhooks\` show which.`, sql: `SELECT ROUND(SUM(CASE WHEN provider = '${NEW}'\n  THEN amount / 100.0 ELSE amount END), 2) AS real_revenue\nFROM payments\nWHERE DATE(received_at) = '${D}';` },
         checks: [
           { label: 'true revenue = Pebble / 100 + others', sql: `SELECT ROUND(SUM(CASE WHEN provider = '${NEW}' THEN amount / 100.0 ELSE amount END), 2) FROM payments WHERE DATE(received_at) = '${D}'`, test: (v) => Math.abs(v[0][0] - trueRev) < 0.011 },
           { label: 'dashboard equals raw sum', sql: `SELECT revenue, (SELECT ROUND(SUM(amount), 2) FROM payments WHERE DATE(received_at) = '${D}') FROM daily_revenue WHERE day = '${D}'`, test: (v) => Math.abs(v[0][0] - dashRev) < 0.011 && Math.abs(v[0][1] - dashRev) < 0.011 },
@@ -249,7 +249,7 @@
           seen: 'A payment status renamed in a new API version. A country code changing from “UK” to “GB”. A new product type that the revenue model never heard of.',
         },
         truth: { answer: money(trueRev), trueRev, dashRev, P, drop },
-        answerQ: { value: trueRev, money: true, blank: 'succeeded', what: `the real revenue on ${Df}`, sql: `SELECT ROUND(SUM(amount), 2) AS real_revenue\nFROM orders\nWHERE DATE(created_at) = '${D}'\n  AND status IN ('paid', 'succeeded');` },
+        answerQ: { value: trueRev, money: true, blank: 'succeeded', what: `the real revenue on ${Df}`, look: `Add up \`amount\` in the raw \`orders\` for ${Df} (\`created_at\`), counting every order that was really paid. Check which \`status\` values each provider uses for a paid order.`, nudge: `The ____ is a \`status\` value: another word one provider now uses for paid. \`provider_changelog\` has it.`, sql: `SELECT ROUND(SUM(amount), 2) AS real_revenue\nFROM orders\nWHERE DATE(created_at) = '${D}'\n  AND status IN ('paid', 'succeeded');` },
         checks: [
           { label: 'true revenue = paid + succeeded', sql: `SELECT ROUND(SUM(amount), 2) FROM orders WHERE DATE(created_at) = '${D}' AND status IN ('paid', 'succeeded')`, test: (v) => Math.abs(v[0][0] - trueRev) < 0.011 },
           { label: 'dashboard = paid only', sql: `SELECT revenue FROM daily_revenue WHERE day = '${D}'`, test: (v) => Math.abs(v[0][0] - dashRev) < 0.011 },
@@ -356,7 +356,7 @@
           seen: 'Daylight-saving weeks with 23 or 25 hours. A server moved to a new region. A mobile app sending phone time instead of server time. A report that splits a week at UTC midnight for a team in India.',
         },
         truth: { answer: num(trueD), trueD, dashD, drop, nightD1 },
-        answerQ: { value: trueD, money: false, blank: '-5 hours', what: `the real number of orders on ${Df}, local time`, sql: `SELECT COUNT(*) AS real_orders\nFROM orders\nWHERE DATE(CASE WHEN ingest_version = 'v2'\n  THEN DATETIME(created_at, '-5 hours')\n  ELSE created_at END) = '${D}';` },
+        answerQ: { value: trueD, money: false, blank: '-5 hours', what: `the real number of orders on ${Df}, local time`, look: `Count the raw \`orders\` whose local date is ${Df}. Not every row writes \`created_at\` in the same time zone: \`ingest_version\` tells you which rows need shifting before you take the date.`, nudge: `The ____ is a time shift for SQLite’s DATETIME(), written like '+2 hours'. The \`deploys\` table says how far v2’s timestamps are from local time.`, sql: `SELECT COUNT(*) AS real_orders\nFROM orders\nWHERE DATE(CASE WHEN ingest_version = 'v2'\n  THEN DATETIME(created_at, '-5 hours')\n  ELSE created_at END) = '${D}';` },
         checks: [
           { label: 'true local count for D', sql: `SELECT COUNT(*) FROM orders WHERE (ingest_version = 'v1' AND DATE(created_at) = '${D}') OR (ingest_version = 'v2' AND DATE(created_at, '-${OFF} hours') = '${D}')`, test: (v) => v[0][0] === trueD },
           { label: 'dashboard for D equals stored date D', sql: `SELECT orders, (SELECT COUNT(*) FROM orders WHERE DATE(created_at) = '${D}') FROM daily_orders WHERE day = '${D}'`, test: (v) => v[0][0] === dashD && v[0][1] === dashD },
@@ -456,7 +456,7 @@
           seen: 'A one-off fix re-run with a LIMIT still in it. A backfill pointed at a dev table. A re-run that used today’s exchange rates for last year’s revenue.',
         },
         truth: { answer: num(missing), missing, R },
-        answerQ: { value: missing, money: false, blank: 'web', what: 'how many orders are missing from the dashboard', sql: `SELECT COUNT(*) AS missing_orders\nFROM orders\nWHERE DATE(created_at) BETWEEN '${R[0]}' AND '${R[2]}'\n  AND channel <> 'web';` },
+        answerQ: { value: missing, money: false, blank: 'web', what: 'how many orders are missing from the dashboard', look: `Count raw \`orders\` on the days the backfill rewrote that its filter left out. \`backfill_runs\` shows which days (\`days\`) and which rows it kept (\`filter\`); compare that with the \`channel\` values in \`orders\`.`, nudge: `The ____ is a \`channel\` value: the only one the backfill kept. Read the \`filter\` column in \`backfill_runs\`.`, sql: `SELECT COUNT(*) AS missing_orders\nFROM orders\nWHERE DATE(created_at) BETWEEN '${R[0]}' AND '${R[2]}'\n  AND channel <> 'web';` },
         checks: [
           { label: 'missing = raw - dashboard over rewritten days', sql: `SELECT SUM(r.n - d.orders) FROM daily_orders d JOIN (SELECT DATE(created_at) AS day, COUNT(*) AS n FROM orders GROUP BY 1) r USING (day) WHERE d.day IN ('${R.join("','")}')`, test: (v) => v[0][0] === missing },
           { label: 'other days match raw', sql: `SELECT COUNT(*) FROM daily_orders d JOIN (SELECT DATE(created_at) AS day, COUNT(*) AS n FROM orders GROUP BY 1) r USING (day) WHERE d.orders <> r.n`, test: (v) => v[0][0] === 3 },

@@ -365,7 +365,7 @@
           <details class="card tables" style="margin-top:10px"><summary>🗂️ What’s in the database (${c.tables.length} tables, SQLite)</summary>${tablesHtml}</details>
           <details class="card own" style="margin-top:10px" ${c.fillIn ? 'open' : ''}>
             <summary>${c.fillIn ? '🧩 Finish the query that finds the real number' : 'Write your own SQL'} <span class="dbtag">SQLite</span></summary>
-            ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace <b>____</b> with the right value, then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
+            ${c.fillIn ? '<p class="small" style="margin:6px 0 0">Replace ' + (fillInSql().split('____').length > 2 ? 'both <b>____</b> with the same right value' : '<b>____</b> with the right value') + ', then run it. The checks tell you what goes there. Copy text exactly as the data shows it: <code>\'Abc\'</code> and <code>\'abc\'</code> are different values.</p>' : ''}
             <div class="schema">${schema}</div>
             ${dialectHtml()}
             <label class="sr" for="ownSql">Your SQL</label>
@@ -691,7 +691,7 @@
   const numQ = () => S.c.questions[S.c.questions.length - 1];
   const isTyped = (q) => S.c.typed && q === numQ();
   const parseNum = (s) => { const x = Number(String(s || '').replace(/[$,\s]/g, '')); return String(s || '').trim() && isFinite(x) ? x : NaN; };
-  function fillInSql() { const a = S.c.answerQ; return a ? a.sql.replace(a.blank, '____') : ''; }
+  function fillInSql() { const a = S.c.answerQ; return a ? a.sql.split(a.blank).join('____') : ''; } // every copy: a piece used twice must not show in the second spot
   // Any number in a query result that matches the real one earns the star.
   function checkStar(sql) {
     if (S.rec.star || !S.c.answerQ) return false;
@@ -704,9 +704,19 @@
     const tries = S.rec.numWrong || 0;
     let text = near ? near.why : 'That’s not the number I get. Count it straight from the raw data, not the dashboard.';
     if (isNaN(x)) text = 'I need a number, like 1234 or $1,234.56.';
-    const worked = tries >= 2 ? `<div class="worked"><b>🐾 Byte dragged this query onto your screen:</b><pre class="sql">${esc(S.c.answerQ.sql)}</pre><span class="small muted">Run it in the SQL box under the checks, then type what it returns.</span></div>` : '';
+    const all = byteHints(), shown = all.slice(0, Math.max(0, tries - 1));
+    const worked = shown.length ? `<div class="worked"><b>🐾 Byte paws at your screen. ${shown.length === 1 ? 'A hint' : 'Hints'}, not the answer:</b><ol>${shown.map((h) => `<li>${h.sql ? `${esc(h.lead)}<pre class="sql">${esc(h.sql)}</pre>` : codeText(h)}</li>`).join('')}</ol>`
+      + `<span class="small muted">${shown.length < all.length ? 'Still stuck after your next try? Byte has one more hint.' : `That’s all Byte has. ${S.c.fillIn ? 'Fill in the ____ in the SQL box under the checks and run it' : 'Write the query in the SQL box under the checks'}, then type what it returns.`}</span></div>` : '';
     return `<div class="why">${av('maya')}${esc(text)}</div>${worked}`;
   }
+  // From the second wrong number, Byte helps one step per wrong try: where to look, then (on hard, which has no
+  // fill-in query) the query with its key piece left as ____, then what goes in the ____. Never a query that runs.
+  function byteHints() {
+    const a = S.c.answerQ;
+    const skeleton = S.c.fillIn ? null : { lead: 'The shape of the query. You fill in the ____:', sql: fillInSql() };
+    return [a.look, skeleton, a.nudge].filter(Boolean);
+  }
+  const codeText = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>'); // `name` in hint text is a table or column
 
   // ---------------- report ----------------
   function renderReport() {
