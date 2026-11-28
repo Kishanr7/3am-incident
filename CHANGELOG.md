@@ -7,6 +7,13 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-28: No query shape in Byte's hints
+
+### Changed
+- Hard cases no longer get the "shape of the query" hint (the answer query with one piece left as ____): it gave away
+  nearly the whole query. Hard now gets two hints like medium: where to look, then what the key piece is. Since hard
+  has no fill-in query, that last hint says "The key piece is…" instead of talking about a ____.
+
 ## [1.9.0] - 2026-11-28: Byte hints, never the answer
 
 ### Changed
