@@ -31,6 +31,9 @@ const solve = (p) => p.evaluate(() => { const c = window.__tai.state.c; for (con
       await solve(p); await p.waitForTimeout(300);
       const res = await p.locator('.vsres').textContent().catch(() => '');
       if (!/beat your friend by 10 minutes/.test(res)) bugs.push('challenge result wrong: ' + res);
+      // Strangers have no "person who sent you the link": feedback goes to GitHub issues.
+      if ((await p.locator('#report a[href="https://github.com/Kishanr7/3am-incident/issues/new"]').count()) !== 1) bugs.push('solved screen has no GitHub feedback link');
+      if (/person who sent you/.test(await p.textContent('#report'))) bugs.push('solved screen still says "tell the person who sent you the link"');
       const share = await p.textContent('#shareText');
       const link = (share.match(/Beat my time: (\S+)/) || [])[1] || '';
       if (!link.endsWith('#/daily/' + today + '?vs=25.2')) bugs.push('share link wrong: ' + link);
