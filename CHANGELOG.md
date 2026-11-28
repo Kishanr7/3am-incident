@@ -7,6 +7,25 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-28: Byte hints, never the answer
+
+### Changed
+- After two wrong numbers (medium and hard), Byte no longer puts the full answer query on screen. Each further wrong
+  number unlocks one more hint instead: first where to look (which tables and columns, what to filter or compare),
+  then on hard the shape of the query with its key piece left as ____, then a clue to what goes in the ____. Medium
+  already has that shape in its SQL box, so it gets two hints. Byte never shows a query that runs.
+- The hints are written per case type from the case's own tables, columns and dates, so they hold for every daily
+  and practice case. Answers, options and story text are unchanged in all 1,100 cases checked.
+
+### Fixed
+- The fill-in query left the missing piece visible when it appears twice (the wrong-prices case uses the same
+  timestamp in two places). Both places are now ____.
+
+### Tests
+- Self-test: every case has both hints; they contain no SQL, never give away the missing piece and only name real
+  tables and columns; the fill-in query never shows the missing piece.
+- `tools/xbrowser/hints-test.js`: four wrong numbers on a medium and a hard case on all 11 setups.
+
 ## [1.8.2] - 2026-11-27: Shorter search description
 
 ### Fixed
