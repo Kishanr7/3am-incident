@@ -228,6 +228,8 @@
   // Does a typed or queried number match the real one? Counts must be exact; money within a dollar.
   function matchesAnswer(c, x) { if (!c.answerQ || typeof x !== 'number' || !isFinite(x)) return false; return c.answerQ.money ? Math.abs(x - c.answerQ.value) < 1 : Math.abs(x - c.answerQ.value) < 0.5; }
   TAI.practiceMeta = practiceMeta; TAI.practiceCase = practiceCase; TAI.applyLevel = applyLevel;
+  // Byte's last hint names the ____ of the fill-in query. Hard has no fill-in query, so it speaks of the key piece.
+  TAI.hardNudge = (s) => s.replace(/ \([^)]*____[^)]*\)/g, '').replace(/^The ____ is/, 'The key piece is');
   TAI.dailyLevel = dailyLevel; TAI.dailyCase = dailyCase; TAI.matchesAnswer = matchesAnswer;
 
 
