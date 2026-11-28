@@ -423,7 +423,7 @@
       const cause = [
         opt('backfill', `A backfill yesterday reran ${Rf} with a test filter (channel = 'web') still on, so app orders vanished.`, true),
         opt('dedupe', `A dedupe fix removed orders that had been counted twice on ${Rf}, so the lower numbers are the true ones.`, false, `The raw orders table has every app order once. Nothing was double counted; app orders were dropped from three days.`),
-        opt('privacy', `Privacy deletion requests processed this week erased those customers’ orders from ${Rf} for good.`, false, `Deletion requests removed ${sum(deletions.map((x) => x[2]))} orders in the last four days. The gap is ${num(missing)}.`),
+        opt('privacy', `Privacy deletion requests processed this week erased those customers’ orders from ${Rf} for good.`, false, `Deletion requests removed ${sum(deletions.map((x) => x[2]))} orders in the last four days, far fewer than are missing from the dashboard.`),
         opt('ui', 'The dashboard-ui deploy with new chart colours and dark mode broke the chart, so it shows wrong values.', false, 'The table under the chart changed: its updated_at shows those rows were rewritten yesterday, and the raw orders table still has the missing orders.'),
       ];
       const wrongN = distractors(missing, [
@@ -434,11 +434,11 @@
       const numberQ = [opt('n_true', num(missing), true)].concat(wrongN.map((w, i) => opt('n_' + i, num(w.v), false, w.why)));
       return {
         valid: true,
-        teaser: `${co.name}’s numbers for last week changed overnight. Nobody touched them. Supposedly.`,
+        teaser: `${co.name}’s numbers for the past week changed overnight. Nobody touched them. Supposedly.`,
         reporter: 'maya',
         intro: [
           { who: 'alert', text: `daily_orders: 3 past days changed since yesterday (${Rf}), down ${pct(missing / sum(R.map(tot)))}. All jobs: SUCCESS.` },
-          { who: 'maya', text: v([`My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.`, `Last week’s numbers changed overnight. My report already went to the board. Was I wrong, or was the dashboard changed? And by how much?`, `${midF}: my report says ${num(tot(mid))} orders, the dashboard now says ${num(cnt[mid].web)}. Past days don’t change by themselves. What changed them, and how many orders are missing?`, `I hate it when history changes. Three past days look different this morning. Tell me what happened and how many orders went missing.`]) },
+          { who: 'maya', text: v([`My weekly report says ${midF} had ${num(tot(mid))} orders. The dashboard now says ${num(cnt[mid].web)}. The board already has my report. Which is right, and what happened? I need the total damage too.`, `Numbers from the past week changed overnight. My report already went to the board. Was I wrong, or was the dashboard changed? And by how much?`, `${midF}: my report says ${num(tot(mid))} orders, the dashboard now says ${num(cnt[mid].web)}. Past days don’t change by themselves. What changed them, and how many orders are missing?`, `I hate it when history changes. Three past days look different this morning. Tell me what happened and how many orders went missing.`]) },
           { who: 'sam', text: v(['not me this time. i swear 👀', 'i didn’t touch anything. i don’t even have edit rights on the dashboard. do i??', 'the new dark mode is cute though. unrelated. probably']) },
         ],
         tables, cards,
