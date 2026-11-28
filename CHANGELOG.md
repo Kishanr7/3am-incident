@@ -7,8 +7,19 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-11-28: Feedback for everyone
+
+### Fixed
+- The solved screen asked for feedback with "Tell the person who sent you the link", which made sense for friends but
+  not for players arriving from a post. It now links to a new GitHub issue ("Tell us on GitHub"), or says to reply
+  where they found the link.
+
 ### Changed
-- README: the preview image at the top; Byte's hints described as they work since v1.9.0 (it used to say Byte shows the full query); case time by level; the cast listed once.
+- README: the preview image at the top; Byte's hints described as they work since v1.9.0 (it used to say Byte shows the
+  full query); case time by level; the cast listed once.
+
+### Tests
+- `step2-test.js`: the solved screen has the GitHub feedback link and no longer mentions "the person who sent you".
 
 ## [1.9.2] - 2026-11-28: No answer in the explanations
 
@@ -282,7 +293,8 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 - Daily cases from seven generated case types, a practice library of 100 cases, streaks, the cast, and an installable
   app that works offline.
 
-[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.9.3...HEAD
+[1.9.3]: https://github.com/Kishanr7/3am-incident/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/Kishanr7/3am-incident/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/Kishanr7/3am-incident/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/Kishanr7/3am-incident/compare/v1.8.2...v1.9.0

@@ -826,7 +826,7 @@
       </div>
       <div class="card small" style="margin-top:12px">
         <b>Want a harder one?</b> <a href="case-1/">Case file #1: The Missing Revenue</a> gives you a full SQL console and no query cards.
-        <br><span class="muted">Feedback helps more than anything: what was confusing, too easy, or unrealistic? Tell the person who sent you the link.</span>
+        <br><span class="muted">Feedback helps more than anything: what was confusing, too easy, or unrealistic? <a href="https://github.com/Kishanr7/3am-incident/issues/new" rel="noopener" target="_blank">Tell us on GitHub</a>, or reply where you found the link.</span>
       </div>`;
     document.getElementById('copy').onclick = () => {
       const text = shareText();
