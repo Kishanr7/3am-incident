@@ -1,4 +1,4 @@
-// Weekly difficulty, typed numbers, fill-in query, worked example, bonus star. Usage: node step3-test.js [baseUrl]
+// Weekly difficulty, typed numbers, fill-in query, Byte’s hints after wrong numbers, bonus star. Usage: node step3-test.js [baseUrl]
 const { chromium, webkit, devices } = require('playwright');
 const path = require('path');
 const BASE = process.argv[2] || 'http://localhost:8767/site/';
@@ -86,7 +86,9 @@ const SETUPS = [
       await p.fill('#ans_' + numId, 'abc'); await tap('#send'); await sleep(200);
       const why = await p.textContent('#report .why').catch(() => '');
       if (!/I need a number/.test(why)) bugs.push('non-number feedback: ' + why);
-      if (!(await p.locator('.worked').count())) bugs.push('no worked example after 2 wrong numbers');
+      if (!(await p.locator('.worked').count())) bugs.push('no hint from Byte after 2 wrong numbers');
+      const workedText = await p.textContent('.worked').catch(() => '');
+      if (await p.evaluate((t) => t.replace(/\s+/g, ' ').includes(window.__tai.state.c.answerQ.sql.replace(/\s+/g, ' ')), workedText)) bugs.push('Byte shows the full answer query');
       // fill the blank correctly and run -> star earned before solving
       const filled = await p.evaluate(() => { const a = window.__tai.state.c.answerQ; return a.sql; });
       await p.fill('#ownSql', filled); await tap('#runOwn'); await sleep(300);
