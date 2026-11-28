@@ -2,11 +2,15 @@
 
 [![Play](https://img.shields.io/badge/play-3am--incident--kish.netlify.app-2f6f6a)](https://3am-incident-kish.netlify.app) [![Release](https://img.shields.io/github/v/release/Kishanr7/3am-incident)](https://github.com/Kishanr7/3am-incident/releases) [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-[![3 a.m. Incident: every job says SUCCESS, the number is still wrong](site/og.png)](https://3am-incident-kish.netlify.app)
+[![A case in the game: the alert, the CFO asking why the cloud bill was 4.1 times normal, and the checks you can run](site/og.png)](https://3am-incident-kish.netlify.app)
 
 **A daily data mystery.** The dashboard says something terrible happened overnight. Every job says SUCCESS. Find out what really happened before the 9:00 meeting.
 
 **Play it:** https://3am-incident-kish.netlify.app (free, no sign-up, works offline once loaded; install it on your phone from the browser menu).
+
+Run a check and its result appears in the case; answer in the report to Maya:
+
+![A check's result (cost per user) above the report's answer options](docs/investigating.png)
 
 > Status: public since 22 Nov 2026. Early days: a handful of players so far. Feedback and case ideas welcome as GitHub issues.
 
@@ -96,6 +100,7 @@ The palette was chosen for calm, not drama. Research on colour and emotion finds
 | `site/_headers`, `netlify.toml` | Security headers (Content-Security-Policy lists every outside host); Netlify publishes `site/` only |
 | `site/assets/stats.js`, `site/privacy/` | Cookie-free visit counts and the privacy note |
 | `site/404.html`, `site/robots.txt`, `site/sitemap.xml`, `site/favicon.*` | Not-found page, crawler files, favicons |
+| `site/og.png`, `docs/investigating.png` | Real screenshots: the link preview (also at the top of this page) and a check's result |
 | `tools/selftest.html` | Generator self-test (not published) |
 | `PILOT.md`, `VISION.md` | Pilot plan and thresholds; where this could go |
 
