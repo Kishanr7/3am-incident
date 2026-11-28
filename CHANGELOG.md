@@ -7,6 +7,20 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-28: No answer in the explanations
+
+### Fixed
+- Picking some wrong causes showed an explanation that stated the real number, so the second question was answered for
+  you. *The Late Partition* (three explanations), *The Vanishing Sign-ups* and *The Rewritten Week* now describe the
+  evidence without the number (for example "the raw orders table holds about a normal day's orders"). Found while
+  playing the launch-day dailies #22, #23 and #29.
+- *The Rewritten Week* said "last week's numbers", but the rewritten days can fall earlier in the same week. It now
+  says "the past week".
+
+### Tests
+- Self-test: no wrong cause's explanation may state the real number. Answers, options and data are unchanged in all
+  1,148 cases.
+
 ## [1.9.1] - 2026-11-28: No query shape in Byte's hints
 
 ### Changed
@@ -265,7 +279,18 @@ Each release also bumps the offline cache version in `site/sw.js` (`tai-vN`), so
 - Daily cases from seven generated case types, a practice library of 100 cases, streaks, the cast, and an installable
   app that works offline.
 
-[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/Kishanr7/3am-incident/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/Kishanr7/3am-incident/compare/v1.9.1...v1.9.2
+[1.9.1]: https://github.com/Kishanr7/3am-incident/compare/v1.9.0...v1.9.1
+[1.9.0]: https://github.com/Kishanr7/3am-incident/compare/v1.8.2...v1.9.0
+[1.8.2]: https://github.com/Kishanr7/3am-incident/compare/v1.8.1...v1.8.2
+[1.8.1]: https://github.com/Kishanr7/3am-incident/compare/v1.8.0...v1.8.1
+[1.8.0]: https://github.com/Kishanr7/3am-incident/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/Kishanr7/3am-incident/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/Kishanr7/3am-incident/compare/v1.5.1...v1.6.0
+[1.5.1]: https://github.com/Kishanr7/3am-incident/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/Kishanr7/3am-incident/compare/v1.4.2...v1.5.0
+[1.4.2]: https://github.com/Kishanr7/3am-incident/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/Kishanr7/3am-incident/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Kishanr7/3am-incident/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Kishanr7/3am-incident/compare/v1.2.0...v1.3.0
