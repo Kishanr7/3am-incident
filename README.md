@@ -2,6 +2,8 @@
 
 [![Play](https://img.shields.io/badge/play-3am--incident--kish.netlify.app-2f6f6a)](https://3am-incident-kish.netlify.app) [![Release](https://img.shields.io/github/v/release/Kishanr7/3am-incident)](https://github.com/Kishanr7/3am-incident/releases) [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
+[![3 a.m. Incident: every job says SUCCESS, the number is still wrong](site/og.png)](https://3am-incident-kish.netlify.app)
+
 **A daily data mystery.** The dashboard says something terrible happened overnight. Every job says SUCCESS. Find out what really happened before the 9:00 meeting.
 
 **Play it:** https://3am-incident-kish.netlify.app (free, no sign-up, works offline once loaded; install it on your phone from the browser menu).
@@ -12,7 +14,7 @@
 
 | Mode | What | Where |
 | --- | --- | --- |
-| **Daily case** | A new case every day, 5–10 minutes, tap-to-investigate. A "Your job" box lists the two questions to answer, and "What’s in the database" explains every table. Same case for everyone on a given date. Streak kept on the device | Home page |
+| **Daily case** | A new case every day, about 5 minutes on easy days and 15–20 on hard ones, tap-to-investigate. A "Your job" box lists the two questions to answer, and "What’s in the database" explains every table. Same case for everyone on a given date. Streak kept on the device | Home page |
 | **Practice library** | 122 cases: 46 easy, 42 medium, 34 hard. #1–100 cover six of the first seven types (the retired cents type is hidden); #101–136 the four production incidents (3 of each per level). Easy: options plus a fill-in query, two red herrings; medium: type the number, one of the usual checks hidden; hard: three hidden, write your own SQL | Home page → Practice library |
 | **Case files** | Case #1, *The Missing Revenue*: a full SQL console, no query cards, 20–30 minutes, laptop | `/case-1/` |
 
@@ -37,11 +39,10 @@ Each case picks one of several versions of its opening, reactions and closing, s
 
 **Case notes** (📝 in the bottom bar): a panel, closed by default, for keeping track. The – button minimizes it into the Notes button (it shrinks into it), and the Notes button brings it back where it was. On screens 900 px and wider it can be dragged anywhere by its title bar or the ⠿ handle (arrow keys work too) and resized; the position is remembered. On phones it opens above the bottom bar, so Notes, Byte and Report stay reachable. Mark each possible answer ✕ ruled out or ✓ likely (a logic-grid idea, as in Murdle), pin any result with 📌 and jump back to it, and jot numbers in a scratchpad. Saved per case on the device; it never costs game time. Ruled-out answers also look struck through in the report.
 
-**Difficulty by weekday**, like a crossword. From 24 Nov 2026: Sun–Tue easy, Wed–Thu medium, Fri–Sat hard (3 easy, 2 medium, 2 hard). **Easy**: pick the answers from options; no check prints the real number, so you finish a short query (replace one ____) to find it; two red herrings. **Medium**: type the real number, finish the query, and one of the usual checks is missing. **Hard**: type the number, write your own SQL, three checks missing. Earlier dailies keep the rules they were published with (17–23 Nov: Mon–Tue easy with no SQL, Wed–Thu and Sun medium). After two wrong numbers Byte shows the full query. **Bonus ⭐**: write a query that returns the real number.
+**Difficulty by weekday**, like a crossword. From 24 Nov 2026: Sun–Tue easy, Wed–Thu medium, Fri–Sat hard (3 easy, 2 medium, 2 hard). **Easy**: pick the answers from options; no check prints the real number, so you finish a short query (replace one ____) to find it; two red herrings. **Medium**: type the real number, finish the query, and one of the usual checks is missing. **Hard**: type the number, write your own SQL, three checks missing. Earlier dailies keep the rules they were published with (17–23 Nov: Mon–Tue easy with no SQL, Wed–Thu and Sun medium). Stuck? Byte gives hints after wrong numbers: where to look, then what the key piece is, but never the answer or a query that runs. **Bonus ⭐**: write a query that returns the real number.
 
 **Beat my time**: the shared result links to the same case with your finish time; your friend sees it and who won. **Streak protection**: Byte covers one missed day in any 7, automatically; the covered day shows a 🐾 on "This week" and the streak button, with a line saying when the next cover is ready. Solving a missed day later doesn't count for the streak. **Pattern deck**: one card per failure pattern, unlocked by solving that type (★ at 1, 3, 7 solves).
 
-The cast: Maya (CFO), Sam (growth lead), Byte (the on-call cat who gives hints), Old Gus (the legacy cron job) and The Vendor.
 
 ## Phones: install it like an app
 
